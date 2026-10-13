@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ request.property.name }}{% endblock %}
+
+{% block content %}
+{# Temporary until B's navbar includes the switcher #}
+{% include 'accounts/_property_switcher.html' %}
+
+<h1>{{ request.property.name }}</h1>
+<p>ตำแหน่งของคุณ: {{ request.membership.get_role_display }}</p>
+
+<form method="post" action="{% url 'accounts:logout' %}">
+    {% csrf_token %}
+    <button type="submit">ออกจากระบบ</button>
+</form>
+{% endblock %}
