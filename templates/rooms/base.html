@@ -5,7 +5,7 @@
 {% block content %}
 <main class="workspace">
   <header class="masthead"><div><p class="eyebrow">จัดการข้อมูลโรงแรม</p><h1>{{ property.name }}</h1></div><span class="badge">{% if can_write %}จัดการข้อมูล{% else %}ดูข้อมูล{% endif %}</span></header>
-  <nav class="tabs" aria-label="เมนูข้อมูลห้อง">{% for item in navigation %}<a href="{{ item.url }}" {% if item.active %}aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}</nav>
+  <nav class="tabs" aria-label="เมนูข้อมูลห้อง">{% for item in navigation %}<a href="{{ item.url }}" {% if item.active and kind != 'pricing' %}aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}<a href="{{ pricing_url }}" {% if kind == 'pricing' %}aria-current="page"{% endif %}>ปฏิทินราคา</a></nav>
   {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
   {% block inventory_content %}{% endblock %}
 </main>

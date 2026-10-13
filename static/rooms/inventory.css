@@ -30,3 +30,24 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: #12695d; } .fiel
 .details { margin: 0; } .details div { padding: 16px 0; border-bottom: 1px solid #e2e9eb; display: grid; grid-template-columns: 180px 1fr; gap: 14px; } dt { color: #586c76; } dd { margin: 0; overflow-wrap: anywhere; }
 :focus-visible { outline: 3px solid #d7942c; outline-offset: 3px; }
 @media (max-width: 640px) { .workspace { padding: 24px 12px; } .panel { padding: 20px 16px; } .masthead, .section-heading { align-items: flex-start; flex-direction: column; gap: 10px; } .masthead { margin-bottom: 16px; } h1 { margin-bottom: 0; font-size: 24px; } .tabs a { padding: 10px 8px; } .details div { grid-template-columns: 1fr; gap: 4px; } }
+
+.price-filters { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid #dce4e7; }
+.price-filters .field { margin: 0; flex: 1; min-width: 180px; }
+.month-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 24px 0 12px; flex-wrap: wrap; }
+.month-heading h3 { margin: 0; }
+.calendar-scroll { overflow-x: auto; }
+.rate-calendar { table-layout: fixed; min-width: 640px; }
+.rate-calendar caption { text-align: left; margin-bottom: 12px; }
+.rate-calendar th { text-align: center; }
+.rate-calendar td { height: 108px; vertical-align: top; border: 1px solid #e2e9eb; padding: 12px; white-space: normal; font-weight: normal; }
+.rate-calendar td:first-child { min-width: 0; }
+.day-number { color: #586c76; font-size: 14px; }
+.day-price { display: block; padding-top: 10px; }
+.rate-value { font-weight: bold; color: #12695d; overflow-wrap: anywhere; }
+.missing-rate { font-size: 13px; color: #697981; }
+.outside-month { background: #f5f8f8; }
+.price-note { margin: 20px 0 0; font-size: 14px; }
+@media (max-width: 640px) { .price-filters { flex-direction: column; align-items: stretch; } .month-heading { font-size: 14px; } }
+
+.mobile-calendar-hint { display: none; font-size: 13px; }
+@media (max-width: 640px) { .mobile-calendar-hint { display: block; } }
