@@ -1,9 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}หน้าแรก{% endblock %}
+{% block title %}เลือกโรงแรม{% endblock %}
 
 {% block content %}
 <h1>สวัสดี {{ user.email }}</h1>
+
+<h2>เลือกโรงแรม</h2>
+{% if memberships %}
+<ul>
+    {% for membership in memberships %}
+    <li>
+        <a href="{% url 'property_home' property_slug=membership.property.slug %}">{{ membership.property.name }}</a>
+        ({{ membership.get_role_display }})
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>คุณยังไม่ได้เป็นสมาชิกของโรงแรมใด กรุณาติดต่อผู้ดูแลระบบ</p>
+{% endif %}
+
 <form method="post" action="{% url 'accounts:logout' %}">
     {% csrf_token %}
     <button type="submit">ออกจากระบบ</button>

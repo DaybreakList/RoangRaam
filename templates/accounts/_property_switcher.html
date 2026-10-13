@@ -1,0 +1,21 @@
+{% comment %}
+Property switcher for the navbar. Usage: {% include 'accounts/_property_switcher.html' %}
+Needs `switcher_memberships` from apps.accounts.context_processors.property_switcher.
+{% endcomment %}
+{% if switcher_memberships %}
+<div class="property-switcher" x-data="{ open: false }" @click.outside="open = false">
+    <button type="button" @click="open = !open" :aria-expanded="open">
+        {% if request.property %}{{ request.property.name }}{% else %}เลือกโรงแรม{% endif %} ▾
+    </button>
+    <ul x-show="open" style="display: none">
+        {% for membership in switcher_memberships %}
+        <li>
+            <a href="{% url 'property_home' property_slug=membership.property.slug %}"{% if membership.property == request.property %} aria-current="page"{% endif %}>
+                {{ membership.property.name }} ({{ membership.get_role_display }})
+            </a>
+        </li>
+        {% endfor %}
+        <li><a href="{% url 'accounts:home' %}">ดูโรงแรมทั้งหมด</a></li>
+    </ul>
+</div>
+{% endif %}
