@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
     path('p/<slug:property_slug>/', property_home, name='property_home'),
+    path('p/<slug:property_slug>/inventory/', include('apps.rooms.urls')),
 ]
 
 if settings.DEBUG:
