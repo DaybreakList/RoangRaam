@@ -1,0 +1,11 @@
+{% extends "rooms/base.html" %}
+{% block inventory_content %}
+<section class="panel">
+  <div class="section-heading"><div><h2>{{ label }}</h2><p class="muted">ทั้งหมด {{ page.paginator.count }} รายการ</p></div>{% if can_write %}<a class="button" href="{{ create_url }}">เพิ่ม{{ label }}</a>{% endif %}</div>
+  {% if rows %}<div class="table-scroll"><table><thead><tr><th scope="col">{{ label }}</th><th scope="col">รายละเอียด</th><th scope="col">การจัดการ</th></tr></thead><tbody>
+    {% for row in rows %}<tr><td><a href="{{ row.detail_url }}">{{ row.object }}</a></td><td>{{ row.summary|default:"—" }}</td><td><a href="{{ row.detail_url }}">ดูรายละเอียด</a>{% if can_write %} <span class="muted"> / </span><a href="{{ row.edit_url }}">แก้ไข</a>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <nav class="pagination" aria-label="เปลี่ยนหน้า">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">ก่อนหน้า</a>{% endif %}<span>หน้า {{ page.number }} จาก {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?page={{ page.next_page_number }}">ถัดไป</a>{% endif %}</nav>
+  {% else %}<div class="empty"><h3>ยังไม่มี{{ label }}</h3><p>{% if can_write %}เริ่มเพิ่มข้อมูลสำหรับโรงแรมนี้ได้จากปุ่มด้านบน{% else %}ผู้จัดการสามารถเพิ่มข้อมูลสำหรับโรงแรมนี้ได้{% endif %}</p></div>{% endif %}
+</section>
+{% endblock %}

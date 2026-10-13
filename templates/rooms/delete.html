@@ -1,0 +1,10 @@
+{% extends "rooms/base.html" %}
+{% block inventory_content %}
+<section class="panel form-panel"><a class="back" href="{{ list_url }}">← กลับรายการ{{ label }}</a><h2>ยืนยันการลบ{{ label }}</h2>
+<p>ต้องการลบ “{{ object }}” หรือไม่?</p><p class="muted">การลบจะนำรายการนี้ออกจากโรงแรม {{ property.name }}</p>
+{% if kind == 'amenities' %}<p class="muted">ความเชื่อมโยงกับประเภทห้องที่ใช้สิ่งอำนวยความสะดวกนี้จะถูกลบด้วย</p>{% endif %}
+{% if kind == 'room-types' %}<p class="muted">รูปภาพและความเชื่อมโยงสิ่งอำนวยความสะดวกของประเภทห้องนี้จะถูกลบด้วย หากมีห้องพักหรือราคาอ้างอิงอยู่จะไม่สามารถลบได้</p>{% endif %}
+{% if error %}<p class="error-summary" role="alert">{{ error }}</p>{% endif %}
+<form method="post">{% csrf_token %}<div class="actions"><button class="danger" type="submit">ยืนยันลบ</button><a class="button secondary" href="{{ list_url }}">ยกเลิก</a></div></form>
+</section>
+{% endblock %}
