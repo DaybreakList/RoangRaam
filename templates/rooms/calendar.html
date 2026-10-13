@@ -1,0 +1,15 @@
+{% extends "rooms/base.html" %}
+{% block inventory_content %}
+<section class="panel">
+  <div class="section-heading"><div><h2>ปฏิทินราคา</h2><p class="muted">ราคาต่อคืน แยกตามประเภทห้องและวันที่</p></div>{% if can_write and bulk_url %}<a class="button" href="{{ bulk_url }}">ตั้งราคาหลายวัน</a>{% endif %}</div>
+  {% if filter_form %}<form method="get" class="price-filters">
+    {% for field in filter_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button type="submit">แสดงราคา</button>
+  </form>{{ filter_form.non_field_errors }}{% endif %}
+  {% if month %}
+  <div class="month-heading">{% if previous_url %}<a href="{{ previous_url }}" aria-label="เดือนก่อนหน้า">← เดือนก่อน</a>{% endif %}<h3>{{ month|date:"F Y" }}</h3>{% if next_url %}<a href="{{ next_url }}" aria-label="เดือนถัดไป">เดือนถัดไป →</a>{% endif %}</div>
+  <p class="mobile-calendar-hint muted">เลื่อนตารางซ้าย–ขวาเพื่อดูครบทุกวัน</p><div class="calendar-scroll"><table class="rate-calendar"><caption class="muted">{{ room_type.name }} · {% if can_write %}เลือกวันเพื่อตั้งหรือแก้ไขราคา{% else %}ดูราคาอย่างเดียว{% endif %}</caption><thead><tr>{% for weekday in weekdays %}<th scope="col">{{ weekday }}</th>{% endfor %}</tr></thead><tbody>
+    {% for week in weeks %}<tr>{% for cell in week %}<td {% if not cell %}class="outside-month"{% endif %}>{% if cell %}<div class="day-number">{{ cell.day|date:"j" }}</div>{% if can_write %}<a class="day-price" href="{{ cell.edit_url }}" aria-label="ตั้งราคา {{ cell.day|date:'j F Y' }}">{% endif %}{% if cell.has_rate %}<span class="rate-value">{{ cell.price|floatformat:2 }}</span>{% else %}<span class="missing-rate">ยังไม่ตั้งราคา</span>{% endif %}{% if can_write %}</a>{% endif %}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div><p class="muted price-note">วันที่ยังไม่ตั้งราคาไม่มีราคาเริ่มต้นแทนให้อัตโนมัติ การเปลี่ยนราคานี้ไม่เปลี่ยนราคาของการจองที่บันทึกไว้ก่อนหน้า</p>
+  {% elif not filter_form %}<div class="empty"><h3>ยังไม่มีประเภทห้อง</h3><p>เพิ่มประเภทห้องก่อนตั้งราคารายวัน</p>{% if can_write %}<a class="button" href="{{ create_url }}">เพิ่มประเภทห้อง</a>{% endif %}</div>{% endif %}
+</section>
+{% endblock %}

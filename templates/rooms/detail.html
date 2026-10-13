@@ -1,0 +1,7 @@
+{% extends "rooms/base.html" %}
+{% block inventory_content %}
+<section class="panel form-panel"><a class="back" href="{{ list_url }}">← กลับรายการ{{ label }}</a><div class="section-heading"><h2>{{ object }}</h2>{% if can_write %}<a class="button" href="{{ edit_url }}">แก้ไข</a>{% endif %}</div>
+<dl class="details">{% for title, value in details %}<div><dt>{{ title }}</dt><dd>{{ value|linebreaksbr }}</dd></div>{% endfor %}</dl>
+{% if can_write %}<div class="actions"><a class="danger-link" href="{{ delete_url }}">ลบ{{ label }}นี้</a></div>{% endif %}
+</section>
+{% endblock %}
