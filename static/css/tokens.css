@@ -1,0 +1,35 @@
+:root {
+  /* Colors (same palette as static/rooms/inventory.css) */
+  --rr-color-primary: #12695d;
+  --rr-color-primary-hover: #09483f;
+  --rr-color-text: #172b35;
+  --rr-color-muted: #586c76;
+  --rr-color-bg: #f4f6f8;
+  --rr-color-surface: #ffffff;
+  --rr-color-border: #dce4e7;
+  --rr-color-danger: #a52d35;
+  --rr-color-focus: #d7942c;
+
+  /* Font (system fonts only, nothing loaded from outside) */
+  --rr-font-family: Tahoma, "Segoe UI", "Noto Sans Thai", sans-serif;
+  --rr-font-size-sm: 0.875rem;
+  --rr-font-size-md: 1rem;
+  --rr-font-size-lg: 1.1875rem;
+  --rr-line-height: 1.65;
+
+  /* Spacing scale */
+  --rr-space-1: 4px;
+  --rr-space-2: 8px;
+  --rr-space-3: 12px;
+  --rr-space-4: 16px;
+  --rr-space-5: 24px;
+  --rr-space-6: 32px;
+  --rr-space-7: 48px;
+  --rr-space-8: 64px;
+
+  /* Radius */
+  --rr-radius-sm: 6px;
+  --rr-radius-md: 8px;
+  --rr-radius-lg: 14px;
+  --rr-radius-pill: 999px;
+}

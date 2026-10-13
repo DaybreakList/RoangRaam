@@ -1,0 +1,249 @@
+/*
+ * Design system components (week 1). Requires css/tokens.css.
+ * Every selector starts with .rr- so it cannot collide with
+ * static/rooms/inventory.css. No global element selectors here.
+ * Each component sets its own box-sizing, font, color, background and border
+ * so it looks the same whether or not inventory.css is loaded on the page.
+ */
+
+/* ---------- Button ---------- */
+.rr-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rr-space-2);
+  margin: 0;
+  padding: 10px var(--rr-space-4);
+  border: 1px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-color-primary);
+  color: #ffffff;
+  font: inherit;
+  font-family: var(--rr-font-family);
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rr-btn:hover {
+  background: var(--rr-color-primary-hover);
+  border-color: var(--rr-color-primary-hover);
+  color: #ffffff;
+}
+.rr-btn:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 3px;
+}
+.rr-btn--secondary {
+  background: var(--rr-color-surface);
+  border-color: var(--rr-color-border);
+  color: var(--rr-color-text);
+}
+.rr-btn--secondary:hover {
+  background: var(--rr-color-bg);
+  border-color: var(--rr-color-muted);
+  color: var(--rr-color-text);
+}
+.rr-btn--danger {
+  background: var(--rr-color-danger);
+  border-color: var(--rr-color-danger);
+}
+.rr-btn--danger:hover {
+  background: #7f2128;
+  border-color: #7f2128;
+}
+/* Disabled: flat grey, dashed border, no hover change. Works on <button> and <a aria-disabled>. */
+.rr-btn:disabled,
+.rr-btn[disabled],
+.rr-btn[aria-disabled="true"],
+.rr-btn:disabled:hover,
+.rr-btn[disabled]:hover,
+.rr-btn[aria-disabled="true"]:hover {
+  background: #e9eef0;
+  border: 1px dashed #aabbc3;
+  color: #6b7d86;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.rr-btn[aria-disabled="true"] {
+  pointer-events: none;
+}
+
+/* ---------- Field (label + input/select + help + errors) ---------- */
+.rr-field {
+  box-sizing: border-box;
+  margin: var(--rr-space-4) 0;
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+}
+.rr-field__label {
+  display: block;
+  margin: 0 0 var(--rr-space-2);
+  font-weight: bold;
+}
+.rr-field__required {
+  color: var(--rr-color-danger);
+}
+.rr-field__help {
+  margin: var(--rr-space-1) 0 0;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+}
+.rr-field__errors {
+  margin: var(--rr-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rr-color-danger);
+  font-size: var(--rr-font-size-sm);
+}
+.rr-field__error + .rr-field__error {
+  margin-top: var(--rr-space-1);
+}
+
+/* Input / select / textarea: styled through the .rr-field wrapper so Django widgets need no extra class */
+.rr-field input:not([type="checkbox"]):not([type="radio"]),
+.rr-field select,
+.rr-field textarea,
+input.rr-input,
+textarea.rr-input,
+select.rr-select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px var(--rr-space-3);
+  border: 1px solid #aabbc3;
+  border-radius: var(--rr-radius-sm);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+  font: inherit;
+  font-family: var(--rr-font-family);
+  line-height: 1.4;
+}
+.rr-field input[type="checkbox"],
+.rr-field input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--rr-color-primary);
+}
+.rr-field input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+.rr-field select:focus-visible,
+.rr-field textarea:focus-visible,
+input.rr-input:focus-visible,
+textarea.rr-input:focus-visible,
+select.rr-select:focus-visible,
+.rr-field input[type="checkbox"]:focus-visible,
+.rr-field input[type="radio"]:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 2px;
+}
+.rr-field input:disabled,
+.rr-field select:disabled,
+.rr-field textarea:disabled,
+input.rr-input:disabled,
+textarea.rr-input:disabled,
+select.rr-select:disabled {
+  background: #e9eef0;
+  color: #6b7d86;
+  cursor: not-allowed;
+}
+/* Error state */
+.rr-field--error input:not([type="checkbox"]):not([type="radio"]),
+.rr-field--error select,
+.rr-field--error textarea,
+input.rr-input--error,
+textarea.rr-input--error,
+select.rr-select--error {
+  border-color: var(--rr-color-danger);
+  box-shadow: inset 3px 0 0 var(--rr-color-danger);
+}
+
+/* ---------- Card ---------- */
+.rr-card {
+  box-sizing: border-box;
+  padding: var(--rr-space-5);
+  border: 1px solid var(--rr-color-border);
+  border-radius: var(--rr-radius-lg);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+}
+.rr-card__title {
+  margin: 0 0 var(--rr-space-3);
+  font-size: var(--rr-font-size-lg);
+  font-weight: bold;
+}
+.rr-card:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 3px;
+}
+
+/* ---------- Badge ---------- */
+.rr-badge {
+  box-sizing: border-box;
+  display: inline-block;
+  padding: 2px var(--rr-space-3);
+  border: 1px solid #c9ded8;
+  border-radius: var(--rr-radius-pill);
+  background: #e7f2ed;
+  color: var(--rr-color-primary-hover);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-sm);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.rr-badge--muted {
+  border-color: var(--rr-color-border);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-muted);
+}
+.rr-badge--danger {
+  border-color: #edb8bd;
+  background: #fff0f0;
+  color: #84212a;
+}
+.rr-badge--warning {
+  border-color: #ecd3a5;
+  background: #fff6e3;
+  color: #7a4d0a;
+}
+
+/* ---------- Table ---------- */
+.rr-table-scroll {
+  overflow-x: auto;
+}
+.rr-table {
+  box-sizing: border-box;
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  text-align: left;
+}
+.rr-table th,
+.rr-table td {
+  padding: var(--rr-space-3) var(--rr-space-4);
+  border-bottom: 1px solid var(--rr-color-border);
+  text-align: left;
+}
+/* Higher specificity on purpose: beats inventory.css td:first-child / td:last-child regardless of load order */
+table.rr-table td {
+  min-width: 0;
+  font-weight: normal;
+  white-space: normal;
+}
+.rr-table th {
+  background: #f5f8f8;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+  font-weight: bold;
+}
+.rr-table tbody tr:hover td {
+  background: #f9fbfb;
+}
+.rr-table__empty {
+  padding: var(--rr-space-7) var(--rr-space-3);
+  color: var(--rr-color-muted);
+  text-align: center;
+}
