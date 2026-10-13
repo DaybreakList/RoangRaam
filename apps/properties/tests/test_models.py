@@ -2,30 +2,16 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError, connection, models
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
+from django.forms import modelform_factory
 
-from apps.properties.models import Membership, PropertyScopedModel, property_upload_to
+from apps.properties.models import Membership, Property, property_upload_to
 
 from .factories import MembershipFactory, PropertyFactory, UserFactory
+from .scoped_model import ScopedThing, scoped_thing_table  # noqa: F401
 
 User = get_user_model()
-
-
-class ScopedThing(PropertyScopedModel):
-    """Concrete model used only to exercise the abstract base class."""
-
-    name = models.CharField(max_length=50)
-
-    class Meta:
-        app_label = 'properties'
-
-
-@pytest.fixture
-def scoped_thing_table(db):
-    # PostgreSQL DDL is transactional: the table is dropped by the test's rollback.
-    with connection.schema_editor() as editor:
-        editor.create_model(ScopedThing)
-    return ScopedThing
 
 
 @pytest.mark.django_db
@@ -66,6 +52,15 @@ class TestProperty:
         PropertyFactory(slug='same')
         with pytest.raises(IntegrityError):
             PropertyFactory(slug='same')
+
+    def test_logo_form_rejects_non_image_disguised_as_jpg(self):
+        # Pillow content check runs in forms.ImageField, not in model validation,
+        # so uploads must always go through a ModelForm or DRF serializer.
+        LogoForm = modelform_factory(Property, fields=['logo'])
+        fake = SimpleUploadedFile('evil.jpg', b'not an image', content_type='image/jpeg')
+        form = LogoForm(data={}, files={'logo': fake}, instance=PropertyFactory())
+        assert not form.is_valid()
+        assert 'logo' in form.errors
 
     def test_logo_upload_path(self):
         prop = PropertyFactory()

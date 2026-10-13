@@ -67,6 +67,39 @@ static/            CSS / JS / รูป ที่ใช้ร่วมกัน
 - business logic อยู่ใน `services.py` ของแต่ละ app
 - เทสอยู่ใน `apps/<app>/tests/test_*.py`
 
+## URL และสิทธิ์ของแต่ละโรงแรม
+
+ทุกหน้าของโรงแรมอยู่ใต้ `/p/<property_slug>/...` แล้ว `PropertyMiddleware` จะ
+- ตั้ง `request.property` และ `request.membership` ให้
+- ตอบ **404** ถ้าไม่มีโรงแรมนี้ หรือ user ไม่ใช่สมาชิกของโรงแรมนี้
+- ส่งไปหน้า login ถ้ายังไม่ได้ล็อกอิน
+
+```python
+# urls.py ของ app
+path('p/<slug:property_slug>/rooms/', views.room_list, name='room_list')
+```
+
+```python
+from apps.properties.permissions import (
+    Role, role_required, RoleRequiredMixin,
+    public_property_view, PublicPropertyViewMixin,
+    PropertyScopedQuerysetMixin,
+)
+
+@role_required(Role.OWNER, Role.MANAGER)           # role ไม่พอ → 403
+def rate_update(request): ...
+
+class RoomDetail(PropertyScopedQuerysetMixin, RoleRequiredMixin, DetailView):
+    model = Room
+    allowed_roles = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK)
+    # ห้องของโรงแรมอื่น → 404 อัตโนมัติ
+
+@public_property_view                               # หน้าสำหรับลูกค้า ไม่ต้องล็อกอิน
+def search(request): ...
+```
+
+- ไฟล์อัปโหลดต้องผ่าน `ModelForm` หรือ DRF serializer เสมอ เพราะ Pillow ตรวจว่าไฟล์เป็นรูปจริงเฉพาะในขั้นนั้น
+
 ## ติดตั้ง package เพิ่ม
 ต้องตกลงกับทีมก่อนทุกครั้ง แล้ว:
 
