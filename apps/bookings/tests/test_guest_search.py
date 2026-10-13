@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from decimal import Decimal
 
@@ -6,6 +7,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape
 
 from apps.properties.tests.factories import PropertyFactory, UserFactory
 from apps.rooms.tests.factories import (
@@ -23,6 +25,7 @@ pytestmark = pytest.mark.django_db
 
 HTMX = {'HTTP_HX_REQUEST': 'true'}
 NOT_SEARCHED_HINT = 'ไม่มีห้องว่างตรงกับเงื่อนไขที่ค้นหา'
+THAI = re.compile('[฀-๿]')
 
 
 def day(offset):
@@ -169,6 +172,52 @@ class TestSearchPage:
         assert response.status_code == 200
         assert 'guests' in response.context['form'].errors
 
+    @pytest.mark.parametrize('check_in, check_out', [(10, 10), (13, 10)])
+    def test_check_out_not_after_check_in_shows_thai_error_and_no_cards(self, client, hotel_a, check_in, check_out):
+        make_room_type(hotel_a, name='Deluxe')
+
+        response = client.get(search_url(hotel_a), params(check_in=check_in, check_out=check_out))
+
+        assert response.status_code == 200
+        assert response.context['form'].errors['check_out'] == ['วันเช็คเอาต์ต้องอยู่หลังวันเช็คอิน']
+        assert 'วันเช็คเอาต์ต้องอยู่หลังวันเช็คอิน' in response.content.decode()
+        assert response.context['room_types'] is None
+        assert 'Deluxe' not in response.content.decode()
+
+    def test_past_check_in_alone_shows_thai_error_and_no_cards(self, client, hotel_a):
+        # Rates exist for the past nights, so only the form can be what blocks the search
+        make_room_type(hotel_a, name='Deluxe', prices=[Decimal('1000.00')] * 3, start=-2)
+
+        response = client.get(search_url(hotel_a), params(check_in=-2, check_out=1))
+
+        errors = response.context['form'].errors
+        assert response.status_code == 200
+        assert errors['check_in'] == ['วันเช็คอินต้องไม่ใช่วันที่ผ่านมาแล้ว']
+        assert 'check_out' not in errors
+        assert 'วันเช็คอินต้องไม่ใช่วันที่ผ่านมาแล้ว' in response.content.decode()
+        assert response.context['room_types'] is None
+        assert 'Deluxe' not in response.content.decode()
+
+    @pytest.mark.parametrize('bad', ['2026-02-30', 'abc', ''])
+    def test_malformed_check_out_shows_thai_error_not_500(self, client, hotel_a, bad):
+        response = client.get(search_url(hotel_a), {**params(), 'check_out': bad})
+
+        assert response.status_code == 200
+        messages = response.context['form'].errors['check_out']
+        assert messages and all(THAI.search(message) for message in messages)
+        assert escape(messages[0]) in response.content.decode()
+        assert response.context['room_types'] is None
+
+    @pytest.mark.parametrize('guests', [0, -1, 'x'])
+    def test_invalid_guests_error_message_is_thai(self, client, hotel_a, guests):
+        response = client.get(search_url(hotel_a), params(guests=guests))
+
+        assert response.status_code == 200
+        messages = response.context['form'].errors['guests']
+        assert messages and all(THAI.search(message) for message in messages)
+        assert escape(messages[0]) in response.content.decode()
+        assert response.context['room_types'] is None
+
     def test_prefetch_keeps_query_count_flat(self, client, hotel_a):
         def count_queries():
             with CaptureQueriesContext(connection) as queries:
@@ -254,6 +303,21 @@ class TestIsolation:
         assert f'properties/{hotel_b.id}/' not in content_a
         assert 'Beta Suite' in content_b
         assert 'Alpha Suite' not in content_b
+
+    def test_other_hotels_name_and_policy_never_appear(self, client, hotel_a, hotel_b):
+        hotel_a.policy_text = 'นโยบายของ A'
+        hotel_a.save()
+        hotel_b.policy_text = 'นโยบายลับของ B'
+        hotel_b.save()
+        make_room_type(hotel_a, name='Alpha Suite')
+        make_room_type(hotel_b, name='Beta Suite')
+
+        content_a = client.get(search_url(hotel_a), params()).content.decode()
+
+        assert 'Hotel A' in content_a and 'นโยบายของ A' in content_a and 'Alpha Suite' in content_a
+        assert 'Hotel B' not in content_a
+        assert 'นโยบายลับของ B' not in content_a
+        assert 'Beta Suite' not in content_a
 
     def test_other_hotels_rates_and_bookings_do_not_affect_results(self, client, hotel_a, hotel_b):
         make_room_type(hotel_a, name='Alpha', prices=[Decimal('1000.00')] * 3)
