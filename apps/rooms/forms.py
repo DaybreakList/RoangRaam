@@ -69,3 +69,46 @@ class AmenityForm(PropertyForm):
     class Meta:
         model = Amenity
         fields = ['name']
+
+
+# Bound the synchronous write transaction to at most one leap year.
+MAX_PRICE_DAYS = 366
+
+
+class CalendarFilterForm(forms.Form):
+    room_type = ScopedChoiceField(queryset=RoomType.scoped.none(), label='ประเภทห้อง')
+    month = forms.DateField(
+        label='เดือน', input_formats=['%Y-%m'],
+        widget=forms.DateInput(format='%Y-%m', attrs={'type': 'month'}),
+    )
+
+    def __init__(self, *args, property, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['room_type'].queryset = RoomType.scoped.for_property(property)
+
+
+class DailyPriceForm(forms.Form):
+    price = forms.DecimalField(
+        label='ราคาต่อคืน', max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+    )
+
+
+class PriceRangeForm(DailyPriceForm):
+    start_date = forms.DateField(
+        label='วันเริ่มต้น', widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    end_date = forms.DateField(
+        label='วันสิ้นสุด (รวมวันนี้)', widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    field_order = ['start_date', 'end_date', 'price']
+
+    def clean(self):
+        cleaned = super().clean()
+        start, end = cleaned.get('start_date'), cleaned.get('end_date')
+        if start and end:
+            if end < start:
+                self.add_error('end_date', 'วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น')
+            elif (end - start).days + 1 > MAX_PRICE_DAYS:
+                self.add_error('end_date', f'เลือกได้ไม่เกิน {MAX_PRICE_DAYS} วันต่อครั้ง')
+        return cleaned

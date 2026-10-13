@@ -1,0 +1,14 @@
+{% extends "rooms/base.html" %}
+{% block inventory_content %}
+<section class="panel form-panel">
+<a class="back" href="{{ back_url }}">← กลับปฏิทินราคา</a>
+<h2>{% if day %}ตั้งราคารายวัน{% else %}ตั้งราคาหลายวัน{% endif %}</h2>
+<p>{{ room_type.name }}{% if day %} · {{ day|date:"j F Y" }}{% endif %}</p>
+{% if not day %}<p class="notice">ราคาที่ระบุจะใช้กับทุกวันในช่วง รวมวันเริ่มต้นและวันสิ้นสุด โดยเขียนทับราคาเดิมหรือสร้างราคาใหม่ เลือกได้ไม่เกิน 366 วันต่อครั้ง</p>{% endif %}
+<form method="post" novalidate>{% csrf_token %}
+{% if form.errors %}<div class="error-summary" role="alert">กรุณาตรวจสอบข้อมูลด้านล่าง{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }} <span class="required">*</span></label>{{ field }}{{ field.errors }}</div>{% endfor %}
+<p class="muted">ราคาต้องไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง การบันทึกจะสำเร็จทั้งชุดหรือยกเลิกทั้งหมดเมื่อเกิดข้อผิดพลาด</p>
+<div class="actions"><button type="submit">บันทึกราคา</button><a class="button secondary" href="{{ back_url }}">ยกเลิก</a></div>
+</form></section>
+{% endblock %}
