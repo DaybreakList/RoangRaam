@@ -1,0 +1,51 @@
+{% comment %}
+Search results. States:
+  - form invalid, HTMX request: error summary (fields are outside #results, so their inline errors do not refresh)
+  - form invalid, full page: nothing here, errors show on the fields
+  - not searched yet: nothing
+  - searched, none available: empty message
+  - searched, results: one card per room type
+Prices come from the service (per-night sum); never compute them here.
+{% endcomment %}
+{% if form.errors %}
+    {% if is_htmx %}
+    <div class="rr-card rr-search__errors" role="alert">
+        <p class="rr-card__title">กรุณาตรวจสอบข้อมูลการค้นหา</p>
+        <ul class="rr-field__errors">
+            {% for error in form.non_field_errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}
+            {% for field in form %}{% for error in field.errors %}<li class="rr-field__error">{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+{% elif room_types is not None %}
+    {% if room_types %}
+    <ul class="rr-search__list">
+        {% for rt in room_types %}
+        <li class="rr-card rr-room-card">
+            {% with image=rt.images.all.0 %}
+            {% if image %}<img class="rr-room-card__image" src="{{ image.image.url }}" alt="{{ rt.name }}" loading="lazy">{% endif %}
+            {% endwith %}
+            <div class="rr-room-card__body">
+                <h3 class="rr-card__title">{{ rt.name }}</h3>
+                <p class="rr-room-card__meta">เตียง: {{ rt.bed_type }} · ขนาด {{ rt.size_sqm }} ตร.ม. · พักได้สูงสุด {{ rt.max_occupancy }} คน</p>
+                {% if rt.amenities.all %}
+                <p class="rr-room-card__amenities">
+                    {% for amenity in rt.amenities.all %}<span class="rr-badge">{{ amenity.name }}</span> {% endfor %}
+                </p>
+                {% endif %}
+                <p class="rr-room-card__availability"><span class="rr-badge rr-badge--warning">เหลือ {{ rt.available_count }} ห้อง</span></p>
+            </div>
+            <div class="rr-room-card__action">
+                <p class="rr-room-card__price">ราคารวม <strong>{{ rt.total_price|floatformat:"2g" }}</strong> บาท</p>
+                <button type="button" class="rr-btn" disabled>เลือกห้องนี้</button>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="rr-card rr-search__empty">
+        <p class="rr-card__title">ไม่มีห้องว่างตรงกับเงื่อนไขที่ค้นหา</p>
+        <p>ลองเปลี่ยนวันเข้าพักหรือลดจำนวนผู้เข้าพัก</p>
+    </div>
+    {% endif %}
+{% endif %}

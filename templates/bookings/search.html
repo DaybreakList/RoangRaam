@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ค้นหาห้องว่าง · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/search.css' %}">{% endblock %}
+
+{% block content %}
+<main class="rr-search">
+    <header class="rr-search__header">
+        {% if request.property.logo %}<img class="rr-search__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <div>
+            <h1 class="rr-search__title">{{ request.property.name }}</h1>
+            {% if request.property.policy_text %}<p class="rr-search__policy">{{ request.property.policy_text|linebreaksbr }}</p>{% endif %}
+        </div>
+    </header>
+
+    {# method="get" works without JS; hx-get swaps only #results (no CSRF needed for GET) #}
+    <form class="rr-card rr-search__form" method="get"
+          action="{% url 'bookings:search' property_slug=request.property.slug %}"
+          hx-get="{% url 'bookings:search' property_slug=request.property.slug %}"
+          hx-target="#results">
+        <h2 class="rr-card__title">ค้นหาห้องว่าง</h2>
+        <div class="rr-search__fields">
+            {% include 'partials/form_field.html' with field=form.check_in %}
+            {% include 'partials/form_field.html' with field=form.check_out %}
+            {% include 'partials/form_field.html' with field=form.guests %}
+        </div>
+        <button type="submit" class="rr-btn">ค้นหา</button>
+    </form>
+
+    <section id="results" class="rr-search__results" aria-live="polite">
+        {% include 'bookings/_results.html' %}
+    </section>
+</main>
+{% endblock %}
