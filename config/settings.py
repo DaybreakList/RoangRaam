@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.bookings',
     'apps.frontdesk',
     'apps.dashboard',
+    'apps.accounts',
 ]
 
 MIDDLEWARE = [
@@ -92,7 +93,9 @@ DATABASES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'properties.User'
-
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/accounts/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # Password validation
 
