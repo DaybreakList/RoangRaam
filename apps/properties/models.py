@@ -67,7 +67,7 @@ class Property(models.Model):
     slug = models.SlugField('slug', max_length=100, unique=True)
     address = models.TextField('ที่อยู่', blank=True)
     timezone = models.CharField('เขตเวลา', max_length=64, default='Asia/Bangkok')
-    logo = models.FileField(
+    logo = models.ImageField(
         'โลโก้',
         upload_to=property_upload_to,
         blank=True,
