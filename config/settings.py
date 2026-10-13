@@ -90,6 +90,8 @@ DATABASES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = 'properties.User'
+
 
 # Password validation
 
