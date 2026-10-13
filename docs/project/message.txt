@@ -1,0 +1,64 @@
+# Project: Multi-property Hotel Management System
+
+## บริบท
+ระบบโรงแรมแบบ multi-property: ระบบเดียว ฐานข้อมูลเดียว รองรับหลายโรงแรม
+ข้อมูลแต่ละโรงแรมต้องแยกขาดจากกัน 100% เป็นโปรเจกต์จบ ทีม 5 คน เวลา 4 สัปดาห์
+ไม่ใช่ SaaS: ไม่มี self-signup, ไม่มี subdomain, ไม่มี billing
+
+## Tech stack (ห้ามเพิ่ม library ใหม่โดยไม่ถามก่อน)
+- Django 5, DRF, PostgreSQL 16, pytest + pytest-django
+- Frontend: Django templates + HTMX + Alpine.js + Chart.js (ห้ามใช้ React/Vue)
+- ไม่มี Celery/Redis: งานอย่างส่งอีเมลทำแบบ synchronous
+- รันด้วย Docker Compose
+
+## กฎที่ห้ามละเมิดเด็ดขาด
+1. **ทุก model ข้อมูลดำเนินงานต้องสืบทอด `PropertyScopedModel`** และมี FK ไป `Property`
+2. **ห้ามเรียก `Model.objects` ตรง ๆ ใน view/service** ให้ใช้ scoped manager
+   (`Model.scoped.for_property(request.property)`) หรือ base view ที่ filter ให้แล้ว
+3. **เข้าถึง object ของโรงแรมอื่นต้องได้ 404 ไม่ใช่ 403**
+4. `unique_together` / `UniqueConstraint` ทุกตัวต้องรวม `property` ด้วย
+5. **เงินใช้ `Decimal` เท่านั้น** ห้าม float ทั้งใน model, การคำนวณ และ JSON
+6. `Property` และ `Booking` ใช้ UUID เป็น primary key
+7. การจองต้องอยู่ใน `transaction.atomic()` + `select_for_update()`
+   และพึ่ง `ExclusionConstraint` ระดับ DB เป็นด่านสุดท้ายเสมอ
+8. ราคารวมคำนวณแบบ per-night จากปฏิทินราคา ห้ามใช้ ราคา × จำนวนคืน
+9. ธุรกรรมการเงินเป็น append-only (สร้าง record ใหม่ ห้าม update ทับ) และต้อง idempotent
+10. ห้าม hardcode โดเมน, secret, API key ทุกอย่างอ่านจาก environment variable
+11. ไฟล์อัปโหลดเก็บที่ `properties/<property_id>/<filename>`
+12. validate ฝั่ง server ทุกครั้ง ห้ามเชื่อค่าจาก frontend (รวมถึงผลการลาก Tape Chart)
+
+## Roles
+OWNER / MANAGER / FRONT_DESK / HOUSEKEEPING ผูกผ่าน `Membership(user, property, role)`
+ตรวจสิทธิ์ 2 ชั้นเสมอ: (1) มี Membership ในโรงแรมนี้ไหม (2) role พอไหม
+
+## ขอบเขต: ทำเฉพาะที่อยู่ในรายการนี้
+Property/Membership/การแยกข้อมูล · Room Type/Room/Amenities · ปฏิทินราคา + bulk update ·
+ค้นหาห้องว่าง · จองหลายห้อง · ชำระเงิน (PromptPay/Stripe test) · อีเมลยืนยัน · ยกเลิก (ไม่มีค่าปรับ) ·
+Tape Chart (แสดงผล + ลากย้ายห้อง) · Arrival/Departure/In-house · เช็คอิน/เช็คเอาต์ ·
+สถานะห้อง Clean/Dirty · ใบเสร็จ PDF · Dashboard (Occupancy/ADR/RevPAR + เทียบโรงแรม)
+
+**ห้ามเสนอหรือเขียนฟีเจอร์นอกรายการนี้** เช่น walk-in, seasonal rate, ค่าปรับ, add-on,
+โค้ดส่วนลด, แก้ไขการจอง, หลายสกุลเงิน ถ้าคิดว่าจำเป็นให้ถามก่อน
+
+## โครงสร้างโค้ด
+- `apps/properties/` Property, Membership, middleware, scoped manager (เจ้าของ: A)
+- `apps/rooms/` Room Type, Room, Amenity, Rate (D)
+- `apps/bookings/` Booking, availability engine (A), payment (C)
+- `apps/frontdesk/` Tape Chart (D), check-in/out (A, B)
+- `apps/dashboard/` KPI queries + views (E)
+- business logic อยู่ใน `services.py` ไม่ใช่ใน view
+- **ห้ามแก้ `apps/properties/` และ `models.py` ของ app อื่น** ถ้าจำเป็นให้บอกว่าต้องแก้อะไร
+  เพื่อให้เจ้าของไฟล์ทำเอง
+
+## มาตรฐานการเขียน
+- ทุกฟีเจอร์ต้องมี pytest อย่างน้อย: happy path + 1 edge case + isolation test (โรงแรม B เข้าไม่ได้)
+- ใช้ factory (factory_boy) สร้าง test data ไม่ใช้ fixture JSON
+- เลี่ยง N+1: ใช้ `select_related` / `prefetch_related`
+- ข้อความที่ผู้ใช้เห็นเป็นภาษาไทย, ชื่อตัวแปร/คอมเมนต์ในโค้ดเป็นภาษาอังกฤษ
+- ทุก migration ต้องรันผ่านบน DB เปล่า
+
+## วิธีตอบ
+- เขียนเฉพาะไฟล์ที่เกี่ยวข้อง บอก path ของทุกไฟล์ที่สร้าง/แก้
+- ถ้าต้องสร้าง migration ให้บอกคำสั่ง
+- ถ้าโจทย์กำกวมหรือขัดกับกฎข้างบน ให้ถามก่อนเขียน อย่าเดา
+- อย่า refactor โค้ดที่ไม่ได้ถูกขอให้แก้
