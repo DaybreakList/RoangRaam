@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}หน้าแรก{% endblock %}
+
+{% block content %}
+<h1>สวัสดี {{ user.email }}</h1>
+<form method="post" action="{% url 'accounts:logout' %}">
+    {% csrf_token %}
+    <button type="submit">ออกจากระบบ</button>
+</form>
+{% endblock %}
