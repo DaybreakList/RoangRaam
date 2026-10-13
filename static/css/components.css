@@ -2,6 +2,7 @@
  * Design system components (week 1). Requires css/tokens.css.
  * Every selector starts with .rr- so it cannot collide with
  * static/rooms/inventory.css. No global element selectors here.
+ * Exception: .property-switcher, the class name used by accounts/_property_switcher.html.
  * Each component sets its own box-sizing, font, color, background and border
  * so it looks the same whether or not inventory.css is loaded on the page.
  */
@@ -246,4 +247,124 @@ table.rr-table td {
   padding: var(--rr-space-7) var(--rr-space-3);
   color: var(--rr-color-muted);
   text-align: center;
+}
+
+/* ---------- Navbar ---------- */
+.rr-navbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rr-space-4);
+  padding: var(--rr-space-3) var(--rr-space-5);
+  border-bottom: 1px solid var(--rr-color-border);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  line-height: 1.4;
+}
+.rr-navbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rr-space-3);
+  min-width: 0;
+  color: var(--rr-color-primary-hover);
+  font-size: var(--rr-font-size-lg);
+  font-weight: bold;
+  text-decoration: none;
+}
+.rr-navbar__brand:hover {
+  color: var(--rr-color-primary);
+}
+.rr-navbar__brand:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 3px;
+}
+.rr-navbar__logo {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rr-radius-sm);
+  object-fit: contain;
+}
+.rr-navbar__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rr-navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--rr-space-3);
+}
+.rr-navbar__logout {
+  margin: 0;
+}
+
+/* ---------- Property switcher (markup in accounts/_property_switcher.html) ---------- */
+/* Never set `display` on .property-switcher ul: the partial hides it with x-show + inline display:none */
+.property-switcher {
+  position: relative;
+  font-family: var(--rr-font-family);
+}
+.property-switcher > button {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px var(--rr-space-4);
+  border: 1px solid var(--rr-color-border);
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+  font: inherit;
+  font-family: var(--rr-font-family);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.property-switcher > button:hover {
+  background: var(--rr-color-bg);
+  border-color: var(--rr-color-muted);
+}
+.property-switcher > button:focus-visible,
+.property-switcher a:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 2px;
+}
+.property-switcher ul {
+  position: absolute;
+  top: calc(100% + var(--rr-space-1));
+  right: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  min-width: 240px;
+  margin: 0;
+  padding: var(--rr-space-1) 0;
+  border: 1px solid var(--rr-color-border);
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-color-surface);
+  box-shadow: 0 8px 24px rgba(23, 43, 53, 0.12);
+  list-style: none;
+}
+.property-switcher li {
+  margin: 0;
+}
+.property-switcher li a {
+  display: block;
+  padding: var(--rr-space-2) var(--rr-space-4);
+  color: var(--rr-color-text);
+  text-decoration: none;
+}
+.property-switcher li a:hover {
+  background: var(--rr-color-bg);
+  color: var(--rr-color-primary-hover);
+}
+.property-switcher li a[aria-current="page"] {
+  color: var(--rr-color-primary-hover);
+  font-weight: bold;
+}
+
+@media (max-width: 640px) {
+  .rr-navbar {
+    flex-wrap: wrap;
+    padding: var(--rr-space-3) var(--rr-space-4);
+  }
 }

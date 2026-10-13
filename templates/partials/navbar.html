@@ -1,0 +1,28 @@
+{% comment %}
+Top navbar. request.property is None on /accounts/ and the login page.
+The property switcher needs `switcher_memberships` from the context processor.
+{% endcomment %}
+<header class="rr-navbar">
+    {% if request.property %}
+    <a class="rr-navbar__brand" href="{% url 'property_home' property_slug=request.property.slug %}">
+        {% if request.property.logo %}<img class="rr-navbar__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <span class="rr-navbar__name">{{ request.property.name }}</span>
+    </a>
+    {% else %}
+    <a class="rr-navbar__brand" href="{% if user.is_authenticated %}{% url 'accounts:home' %}{% else %}{% url 'accounts:login' %}{% endif %}">
+        <span class="rr-navbar__name">RoangRaam</span>
+    </a>
+    {% endif %}
+
+    <div class="rr-navbar__actions">
+        {% if user.is_authenticated %}
+        {% include 'accounts/_property_switcher.html' %}
+        <form method="post" action="{% url 'accounts:logout' %}" class="rr-navbar__logout">
+            {% csrf_token %}
+            <button type="submit" class="rr-btn rr-btn--secondary">ออกจากระบบ</button>
+        </form>
+        {% else %}
+        <a class="rr-btn rr-btn--secondary" href="{% url 'accounts:login' %}">เข้าสู่ระบบ</a>
+        {% endif %}
+    </div>
+</header>

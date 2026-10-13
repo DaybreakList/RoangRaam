@@ -4,13 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}RoangRaem{% endblock %}</title>
+    <title>{% block title %}RoangRaam{% endblock %}</title>
+    {# Design system CSS stays outside any block: child templates override extra_head #}
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     {% block extra_head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% block navbar %}{% include 'partials/navbar.html' %}{% endblock %}
     {% block content %}{% endblock %}
     {% block extra_js %}{% endblock %}
 </body>
