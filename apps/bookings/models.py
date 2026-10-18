@@ -97,6 +97,9 @@ class Booking(PropertyScopedModel):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     cancelled_at = models.DateTimeField('ยกเลิกเมื่อ', null=True, blank=True)
+    # Sent by the client (e.g. a UUID in the confirm form) so a double submit
+    # returns the first booking instead of creating a second one
+    idempotency_key = models.UUIDField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = 'การจอง'
@@ -104,6 +107,10 @@ class Booking(PropertyScopedModel):
         ordering = ['-created_at']
         constraints = [
             models.UniqueConstraint(fields=['property', 'code'], name='bookings_booking_property_code_uniq'),
+            models.UniqueConstraint(
+                fields=['property', 'idempotency_key'],
+                name='bookings_booking_property_idempotency_key_uniq',
+            ),
             models.CheckConstraint(
                 condition=Q(check_out_date__gt=F('check_in_date')),
                 name='bookings_booking_checkout_after_checkin',
