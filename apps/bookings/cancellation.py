@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from .models import Booking, BookingRoom
@@ -12,22 +13,21 @@ def cancel_booking(property, booking_id):
     """
     Cancel a booking of `property` without a fee and release its rooms.
 
-    Raises Booking.DoesNotExist when the booking belongs to another property,
-    so a view can answer 404. Raises ValidationError when the booking is no
-    longer cancellable.
+    Raises Http404 when the booking belongs to another property, like
+    create_booking does. Raises ValidationError keyed by 'status' when the
+    booking is no longer cancellable, so callers can read message_dict.
     """
     with transaction.atomic():
         # Lock the row so a double click, or a cancel racing a check-in,
         # cannot both pass the status check below.
-        booking = (
-            Booking.scoped.for_property(property)
-            .select_for_update()
-            .get(pk=booking_id)
+        booking = get_object_or_404(
+            Booking.scoped.for_property(property).select_for_update(),
+            pk=booking_id,
         )
         if booking.status not in CANCELLABLE_STATUSES:
-            raise ValidationError(
-                f'ไม่สามารถยกเลิกการจองที่มีสถานะ "{booking.get_status_display()}" ได้'
-            )
+            raise ValidationError({
+                'status': f'ไม่สามารถยกเลิกการจองที่มีสถานะ "{booking.get_status_display()}" ได้',
+            })
 
         booking.status = Booking.Status.CANCELLED
         booking.cancelled_at = timezone.now()

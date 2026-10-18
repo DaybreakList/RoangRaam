@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.http import Http404
 from django.utils import timezone
 
 from apps.bookings.cancellation import cancel_booking
@@ -66,8 +67,10 @@ def test_booking_past_confirmation_cannot_be_cancelled(hotel_a, status):
     booking = BookingFactory(property=hotel_a, status=status)
     booking_room = BookingRoomFactory(booking=booking)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as error:
         cancel_booking(hotel_a, booking.pk)
+
+    assert 'status' in error.value.message_dict
 
     booking.refresh_from_db()
     booking_room.refresh_from_db()
@@ -88,7 +91,7 @@ def test_other_bookings_keep_their_rooms(hotel_a, booking):
 
 
 def test_other_hotel_cannot_cancel(hotel_b, booking):
-    with pytest.raises(Booking.DoesNotExist):
+    with pytest.raises(Http404):
         cancel_booking(hotel_b, booking.pk)
 
     booking.refresh_from_db()
