@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same ref makes the older run obsolete
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Same database engine as docker-compose.yml: ExclusionConstraint needs PostgreSQL.
+    # The credentials below are throwaway values for this job's own database only.
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: rongraam
+          POSTGRES_USER: rongraam
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U rongraam -d rongraam"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key
+      POSTGRES_DB: rongraam
+      POSTGRES_USER: rongraam
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: '5432'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: python manage.py check
+
+      # Fails when a model changed without a committed migration
+      - run: python manage.py makemigrations --check --dry-run
+
+      # --create-db: CI always starts from an empty database, so this also proves
+      # every migration runs on a blank DB
+      - run: python -m pytest --create-db
