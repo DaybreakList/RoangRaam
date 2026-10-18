@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import F, Q
+from django.db.models.functions import Lower
 
 from apps.properties.models import PropertyScopedModel
 
@@ -50,6 +51,14 @@ class Guest(PropertyScopedModel):
         verbose_name = 'ผู้เข้าพัก'
         verbose_name_plural = 'ผู้เข้าพัก'
         ordering = ['first_name', 'last_name', 'pk']
+        constraints = [
+            # One guest profile per email per property; email compared case-insensitively
+            models.UniqueConstraint(
+                'property', Lower('email'),
+                name='bookings_guest_property_email_uniq',
+                violation_error_message='อีเมลนี้มีข้อมูลผู้เข้าพักในโรงแรมนี้แล้ว',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'

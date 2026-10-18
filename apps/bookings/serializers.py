@@ -123,9 +123,14 @@ class BookingInputSerializer(serializers.Serializer):
 
 
 class GuestSerializer(serializers.ModelSerializer):
+    """
+    Email only. The booking API is public and reuses an existing guest by email,
+    so returning the stored name or phone would leak them to whoever typed it.
+    """
+
     class Meta:
         model = Guest
-        fields = ['first_name', 'last_name', 'email', 'phone']
+        fields = ['email']
         read_only_fields = fields
 
 

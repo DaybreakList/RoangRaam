@@ -35,13 +35,13 @@ def make_room_type(prop, rooms=1, prices=(Decimal('1000.00'),) * 2, start=10, **
     return room_type
 
 
-def book(prop, rooms, check_in=10, check_out=12, adults=2, children=0, payment_option='FULL'):
+def book(prop, rooms, check_in=10, check_out=12, adults=2, children=0, payment_option='FULL', guest=GUEST):
     return create_booking(
         prop,
         check_in=day(check_in),
         check_out=day(check_out),
         rooms=[{'room_type_id': rt.pk, 'quantity': qty} for rt, qty in rooms],
-        guest=GUEST,
+        guest=guest,
         adults=adults,
         children=children,
         payment_option=payment_option,
@@ -121,10 +121,11 @@ class TestCreateBooking:
         small = make_room_type(hotel_a, rooms=1, name='Small')
         big = make_room_type(hotel_a, rooms=5, name='Big', start=20, prices=[Decimal('1000.00')] * 4)
 
+        # Different emails so both bookings take the same new-guest path
         with CaptureQueriesContext(connection) as one_room:
-            book(hotel_a, [(small, 1)])
+            book(hotel_a, [(small, 1)], guest={**GUEST, 'email': 'one@example.com'})
         with CaptureQueriesContext(connection) as five_rooms:
-            book(hotel_a, [(big, 5)], check_in=20, check_out=24, adults=8)
+            book(hotel_a, [(big, 5)], check_in=20, check_out=24, adults=8, guest={**GUEST, 'email': 'five@example.com'})
 
         assert len(five_rooms.captured_queries) == len(one_room.captured_queries)
 
@@ -254,7 +255,7 @@ class TestBookingAPI:
         assert body['status'] == 'PENDING_PAYMENT'
         assert body['nights'] == 2
         assert body['total_amount'] == '5001.00'
-        assert body['guest'] == GUEST
+        assert body['guest'] == {'email': GUEST['email']}
         assert body['rooms'][0] == {
             'room_type_id': twin.pk,
             'room_type_name': 'Twin',
@@ -308,10 +309,13 @@ class TestBookingAPI:
         small = make_room_type(hotel_a, rooms=1, name='Small')
         big = make_room_type(hotel_a, rooms=5, name='Big', start=20, prices=[Decimal('1000.00')] * 4)
 
+        # Different emails so both bookings take the same new-guest path
+        one = payload([(small, 1)], guest={**GUEST, 'email': 'one@example.com'})
+        five = payload([(big, 5)], check_in=20, check_out=24, adults=8, guest={**GUEST, 'email': 'five@example.com'})
         with CaptureQueriesContext(connection) as one_room:
-            assert post(client, hotel_a, payload([(small, 1)])).status_code == 201
+            assert post(client, hotel_a, one).status_code == 201
         with CaptureQueriesContext(connection) as five_rooms:
-            assert post(client, hotel_a, payload([(big, 5)], check_in=20, check_out=24, adults=8)).status_code == 201
+            assert post(client, hotel_a, five).status_code == 201
 
         assert len(five_rooms.captured_queries) == len(one_room.captured_queries)
 
@@ -338,3 +342,65 @@ class TestBookingAPIIsolation:
         assert client.post('/api/p/nope/bookings/', {}, content_type='application/json').status_code == 404
         assert post(client, inactive, payload([(twin, 1)])).status_code == 404
         assert_nothing_created()
+
+
+class TestGuestReuse:
+    """One guest per email per property (case-insensitive); existing profiles are never overwritten."""
+
+    def test_same_email_reuses_the_guest(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        first = book(hotel_a, [(twin, 1)])
+        second = book(hotel_a, [(twin, 1)])
+        assert first.guest_id == second.guest_id
+        assert Guest.objects.count() == 1
+
+    def test_email_match_ignores_case_and_spaces(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        first = book(hotel_a, [(twin, 1)])
+        second = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12),
+            rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest={**GUEST, 'email': '  SomChai@Example.COM '}, adults=1, children=0, payment_option='FULL',
+        )
+        assert second.guest_id == first.guest_id
+
+    def test_existing_profile_is_not_overwritten(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        original = book(hotel_a, [(twin, 1)]).guest
+        create_booking(
+            hotel_a, check_in=day(10), check_out=day(12),
+            rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest={**GUEST, 'first_name': 'Imposter', 'phone': '0999999999'},
+            adults=1, children=0, payment_option='FULL',
+        )
+        original.refresh_from_db()
+        assert (original.first_name, original.phone) == ('Somchai', '0812345678')
+
+    def test_same_email_in_other_property_is_a_separate_guest(self, hotel_a, hotel_b):
+        mine = book(hotel_a, [(make_room_type(hotel_a, name='Twin'), 1)])
+        theirs = book(hotel_b, [(make_room_type(hotel_b, name='Twin'), 1)])
+        assert mine.guest_id != theirs.guest_id
+        assert mine.guest.property == hotel_a and theirs.guest.property == hotel_b
+
+    def test_invalid_input_is_rejected_even_if_email_exists(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        book(hotel_a, [(twin, 1)])
+        with pytest.raises(ValidationError) as exc:
+            create_booking(
+                hotel_a, check_in=day(10), check_out=day(12),
+                rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+                guest={**GUEST, 'phone': ''}, adults=1, children=0, payment_option='FULL',
+            )
+        assert 'phone' in exc.value.message_dict
+        assert Booking.objects.count() == 1
+
+    def test_api_does_not_leak_stored_name_or_phone(self, client, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        book(hotel_a, [(twin, 1)])  # the real Somchai
+
+        response = post(client, hotel_a, payload([(twin, 1)], guest={**GUEST, 'first_name': 'Stranger', 'phone': '0000000000'}))
+
+        assert response.status_code == 201
+        assert response.json()['guest'] == {'email': GUEST['email']}
+        content = response.content.decode()
+        assert 'Somchai' not in content and '0812345678' not in content

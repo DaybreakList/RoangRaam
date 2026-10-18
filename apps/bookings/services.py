@@ -119,7 +119,8 @@ def create_booking(
     Book several rooms on one bill and assign real rooms immediately.
 
     `rooms` is a list of {'room_type_id': int, 'quantity': int}; repeated types are merged.
-    `guest` is a dict with first_name, last_name, email and phone.
+    `guest` is a dict with first_name, last_name, email and phone. An existing guest
+    with the same email (case-insensitive) in this property is reused as is.
 
     Concurrency: requested RoomType rows are locked with select_for_update() in pk
     order, so two bookings for the same type run one after another and cannot
@@ -141,9 +142,7 @@ def create_booking(
             assigned = _assign_rooms(property, room_types, quantities, check_in, check_out)
             prices = _nightly_prices(property, room_types, nights)
 
-            guest_obj = Guest(property=property, **_guest_fields(guest))
-            guest_obj.full_clean()
-            guest_obj.save()
+            guest_obj = _get_or_create_guest(property, guest)
 
             subtotals = {
                 room_type.pk: sum((prices[room_type.pk, night] for night in nights), Decimal('0.00'))
@@ -263,7 +262,34 @@ def _nightly_prices(property, room_types, nights):
 
 
 def _guest_fields(guest):
-    return {key: guest.get(key, '') for key in ('first_name', 'last_name', 'email', 'phone')}
+    fields = {key: guest.get(key, '') for key in ('first_name', 'last_name', 'email', 'phone')}
+    fields['email'] = fields['email'].strip()
+    return fields
+
+
+def _get_or_create_guest(property, data):
+    """
+    Return this property's guest for the email, creating it if needed.
+
+    An existing profile is never overwritten: the booking API is public, so
+    anyone can type someone else's email. Two bookings racing with a new email
+    both end up on the same row: the loser's insert fails inside a savepoint
+    and it reads the winner's guest instead.
+    """
+    candidate = Guest(property=property, **_guest_fields(data))
+    # Validate the input itself; uniqueness is settled by the DB below
+    candidate.full_clean(validate_constraints=False)
+
+    guests = Guest.scoped.for_property(property)
+    existing = guests.filter(email__iexact=candidate.email).first()
+    if existing is not None:
+        return existing
+    try:
+        with transaction.atomic():
+            candidate.save()
+    except IntegrityError:
+        return guests.get(email__iexact=candidate.email)
+    return candidate
 
 
 def booking_with_details(property, booking_id):
