@@ -10,4 +10,9 @@ urlpatterns = [
         api.AvailabilityAPIView.as_view(),
         name='api-availability',
     ),
+    path(
+        'api/p/<slug:property_slug>/bookings/',
+        api.BookingCreateAPIView.as_view(),
+        name='api-booking-create',
+    ),
 ]

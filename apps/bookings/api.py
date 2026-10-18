@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -6,8 +7,18 @@ from rest_framework.views import APIView
 
 from apps.properties.permissions import PublicPropertyViewMixin
 
-from .serializers import AvailabilityQuerySerializer, AvailableRoomTypeSerializer
-from .services import get_available_room_types, with_room_type_details
+from .serializers import (
+    AvailabilityQuerySerializer,
+    AvailableRoomTypeSerializer,
+    BookingInputSerializer,
+    BookingSerializer,
+)
+from .services import (
+    booking_with_details,
+    create_booking,
+    get_available_room_types,
+    with_room_type_details,
+)
 
 
 class AvailabilityAPIView(PublicPropertyViewMixin, APIView):
@@ -40,3 +51,26 @@ class AvailabilityAPIView(PublicPropertyViewMixin, APIView):
             'guests': guests,
             'room_types': AvailableRoomTypeSerializer(room_types, many=True).data,
         })
+
+
+class BookingCreateAPIView(PublicPropertyViewMixin, APIView):
+    """
+    POST /api/p/<property_slug>/bookings/
+
+    Public: guests book without logging in. Room type ids in the body must
+    belong to `request.property`; any other id is 404.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        payload = BookingInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        try:
+            booking = create_booking(request.property, **payload.validated_data)
+        except DjangoValidationError as error:
+            raise ValidationError(error.message_dict) from error
+
+        booking = booking_with_details(request.property, booking.pk)
+        return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
