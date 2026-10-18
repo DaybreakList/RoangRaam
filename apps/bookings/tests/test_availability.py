@@ -131,3 +131,38 @@ class TestIsolation:
 
         assert result == {'Same Name': (1, Decimal('3000.00'))}
         assert mine.property == hotel_a
+
+
+class TestGuests:
+    def test_group_fits_across_several_rooms_of_one_type(self, hotel_a):
+        make_room_type(hotel_a, rooms=2, name='Twin', max_occupancy=2)
+        assert set(as_dict(get_available_room_types(hotel_a, day(10), day(13), guests=4))) == {'Twin'}
+
+    def test_group_larger_than_free_capacity_excluded(self, hotel_a):
+        make_room_type(hotel_a, rooms=2, name='Twin', max_occupancy=2)
+        assert list(get_available_room_types(hotel_a, day(10), day(13), guests=5)) == []
+
+    def test_capacity_counts_only_free_rooms(self, hotel_a):
+        room_type = make_room_type(hotel_a, rooms=2, name='Twin', max_occupancy=2)
+        book(room_type.rooms.first(), day(10), day(13))
+        assert list(get_available_room_types(hotel_a, day(10), day(13), guests=3)) == []
+        assert set(as_dict(get_available_room_types(hotel_a, day(10), day(13), guests=2))) == {'Twin'}
+
+    def test_none_means_no_guest_filter(self, hotel_a):
+        make_room_type(hotel_a, name='Single', max_occupancy=1)
+        assert set(as_dict(get_available_room_types(hotel_a, day(10), day(13)))) == {'Single'}
+
+    @pytest.mark.parametrize('guests', [0, -1])
+    def test_guests_below_one_rejected(self, hotel_a, guests):
+        with pytest.raises(ValidationError) as exc:
+            get_available_room_types(hotel_a, day(10), day(13), guests=guests)
+        assert 'guests' in exc.value.message_dict
+
+    def test_huge_guest_count_returns_empty_not_error(self, hotel_a):
+        make_room_type(hotel_a, name='Deluxe')
+        assert list(get_available_room_types(hotel_a, day(10), day(13), guests=10**20)) == []
+
+    def test_still_one_query_with_guests(self, hotel_a, django_assert_num_queries):
+        make_room_type(hotel_a, rooms=2, name='Twin')
+        with django_assert_num_queries(1):
+            list(get_available_room_types(hotel_a, day(10), day(13), guests=2))
