@@ -53,6 +53,11 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      # Lint tool for CI only, so it is not in requirements.txt. Rules are in ruff.toml.
+      - run: pip install ruff==0.17.1
+
+      - run: ruff check .
+
       - run: python manage.py check
 
       # Fails when a model changed without a committed migration
