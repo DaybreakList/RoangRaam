@@ -122,3 +122,20 @@ def test_other_property_is_unaffected_by_the_race():
     assert Booking.objects.filter(property=hotel_a).count() == 2
     assert Booking.objects.filter(property=hotel_b).count() == 2
     assert not BookingRoom.objects.filter(property=hotel_a, room__property=hotel_b).exists()
+
+
+def test_simultaneous_bookings_with_a_new_email_share_one_guest():
+    """
+    Same not-yet-known email, each request for a different room type, so no
+    RoomType lock serializes them and the guest inserts really race.
+    """
+    from apps.bookings.models import Guest
+
+    prop = PropertyFactory()
+    room_types = [make_room_type(prop, rooms=1, name=f'T{i}') for i in range(10)]
+
+    statuses = fire(prop, [payload([room_type]) for room_type in room_types])
+
+    assert statuses == {201: 10}
+    assert Guest.objects.filter(property=prop).count() == 1
+    assert Booking.objects.filter(guest__email='race@example.com').count() == 10

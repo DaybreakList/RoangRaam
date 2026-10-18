@@ -114,6 +114,24 @@ class TestBooking:
         assert BookingFactory(property=hotel_a, check_in_date=day(1), check_out_date=day(4)).nights == 3
 
 
+class TestGuest:
+    def test_duplicate_email_in_same_property_rejected_case_insensitively(self, hotel_a):
+        GuestFactory(property=hotel_a, email='a@example.com')
+        with pytest.raises(IntegrityError):
+            GuestFactory(property=hotel_a, email='A@Example.com')
+
+    def test_same_email_allowed_in_different_properties(self, hotel_a, hotel_b):
+        GuestFactory(property=hotel_a, email='a@example.com')
+        GuestFactory(property=hotel_b, email='a@example.com')
+
+    def test_full_clean_reports_duplicate_in_thai(self, hotel_a):
+        GuestFactory(property=hotel_a, email='a@example.com')
+        duplicate = GuestFactory.build(property=hotel_a, email='A@example.com')
+        with pytest.raises(ValidationError) as exc:
+            duplicate.full_clean()
+        assert 'อีเมลนี้มีข้อมูลผู้เข้าพักในโรงแรมนี้แล้ว' in str(exc.value)
+
+
 class TestCrossPropertyValidation:
     def test_booking_rejects_guest_from_other_property(self, hotel_a, hotel_b):
         booking = BookingFactory.build(property=hotel_a, guest=GuestFactory(property=hotel_b))
