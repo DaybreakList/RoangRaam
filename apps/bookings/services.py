@@ -165,7 +165,7 @@ def create_booking(
             booking.full_clean()
             booking.save()
 
-            booking_rooms = BookingRoom.objects.bulk_create([
+            booking_rooms = BookingRoom.scoped.bulk_create([
                 BookingRoom(
                     property=property,
                     booking=booking,
@@ -176,7 +176,7 @@ def create_booking(
                 )
                 for room in assigned
             ])
-            BookingNightRate.objects.bulk_create([
+            BookingNightRate.scoped.bulk_create([
                 BookingNightRate(
                     property=property,
                     booking_room=booking_room,

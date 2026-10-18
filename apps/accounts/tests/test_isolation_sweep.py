@@ -14,7 +14,7 @@ METHODS = ('get', 'post', 'patch', 'delete')
 # Views open to guests. Adding one is a conscious decision: update this set and
 # give the view its own isolation test.
 
-PUBLIC_ROUTES = {'bookings:search', 'bookings:api-availability'}
+PUBLIC_ROUTES = {'bookings:search', 'bookings:api-availability', 'bookings:api-booking-create'}
 
 # Sample values so every route can be reversed; the middleware answers before
 # the view runs, so the values only need to match the converter.
