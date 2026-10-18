@@ -1,9 +1,19 @@
 from django.core.exceptions import ValidationError
-from django.db.models import Count, DecimalField, IntegerField, OuterRef, Q, Subquery, Sum
+from django.db.models import (
+    Count,
+    DecimalField,
+    F,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Sum,
+)
 from django.utils import timezone
 from psycopg.types.range import DateRange
 
-from apps.rooms.models import DailyRate, RoomType
+from apps.rooms.models import Amenity, DailyRate, RoomType, RoomTypeImage
 
 from .models import BookingRoom
 
@@ -26,7 +36,7 @@ def booked_room_ids(property, check_in, check_out):
     ).values('room_id')
 
 
-def get_available_room_types(property, check_in, check_out):
+def get_available_room_types(property, check_in, check_out, guests=None):
     """
     Room types of `property` that still have a free room for every night
     of [check_in, check_out).
@@ -37,8 +47,14 @@ def get_available_room_types(property, check_in, check_out):
 
     Room types missing a DailyRate for any night are excluded because they
     cannot be priced. Runs as a single query.
+
+    `guests` keeps only types whose free rooms together can host the whole
+    group (max_occupancy x available_count), since a booking may hold
+    several rooms.
     """
     validate_stay_dates(check_in, check_out)
+    if guests is not None and guests < 1:
+        raise ValidationError({'guests': 'จำนวนผู้เข้าพักต้องมีอย่างน้อย 1 คน'})
     nights = (check_out - check_in).days
 
     rates = (
@@ -48,7 +64,7 @@ def get_available_room_types(property, check_in, check_out):
         .values('room_type')
     )
 
-    return (
+    room_types = (
         RoomType.scoped.for_property(property)
         .annotate(
             available_count=Count(
@@ -67,4 +83,17 @@ def get_available_room_types(property, check_in, check_out):
         )
         .filter(available_count__gt=0, priced_nights=nights)
         .order_by('name', 'pk')
+    )
+    if guests is not None:
+        room_types = room_types.annotate(
+            capacity=F('max_occupancy') * F('available_count'),
+        ).filter(capacity__gte=guests)
+    return room_types
+
+
+def with_room_type_details(room_types, property):
+    """Prefetch amenities and images (scoped to `property`) to avoid N+1 when rendering."""
+    return room_types.prefetch_related(
+        Prefetch('amenities', queryset=Amenity.scoped.for_property(property)),
+        Prefetch('images', queryset=RoomTypeImage.scoped.for_property(property).order_by('pk')),
     )
