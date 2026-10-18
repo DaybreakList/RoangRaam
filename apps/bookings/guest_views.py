@@ -1,28 +1,21 @@
 from django.core.exceptions import ValidationError
-from django.db.models import Prefetch
 from django.shortcuts import render
 from django.views.decorators.http import require_safe
 from django.views.decorators.vary import vary_on_headers
 
 from apps.properties.permissions import public_property_view
-from apps.rooms.models import Amenity, RoomTypeImage
 
 from .forms import SearchForm
-from .services import get_available_room_types
+from .services import get_available_room_types, with_room_type_details
 
 
 def _search_results(property, form):
     """Room types matching a valid search form, with scoped amenities and images."""
-    guests = form.cleaned_data['guests']
-    return list(
-        get_available_room_types(property, form.cleaned_data['check_in'], form.cleaned_data['check_out'])
-        # TODO(A): move into the service
-        .filter(max_occupancy__gte=guests)
-        .prefetch_related(
-            Prefetch('amenities', queryset=Amenity.scoped.for_property(property)),
-            Prefetch('images', queryset=RoomTypeImage.scoped.for_property(property).order_by('pk')),
-        )
+    data = form.cleaned_data
+    room_types = get_available_room_types(
+        property, data['check_in'], data['check_out'], guests=data['guests'],
     )
+    return list(with_room_type_details(room_types, property))
 
 
 # The same URL returns a full page or a partial, so caches must key on HX-Request.
