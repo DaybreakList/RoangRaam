@@ -21,6 +21,21 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+    # Apply migrations on every start. With SEED_ON_START=true in .env the demo hotels
+    # are loaded too (seed_demo does nothing when they already exist). A failing seed
+    # must not stop the server, so it only prints a warning.
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        python manage.py migrate --noinput
+        case "$${SEED_ON_START:-false}" in
+          true|True|TRUE|1)
+            python manage.py seed_demo || echo "seed_demo failed: starting without demo data"
+            ;;
+        esac
+        exec python manage.py runserver 0.0.0.0:8000
     depends_on:
       db:
         condition: service_healthy
