@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="th">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ยืนยันการจอง {{ booking.code }}</title></head>
+{% comment %}
+Inline styles only: mail clients drop <style> and external CSS.
+Colors and font follow static/css/tokens.css so the email matches the site.
+{% endcomment %}
+<body style="margin:0;padding:32px 12px;background:#eef2f3;font-family:Tahoma,'Segoe UI','Noto Sans Thai',sans-serif;color:#172b35;line-height:1.6;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;">
+    <tr>
+        <td style="background:#12695d;border-radius:16px 16px 0 0;padding:36px 32px 28px;text-align:center;">
+            {% if logo_cid %}
+            <div style="display:inline-block;background:#ffffff;border-radius:12px;padding:10px 16px;margin-bottom:16px;">
+                <img src="cid:{{ logo_cid }}" alt="{{ property.name }}" style="display:block;max-height:56px;max-width:180px;">
+            </div>
+            {% endif %}
+            <div style="color:#ffffff;font-size:22px;font-weight:bold;letter-spacing:0.5px;">{{ property.name }}</div>
+            <div style="color:#bfe0da;font-size:14px;margin-top:4px;">ยืนยันการจองห้องพัก</div>
+        </td>
+    </tr>
+    <tr>
+        <td style="background:#ffffff;padding:32px;">
+            <p style="margin:0 0 4px;font-size:17px;">สวัสดีคุณ{{ booking.guest.first_name }}</p>
+            <p style="margin:0 0 24px;color:#586c76;font-size:14px;">ขอบคุณที่เลือกพักกับเรา รายละเอียดการจองของคุณอยู่ด้านล่าง</p>
+
+            <div style="background:#e8f3f1;border:2px dashed #12695d;border-radius:12px;padding:18px;text-align:center;margin-bottom:28px;">
+                <div style="font-size:12px;color:#586c76;letter-spacing:1px;">รหัสการจอง</div>
+                <div style="font-size:30px;font-weight:bold;letter-spacing:6px;color:#12695d;font-family:'Courier New',monospace;">{{ booking.code }}</div>
+                <div style="display:inline-block;margin-top:6px;padding:3px 14px;border-radius:999px;background:#12695d;color:#ffffff;font-size:12px;">{{ booking.get_status_display }}</div>
+            </div>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                    <td width="40%" style="vertical-align:top;">
+                        <div style="font-size:12px;color:#586c76;">เช็คอิน</div>
+                        <div style="font-size:16px;font-weight:bold;">{{ booking.check_in_date|date:"j M Y" }}</div>
+                        <div style="font-size:12px;color:#586c76;">ตั้งแต่ {{ property.check_in_time|time:"H:i" }} น.</div>
+                    </td>
+                    <td width="20%" style="text-align:center;vertical-align:middle;">
+                        <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:#f4f6f8;color:#586c76;font-size:12px;white-space:nowrap;">{{ booking.nights }} คืน</div>
+                    </td>
+                    <td width="40%" style="text-align:right;vertical-align:top;">
+                        <div style="font-size:12px;color:#586c76;">เช็คเอาต์</div>
+                        <div style="font-size:16px;font-weight:bold;">{{ booking.check_out_date|date:"j M Y" }}</div>
+                        <div style="font-size:12px;color:#586c76;">ก่อน {{ property.check_out_time|time:"H:i" }} น.</div>
+                    </td>
+                </tr>
+            </table>
+
+            <div style="font-size:12px;color:#586c76;letter-spacing:1px;margin-bottom:8px;">รายละเอียดห้องพัก · ผู้ใหญ่ {{ booking.adults }} คน{% if booking.children %} · เด็ก {{ booking.children }} คน{% endif %}</div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dce4e7;border-radius:12px;border-collapse:separate;font-size:14px;">
+                {% for booking_room in booking.booking_rooms.all %}
+                <tr>
+                    <td colspan="2" style="padding:14px 16px 6px;{% if not forloop.first %}border-top:1px solid #dce4e7;{% endif %}">
+                        <strong>{{ booking_room.room_type.name }}</strong>
+                        <span style="color:#586c76;"> · ห้อง {{ booking_room.room.number }}</span>
+                    </td>
+                </tr>
+                {% for rate in booking_room.night_rates.all %}
+                <tr>
+                    <td style="padding:2px 16px;color:#586c76;">คืนวันที่ {{ rate.night|date:"j M Y" }}</td>
+                    <td style="padding:2px 16px;text-align:right;white-space:nowrap;">{{ rate.price|floatformat:"2g" }} บาท</td>
+                </tr>
+                {% endfor %}
+                <tr><td colspan="2" style="height:10px;font-size:0;line-height:0;">&nbsp;</td></tr>
+                {% endfor %}
+                <tr>
+                    <td style="background:#f4f6f8;border-radius:0 0 0 12px;padding:16px;font-size:15px;"><strong>ยอดรวมทั้งหมด</strong></td>
+                    <td style="background:#f4f6f8;border-radius:0 0 12px 0;padding:16px;text-align:right;font-size:22px;color:#12695d;white-space:nowrap;"><strong>{{ booking.total_amount|floatformat:"2g" }} บาท</strong></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td style="background:#ffffff;border-top:1px solid #dce4e7;border-radius:0 0 16px 16px;padding:20px 32px;text-align:center;font-size:12px;color:#586c76;">
+            <strong style="color:#172b35;">{{ property.name }}</strong>
+            {% if property.address %}<br>{{ property.address|linebreaksbr }}{% endif %}
+            <br>แสดงรหัสการจองนี้ที่เคาน์เตอร์ตอนเช็คอิน
+        </td>
+    </tr>
+</table>
+</body>
+</html>
