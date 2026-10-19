@@ -14,7 +14,7 @@ from apps.properties.models import Property
 
 from .cancellation import cancel_booking
 from .emails import send_booking_confirmation_safely
-from .models import Booking, Payment
+from .models import Booking, BookingRoom, Payment
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ PAYMENT_WINDOW = timedelta(minutes=30)
 # minute covers clock drift between us and Stripe
 CHECKOUT_LIFETIME = timedelta(minutes=31)
 CURRENCY = 'thb'
+NOT_PENDING_MESSAGE = 'การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน'
 REFUND_FAILED_MESSAGE = 'คืนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
 
 
@@ -49,9 +50,18 @@ def start_checkout(property, booking_id, success_url, cancel_url):
         Booking.scoped.for_property(property).select_related('guest'), pk=booking_id,
     )
     if booking.status != Booking.Status.PENDING_PAYMENT:
-        raise ValidationError({'status': 'การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน'})
+        raise ValidationError({'status': NOT_PENDING_MESSAGE})
     if timezone.now() >= booking.created_at + PAYMENT_WINDOW:
-        cancel_booking(property, booking.pk)
+        # Lock and check again: the webhook may have confirmed the booking since
+        # it was read above, and a paid booking must not be cancelled here.
+        with transaction.atomic():
+            unpaid = Booking.scoped.for_property(property).select_for_update().filter(
+                pk=booking.pk, status=Booking.Status.PENDING_PAYMENT,
+            ).first()
+            if unpaid is not None:
+                cancel_booking(property, unpaid.pk)
+        if unpaid is None:
+            raise ValidationError({'status': NOT_PENDING_MESSAGE})
         raise ValidationError({'status': 'หมดเวลาชำระเงิน การจองนี้ถูกยกเลิกแล้ว กรุณาจองใหม่'})
 
     # The webhook reads these back to find the booking without trusting the browser
@@ -199,3 +209,32 @@ def release_unpaid_booking(session):
         # Another Checkout page may have paid it already; only an unpaid booking goes
         if booking is not None and booking.status == Booking.Status.PENDING_PAYMENT:
             cancel_booking(property, booking.pk)
+
+
+def release_expired_bookings(property, room_types=None):
+    """
+    Cancel bookings of `property` still unpaid PAYMENT_WINDOW after they were made.
+
+    Covers guests who never opened the payment page, so Stripe never sends an
+    expired event. `room_types` (instances or ids) limits it to bookings holding
+    those types, for a caller that is about to book them. Each booking is locked
+    and re-checked on its own; one that another request has locked is skipped
+    rather than waited for, since that request is paying or cancelling it.
+    Returns how many bookings were cancelled.
+    """
+    expired = Booking.scoped.for_property(property).filter(
+        status=Booking.Status.PENDING_PAYMENT,
+        created_at__lte=timezone.now() - PAYMENT_WINDOW,
+    )
+    if room_types is not None:
+        holding = BookingRoom.scoped.for_property(property).filter(room_type__in=room_types)
+        expired = expired.filter(pk__in=holding.values('booking_id'))
+
+    released = 0
+    for booking_id in list(expired.values_list('pk', flat=True)):
+        with transaction.atomic():
+            booking = expired.select_for_update(skip_locked=True).filter(pk=booking_id).first()
+            if booking is not None:
+                cancel_booking(property, booking.pk)
+                released += 1
+    return released
