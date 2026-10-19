@@ -1,10 +1,13 @@
 {% comment %}
 Top navbar. request.property is None on /accounts/ and the login page.
 The property switcher needs `switcher_memberships` from the context processor.
+The brand link goes to the staff home only when request.membership is set; guests and
+staff on public pages (membership is None) go to the property's public search page.
 {% endcomment %}
+{% load frontdesk_nav %}
 <header class="rr-navbar">
     {% if request.property %}
-    <a class="rr-navbar__brand" href="{% url 'property_home' property_slug=request.property.slug %}">
+    <a class="rr-navbar__brand" href="{% if request.membership %}{% url 'property_home' property_slug=request.property.slug %}{% else %}{% url 'bookings:search' property_slug=request.property.slug %}{% endif %}">
         {% if request.property.logo %}<img class="rr-navbar__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
         <span class="rr-navbar__name">{{ request.property.name }}</span>
     </a>
@@ -12,6 +15,12 @@ The property switcher needs `switcher_memberships` from the context processor.
     <a class="rr-navbar__brand" href="{% if user.is_authenticated %}{% url 'accounts:home' %}{% else %}{% url 'accounts:login' %}{% endif %}">
         <span class="rr-navbar__name">RoangRaam</span>
     </a>
+    {% endif %}
+
+    {% if request.property and request.membership|can_view_page:'tape_chart' %}
+    <nav class="rr-navbar__nav" aria-label="เมนูหลัก">
+        <a class="rr-navbar__link" href="{% url 'tape_chart:index' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'tape_chart:index' %} aria-current="page"{% endif %}>ตารางการจอง</a>
+    </nav>
     {% endif %}
 
     <div class="rr-navbar__actions">

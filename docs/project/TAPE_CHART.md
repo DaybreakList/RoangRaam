@@ -18,7 +18,7 @@ redirect to login; other-property staff receive 404. Write methods are unsupport
 
 D owns tape_chart_* files and services/tape_chart.py. E owns daily_ops_* and
 services/daily_ops.py. services/__init__.py is empty. Existing frontdesk scaffolds
-and shared navbar are untouched. The accounts isolation sweep discovers the new
+are untouched; the shared navbar changed in PR 3 (below). The accounts isolation sweep discovers the new
 private route automatically; its public-route allowlist is unchanged.
 
 ## Filters and navigation (PR 2, issue #81)
@@ -49,6 +49,28 @@ distinguish partial/full responses. There is no automatic polling.
   filters with an empty result were verified using synthetic demo data.
 - Earlier desktop/mobile layout checks passed; no real guest data was used.
 
-No migrations or new application dependencies. Navbar integration and refresh
-controls remain for PR 3 after coordinating with B. Dragging is outside Sprint 2.
+No migrations or new application dependencies. Refresh controls are not built.
+Dragging is outside Sprint 2.
 No payment/staging end-to-end demo was performed.
+
+## PR 3: navigation (B รับต่อจาก D)
+
+B took over PR 3 from D; D agreed to this scope and will not open a duplicate PR 3.
+D should still review the Tape Chart parts (`services/tape_chart.py`, `_tape_chart_panel.html`).
+
+- Navbar menu "ตารางการจอง" links to `tape_chart:index` of `request.property` and sets
+  `aria-current="page"` on that page. It shows only when `request.membership` exists and its
+  role is in `TapeChartView.allowed_roles`. The roles are never repeated in templates: the
+  `can_view_page` filter in `apps/frontdesk/templatetags/frontdesk_nav.py` reads them from the
+  view classes registered in its single `NAV_PAGES` dict (only `tape_chart` for now; another page
+  is added with one line). Unknown page names are hidden.
+- The middleware sets `request.membership` only on non-public pages, so guests and staff on
+  public pages (e.g. `bookings:search`) see no menu.
+- Navbar brand link: `property_home` when `request.membership` exists; otherwise `bookings:search`
+  of the current property; pages without `request.property` are unchanged.
+- Each bar from `build_tape_chart()` carries `booking_id` (the Booking primary key, not the
+  BookingRoom id or the booking code, no extra query) and renders `data-booking-id` on `.tc-bar`.
+  No guest link, detail page or dragging yet.
+- Tests: `apps/frontdesk/tests/test_tape_chart_navigation.py`. No migrations, routes or dependencies.
+- Docker: `pytest --create-db -q`: 744 passed; Ruff 0.17.1, `manage.py check` and
+  `makemigrations --check --dry-run` clean.
