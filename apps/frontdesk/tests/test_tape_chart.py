@@ -163,3 +163,41 @@ def test_booking_text_is_escaped(client, hotel_a, login_member):
     content = client.get(url(hotel_a)).content.decode()
     assert '&lt;b&gt;x&lt;/b&gt;' in content
     assert '<b>x</b>' not in content
+
+
+def test_guest_name_shown_without_contact_details(client, hotel_a, login_member):
+    login_member(hotel_a)
+    item = stay(hotel_a)
+    content = client.get(url(hotel_a)).content.decode()
+    assert str(item.booking.guest) in content
+    assert item.booking.guest.email not in content
+    assert item.booking.guest.phone not in content
+
+
+def test_guest_name_is_escaped(client, hotel_a, login_member):
+    login_member(hotel_a)
+    item = stay(hotel_a)
+    guest = item.booking.guest
+    guest.first_name = '<script>alert(1)</script>'
+    guest.save(update_fields=['first_name'])
+    content = client.get(url(hotel_a)).content.decode()
+    assert '&lt;script&gt;alert(1)&lt;/script&gt;' in content
+    assert '<script>alert(1)</script>' not in content
+
+
+def test_guest_names_do_not_cross_properties(client, hotel_a, hotel_b, login_member):
+    login_member(hotel_a)
+    mine, other = stay(hotel_a), stay(hotel_b)
+    content = client.get(url(hotel_a)).content.decode()
+    assert str(mine.booking.guest) in content
+    assert str(other.booking.guest) not in content
+
+
+def test_inconsistent_foreign_guest_is_not_exposed(client, hotel_a, hotel_b, login_member):
+    login_member(hotel_a)
+    mine, other = stay(hotel_a), stay(hotel_b)
+    # Protect reads even if a non-validating writer introduced a bad relation.
+    Booking.objects.filter(pk=mine.booking_id).update(guest=other.booking.guest)
+    content = client.get(url(hotel_a)).content.decode()
+    assert str(other.booking.guest) not in content
+    assert mine.booking.code not in content

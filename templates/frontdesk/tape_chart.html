@@ -15,8 +15,8 @@
       <section class="tc-row" aria-label="ห้อง {{ row.room.number }}">
         <div class="tc-room"><strong>{{ row.room.number }}</strong><br>ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}{% if not row.room.is_active %}<br><span class="tc-closed">ปิดใช้งาน</span>{% endif %}</div>
         <div class="tc-track">
-          {% for bar in row.bars %}<div class="tc-bar tc-{{ bar.status|lower }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" tabindex="0" title="{{ bar.code }} · {{ bar.label }} · {{ bar.start|date:'j M Y' }} ถึง {{ bar.end|date:'j M Y' }} (วันเช็คเอาต์)" aria-label="{{ bar.code }} {{ bar.label }} เข้าพัก {{ bar.start|date:'j M Y' }} เช็คเอาต์ {{ bar.end|date:'j M Y' }}">
-            <strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span>{{ bar.label }}</span>
+          {% for bar in row.bars %}<div class="tc-bar tc-{{ bar.status|lower }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" tabindex="0" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start|date:'j M Y' }} ถึง {{ bar.end|date:'j M Y' }} (วันเช็คเอาต์)" aria-label="{{ bar.code }} {{ bar.guest_name }} {{ bar.label }} เข้าพัก {{ bar.start|date:'j M Y' }} เช็คเอาต์ {{ bar.end|date:'j M Y' }}">
+            <strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span class="tc-guest">{{ bar.guest_name }}</span><span>{{ bar.label }}</span>
           </div>{% empty %}<span class="tc-empty">ไม่มีการจองในช่วงนี้</span>{% endfor %}
         </div>
       </section>

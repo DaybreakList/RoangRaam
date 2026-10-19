@@ -19,8 +19,8 @@ def build_tape_chart(property):
         BookingRoom.scoped.for_property(property)
         .filter(is_active=True, stay_range__overlap=DateRange(start, end),
                 booking__property=property, room__property=property,
-                room_type__property=property)
-        .select_related('booking')
+                room_type__property=property, booking__guest__property=property)
+        .select_related('booking__guest')
         .order_by('stay_range', 'pk')
     )
     rooms = (
@@ -35,6 +35,7 @@ def build_tape_chart(property):
         right = min(end, stay.stay_range.upper)
         by_room.setdefault(stay.room_id, []).append({
             'code': stay.booking.code,
+            'guest_name': str(stay.booking.guest),
             'status': stay.booking.status,
             'label': stay.booking.get_status_display(),
             'start': stay.stay_range.lower,

@@ -1,9 +1,9 @@
 .tc-page { padding: 24px; max-width: 1600px; margin: auto; color: #172b42; }
 .tc-page h1 { margin-bottom: 8px; }
-.tc-scroll { overflow: auto; border: 1px solid #cbd5e1; border-radius: 10px; }
+.tc-scroll { overflow: auto; max-height: 70vh; border: 1px solid #cbd5e1; border-radius: 10px; }
 .tc-grid { min-width: 1600px; }
 .tc-header, .tc-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
-.tc-header { background: #eaf0f6; font-weight: 600; }
+.tc-header { position: sticky; top: 0; z-index: 3; background: #eaf0f6; font-weight: 600; }
 .tc-row { border-top: 1px solid #cbd5e1; min-height: 76px; }
 .tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: #f8fafc; border-right: 1px solid #cbd5e1; overflow-wrap: anywhere; }
 .tc-days, .tc-track { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); }
