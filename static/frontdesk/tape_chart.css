@@ -20,3 +20,11 @@
 .tc-empty { grid-column: 1 / -1; padding: 12px; color: #64748b; }
 .tc-bar:focus-visible, .tc-scroll:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
 @media (max-width: 600px) { .tc-page { padding: 12px; } }
+
+.tc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.tc-filters label { display: block; margin-bottom: 4px; }
+.tc-filters input, .tc-filters select { min-height: 40px; max-width: 100%; padding: 6px; border: 1px solid #94a3b8; border-radius: 5px; }
+.tc-filters .errorlist { color: #9e2929; padding-left: 20px; }
+.tc-navigation { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0; }
+.tc-navigation [aria-disabled] { color: #64748b; }
+#tc-loading { min-height: 24px; margin: 4px 0; }

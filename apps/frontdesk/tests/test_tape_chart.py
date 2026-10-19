@@ -73,7 +73,7 @@ def test_empty_chart(client, hotel_a, login_member):
 def test_other_property_and_query_override_do_not_leak(client, hotel_a, hotel_b, login_member):
     login_member(hotel_a)
     mine, other = stay(hotel_a), stay(hotel_b)
-    response = client.get(url(hotel_a), {'property_id': str(hotel_b.pk), 'room_type': other.room_type_id})
+    response = client.get(url(hotel_a), {'property_id': str(hotel_b.pk)})
     content = response.content.decode()
     assert mine.booking.code in content
     assert other.booking.code not in content

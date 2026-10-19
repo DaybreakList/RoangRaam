@@ -11,9 +11,9 @@ from apps.rooms.models import Room
 WINDOW_DAYS = 14
 
 
-def build_tape_chart(property):
-    """Read a property's next fourteen nights in a fixed number of queries."""
-    start = timezone.localdate(timezone=ZoneInfo(property.timezone))
+def build_tape_chart(property, *, start=None, floor=None, room_type=None):
+    """Read a property's fourteen-night window in a fixed number of queries."""
+    start = start or timezone.localdate(timezone=ZoneInfo(property.timezone))
     end = start + timedelta(days=WINDOW_DAYS)
     stays = list(
         BookingRoom.scoped.for_property(property)
@@ -29,6 +29,10 @@ def build_tape_chart(property):
                 room_type__property=property)
         .select_related('room_type').order_by('floor', 'number', 'pk')
     )
+    if floor is not None:
+        rooms = rooms.filter(floor=floor)
+    if room_type is not None:
+        rooms = rooms.filter(room_type=room_type)
     by_room = {}
     for stay in stays:
         left = max(start, stay.stay_range.lower)
