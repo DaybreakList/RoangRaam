@@ -1,14 +1,22 @@
+import logging
 from datetime import timedelta
 from decimal import Decimal
+from functools import partial
 
 import stripe
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from apps.properties.models import Property
+
 from .cancellation import cancel_booking
-from .models import Booking
+from .emails import send_booking_confirmation_safely
+from .models import Booking, Payment
+
+logger = logging.getLogger(__name__)
 
 # A booking waiting for payment holds its rooms for this long
 PAYMENT_WINDOW = timedelta(minutes=30)
@@ -21,6 +29,11 @@ CURRENCY = 'thb'
 def to_satang(amount):
     """Stripe takes the smallest unit as an int: Decimal('1500.50') -> 150050."""
     return int((amount * 100).quantize(Decimal('1')))
+
+
+def from_satang(amount):
+    """Back from Stripe's int to baht: 150050 -> Decimal('1500.50')."""
+    return (Decimal(amount) / 100).quantize(Decimal('0.01'))
 
 
 def start_checkout(property, booking_id, success_url, cancel_url):
@@ -62,3 +75,109 @@ def start_checkout(property, booking_id, success_url, cancel_url):
         cancel_url=cancel_url,
     )
     return session.url
+
+
+def _locked_booking(session):
+    """
+    The booking a Checkout Session was opened for, locked with select_for_update().
+
+    Must run inside transaction.atomic(). Returns (None, None) when the metadata
+    does not point at a booking of that property. The ids come from our own
+    start_checkout() through a signed webhook, never from the browser.
+    """
+    metadata = session.get('metadata') or {}
+    try:
+        property = Property.objects.filter(pk=metadata.get('property_id')).first()
+        booking = None
+        if property is not None:
+            booking = (
+                Booking.scoped.for_property(property)
+                .select_for_update()
+                .filter(pk=metadata.get('booking_id'))
+                .first()
+            )
+    except ValidationError:  # not a UUID
+        property = booking = None
+    if booking is None:
+        logger.warning('Stripe session %s has no matching booking', session.get('id'))
+        return None, None
+    return property, booking
+
+
+def record_checkout_payment(event_id, session):
+    """
+    Save the money of a paid Checkout Session and confirm its booking.
+
+    Safe to run again for the same payment (Stripe retries webhooks): the
+    PaymentIntent id is unique per property, so a repeat finds the CHARGE row
+    instead of adding one. Money that cannot be kept, because the booking was
+    cancelled meanwhile (payment window passed) or was already paid through
+    another Checkout page, is recorded as a CHARGE and then refunded in full;
+    the booking status is left as it is.
+    """
+    with transaction.atomic():
+        property, booking = _locked_booking(session)
+        if booking is None:
+            return None
+        payments = Payment.scoped.for_property(property)
+        charge = payments.filter(provider_ref=session['payment_intent']).first()
+        if charge is None:
+            charge = payments.create(
+                property=property,
+                booking=booking,
+                kind=Payment.Kind.CHARGE,
+                amount=from_satang(session['amount_total']),
+                provider_ref=session['payment_intent'],
+                idempotency_key=event_id,
+            )
+            if booking.status == Booking.Status.PENDING_PAYMENT:
+                booking.status = Booking.Status.CONFIRMED
+                booking.save(update_fields=['status'])
+                # After commit, so a slow or failing mail server cannot undo the payment
+                transaction.on_commit(partial(send_booking_confirmation_safely, property, booking.pk))
+
+        first_charge = payments.filter(booking=booking, kind=Payment.Kind.CHARGE).earliest('created_at')
+        keep = booking.status != Booking.Status.CANCELLED and first_charge.pk == charge.pk
+    if not keep:
+        refund_charge(property, charge)
+    return charge
+
+
+def refund_charge(property, charge):
+    """
+    Give a CHARGE back in full through Stripe and record a REFUND row.
+
+    Safe to repeat: the same idempotency key goes to Stripe, which then returns
+    the first refund instead of making a second one, and to our REFUND row.
+    """
+    key = f'refund-{charge.provider_ref}'
+    payments = Payment.scoped.for_property(property)
+    if payments.filter(idempotency_key=key).exists():
+        return None
+    refund = stripe.Refund.create(
+        api_key=settings.STRIPE_SECRET_KEY,
+        payment_intent=charge.provider_ref,
+        idempotency_key=key,
+    )
+    try:
+        with transaction.atomic():
+            return payments.create(
+                property=property,
+                booking_id=charge.booking_id,
+                kind=Payment.Kind.REFUND,
+                amount=charge.amount,
+                provider_ref=refund.id,
+                idempotency_key=key,
+            )
+    except IntegrityError:
+        # A parallel delivery of the same webhook recorded it first
+        return None
+
+
+def release_unpaid_booking(session):
+    """Cancel the booking of an expired or failed Checkout page if it is still unpaid."""
+    with transaction.atomic():
+        property, booking = _locked_booking(session)
+        # Another Checkout page may have paid it already; only an unpaid booking goes
+        if booking is not None and booking.status == Booking.Status.PENDING_PAYMENT:
+            cancel_booking(property, booking.pk)

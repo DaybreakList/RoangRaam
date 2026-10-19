@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import api, guest_views
+from . import api, guest_views, webhooks
 
 app_name = 'bookings'
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
         guest_views.payment_result,
         name='payment-result',
     ),
+    path('stripe/webhook/', webhooks.stripe_webhook, name='stripe-webhook'),
     path(
         'api/p/<slug:property_slug>/availability/',
         api.AvailabilityAPIView.as_view(),

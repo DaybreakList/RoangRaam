@@ -1,3 +1,4 @@
+import logging
 from email.mime.image import MIMEImage
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from django.template.loader import render_to_string
 
 from .models import Booking
 from .services import booking_with_details
+
+logger = logging.getLogger(__name__)
 
 # Content-ID of the inline logo; the HTML template points to it as cid:hotel-logo
 LOGO_CID = 'hotel-logo'
@@ -39,6 +42,22 @@ def send_booking_confirmation(property, booking_id):
         message.attach(_logo_image(property.logo))
     message.send()
     return message
+
+
+def send_booking_confirmation_safely(property, booking_id):
+    """
+    Same as send_booking_confirmation, but never raises.
+
+    For callers where the booking is already saved (the booking page, the
+    payment webhook): a mail server problem is logged instead of turning a
+    finished booking into an error page. Returns True when the email was sent.
+    """
+    try:
+        send_booking_confirmation(property, booking_id)
+    except Exception:
+        logger.exception('Could not send the confirmation email for booking %s', booking_id)
+        return False
+    return True
 
 
 def _logo_image(logo):
