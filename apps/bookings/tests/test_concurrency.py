@@ -164,3 +164,37 @@ def test_double_submit_racing_on_different_room_types_returns_one_booking():
     assert statuses == {201: 10}
     assert Booking.objects.count() == 1
     assert BookingRoom.objects.count() == 1
+
+
+@pytest.mark.parametrize('rooms_per_request', ['same type', 'different types'])
+def test_only_one_simultaneous_duplicate_reports_created(rooms_per_request):
+    """10 threads, one idempotency key: exactly one may send the confirmation email."""
+    from apps.bookings.services import get_or_create_booking
+
+    prop = PropertyFactory()
+    if rooms_per_request == 'same type':
+        room_types = [make_room_type(prop, rooms=1, name='Single')] * 10
+    else:
+        room_types = [make_room_type(prop, rooms=1, name=f'T{i}') for i in range(10)]
+    barrier = threading.Barrier(10)
+
+    def book(room_type):
+        try:
+            barrier.wait()
+            booking, created = get_or_create_booking(
+                prop, check_in=day(10), check_out=day(13),
+                rooms=[{'room_type_id': room_type.pk, 'quantity': 1}],
+                guest={'first_name': 'Race', 'last_name': 'Test', 'email': 'race@example.com', 'phone': '0800000000'},
+                adults=1, children=0, payment_option='FULL',
+                idempotency_key='3f6c1b2a-8d4e-4f7a-9b0c-1d2e3f4a5b6c',
+            )
+            return booking.pk, created
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        results = list(pool.map(book, room_types))
+
+    assert len({pk for pk, _ in results}) == 1
+    assert [created for _, created in results].count(True) == 1
+    assert Booking.objects.count() == 1
