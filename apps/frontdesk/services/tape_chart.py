@@ -38,6 +38,7 @@ def build_tape_chart(property, *, start=None, floor=None, room_type=None):
         left = max(start, stay.stay_range.lower)
         right = min(end, stay.stay_range.upper)
         by_room.setdefault(stay.room_id, []).append({
+            'booking_id': stay.booking.pk,
             'code': stay.booking.code,
             'guest_name': str(stay.booking.guest),
             'status': stay.booking.status,
