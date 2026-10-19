@@ -1,3 +1,4 @@
+import logging
 from collections import Counter, defaultdict
 from datetime import timedelta
 from decimal import Decimal
@@ -23,12 +24,18 @@ from apps.rooms.models import Amenity, DailyRate, Room, RoomType, RoomTypeImage
 
 from .models import Booking, BookingNightRate, BookingRoom, Guest
 
+logger = logging.getLogger(__name__)
+
 ROOM_TAKEN_MESSAGE = 'ห้องที่เลือกเพิ่งถูกจองไป กรุณาค้นหาห้องว่างอีกครั้ง'
 
 INITIAL_STATUS = {
     Booking.PaymentOption.FULL: Booking.Status.PENDING_PAYMENT,
     Booking.PaymentOption.PAY_AT_HOTEL: Booking.Status.CONFIRMED,
 }
+
+# Applies to the API and to the guest booking pages alike
+MAX_ROOMS_PER_BOOKING = 20
+TOO_MANY_ROOMS_MESSAGE = f'จองได้สูงสุด {MAX_ROOMS_PER_BOOKING} ห้องต่อครั้ง'
 
 
 def validate_stay_dates(check_in, check_out):
@@ -41,12 +48,33 @@ def validate_stay_dates(check_in, check_out):
         raise ValidationError(errors)
 
 
-def booked_room_ids(property, check_in, check_out):
-    """Rooms held by an active booking that overlaps [check_in, check_out)."""
-    return BookingRoom.scoped.for_property(property).filter(
+def booked_room_ids(property, check_in, check_out, *, ignore_expired_holds=False):
+    """
+    Rooms held by an active booking that overlaps [check_in, check_out).
+
+    With `ignore_expired_holds`, a PENDING_PAYMENT booking older than
+    PAYMENT_WINDOW does not count: its rooms are as good as free, and the next
+    booking for them releases it for real. Search uses this so it never has to
+    write; room assignment does not, because the exclusion constraint still
+    sees those rows until they are released.
+    """
+    held = BookingRoom.scoped.for_property(property).filter(
         is_active=True,
         stay_range__overlap=DateRange(check_in, check_out),
-    ).values('room_id')
+    )
+    if ignore_expired_holds:
+        held = held.exclude(
+            booking__status=Booking.Status.PENDING_PAYMENT,
+            booking__created_at__lte=timezone.now() - _payment_window(),
+        )
+    return held.values('room_id')
+
+
+def _payment_window():
+    # Imported here: payments -> emails -> services would be circular at import time
+    from .payments import PAYMENT_WINDOW
+
+    return PAYMENT_WINDOW
 
 
 def get_available_room_types(property, check_in, check_out, guests=None):
@@ -83,7 +111,9 @@ def get_available_room_types(property, check_in, check_out, guests=None):
             available_count=Count(
                 'rooms',
                 filter=Q(rooms__is_active=True)
-                & ~Q(rooms__id__in=booked_room_ids(property, check_in, check_out)),
+                & ~Q(rooms__id__in=booked_room_ids(
+                    property, check_in, check_out, ignore_expired_holds=True,
+                )),
                 distinct=True,
             ),
             priced_nights=Subquery(
@@ -164,6 +194,9 @@ def get_or_create_booking(
                 existing = _booking_for_key(property, idempotency_key)
                 if existing is not None:
                     return existing, False
+            # Unpaid bookings past PAYMENT_WINDOW still hold rows the exclusion
+            # constraint sees; cancel the ones on these types before picking rooms
+            _release_expired_holds(property, room_types)
             _check_occupancy(room_types, quantities, adults, children)
             assigned = _assign_rooms(property, room_types, quantities, check_in, check_out)
             prices = _nightly_prices(property, room_types, nights)
@@ -250,12 +283,32 @@ def find_booking(property, code, email):
     return booking_with_details(property, booking_id)
 
 
+def _release_expired_holds(property, room_types):
+    """
+    Best effort: a hold that cannot be released must not fail the new guest's booking.
+
+    cancel_booking() raises ValidationError when a refund fails. An unpaid hold
+    has nothing to refund today, but if it ever does, its savepoint is rolled
+    back and its rooms simply stay held: _assign_rooms() still counts them as
+    taken, so the new booking uses other rooms or reports "not enough rooms".
+    """
+    from .payments import release_expired_bookings
+
+    try:
+        with transaction.atomic():
+            release_expired_bookings(property, room_types=room_types)
+    except ValidationError:
+        logger.exception('Could not release expired holds for property %s', property.pk)
+
+
 def _merge_room_requests(rooms):
     quantities = Counter()
     for item in rooms:
         quantities[item['room_type_id']] += item['quantity']
     if not quantities or any(qty < 1 for qty in quantities.values()):
         raise ValidationError({'rooms': 'กรุณาเลือกห้องอย่างน้อย 1 ห้อง'})
+    if sum(quantities.values()) > MAX_ROOMS_PER_BOOKING:
+        raise ValidationError({'rooms': TOO_MANY_ROOMS_MESSAGE})
     return quantities
 
 
