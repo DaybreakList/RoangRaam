@@ -292,6 +292,30 @@ table.rr-table td {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.rr-navbar__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--rr-space-4);
+  margin-right: auto;
+}
+.rr-navbar__link {
+  padding: var(--rr-space-1) 0;
+  border-bottom: 2px solid transparent;
+  color: var(--rr-color-text);
+  text-decoration: none;
+}
+.rr-navbar__link:hover {
+  color: var(--rr-color-primary-hover);
+}
+.rr-navbar__link:focus-visible {
+  outline: 3px solid var(--rr-color-focus);
+  outline-offset: 3px;
+}
+.rr-navbar__link[aria-current="page"] {
+  border-bottom-color: var(--rr-color-primary);
+  color: var(--rr-color-primary-hover);
+  font-weight: bold;
+}
 .rr-navbar__actions {
   display: flex;
   align-items: center;
@@ -366,5 +390,10 @@ table.rr-table td {
   .rr-navbar {
     flex-wrap: wrap;
     padding: var(--rr-space-3) var(--rr-space-4);
+  }
+  .rr-navbar__nav {
+    order: 3;
+    flex: 1 0 100%;
+    margin-right: 0;
   }
 }
