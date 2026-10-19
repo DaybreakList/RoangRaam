@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}การชำระเงิน · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/payment.css' %}">{% endblock %}
+
+{% block content %}
+{% with status=booking.status Status=booking.Status %}
+<main class="rr-pay">
+    <section class="rr-card rr-pay__card {% if status == Status.PENDING_PAYMENT %}rr-pay__card--pending{% elif status == Status.CANCELLED %}rr-pay__card--cancelled{% else %}rr-pay__card--paid{% endif %}">
+        <header class="rr-pay__hotel">
+            {% if request.property.logo %}<img class="rr-pay__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+            <span>{{ request.property.name }}</span>
+        </header>
+
+        {% if status == Status.PENDING_PAYMENT %}
+            <div class="rr-pay__icon" aria-hidden="true">!</div>
+            <h1 class="rr-pay__title">รอชำระเงิน</h1>
+            <p class="rr-pay__lead">หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณารีเฟรชหน้านี้อีกครั้งในอีกสักครู่</p>
+        {% elif status == Status.CANCELLED %}
+            <div class="rr-pay__icon" aria-hidden="true">&times;</div>
+            <h1 class="rr-pay__title">การจองนี้ถูกยกเลิกแล้ว</h1>
+            <p class="rr-pay__lead">หากต้องการเข้าพัก กรุณาทำการจองใหม่</p>
+        {% else %}
+            <div class="rr-pay__icon" aria-hidden="true">&#10003;</div>
+            <h1 class="rr-pay__title">ชำระเงินเรียบร้อย</h1>
+            <p class="rr-pay__lead">การจองได้รับการยืนยันแล้ว อีเมลยืนยันจะถูกส่งไปที่อีเมลของคุณ</p>
+        {% endif %}
+
+        {% if error %}<p class="rr-pay__error" role="alert">{{ error }}</p>{% endif %}
+
+        <div class="rr-pay__code">
+            <span class="rr-pay__code-label">รหัสการจอง</span>
+            <strong class="rr-pay__code-value">{{ booking.code }}</strong>
+        </div>
+
+        <dl class="rr-pay__details">
+            <div><dt>เช็คอิน</dt><dd>{{ booking.check_in_date|date:"j M Y" }}</dd></div>
+            <div><dt>เช็คเอาต์</dt><dd>{{ booking.check_out_date|date:"j M Y" }}</dd></div>
+            <div><dt>จำนวนคืน</dt><dd>{{ booking.nights }} คืน</dd></div>
+            <div class="rr-pay__total"><dt>ยอดชำระ</dt><dd>{{ booking.total_amount|floatformat:"2g" }} บาท</dd></div>
+        </dl>
+
+        <div class="rr-pay__actions">
+            {% if status == Status.PENDING_PAYMENT %}
+                <form method="post" action="{% url 'bookings:pay' property_slug=request.property.slug booking_id=booking.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="rr-btn">ชำระเงิน</button>
+                </form>
+            {% elif status == Status.CANCELLED %}
+                <a class="rr-btn" href="{% url 'bookings:search' property_slug=request.property.slug %}">จองใหม่</a>
+            {% else %}
+                <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าโรงแรม</a>
+            {% endif %}
+        </div>
+    </section>
+</main>
+{% endwith %}
+{% endblock %}

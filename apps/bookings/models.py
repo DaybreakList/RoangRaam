@@ -235,3 +235,60 @@ class BookingNightRate(PropertyScopedModel):
     def clean(self):
         super().clean()
         _check_same_property(self, ['booking_room'])
+
+class Payment(PropertyScopedModel):
+    """
+    One real money movement for a booking, append-only.
+
+    A refund is a new REFUND row, never an edit of the CHARGE row. While the
+    guest has not paid yet there is no row; Booking.status stays PENDING_PAYMENT.
+    """
+
+    class Kind(models.TextChoices):
+        CHARGE = 'CHARGE', 'รับชำระ'
+        REFUND = 'REFUND', 'คืนเงิน'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.ForeignKey(
+        Booking, on_delete=models.PROTECT, related_name='payments', verbose_name='การจอง',
+    )
+    kind = models.CharField('ประเภท', max_length=10, choices=Kind.choices)
+    amount = models.DecimalField(
+        'จำนวนเงิน', max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
+    # Stripe object id: the PaymentIntent for a charge, the Refund for a refund
+    provider_ref = models.CharField('รหัสอ้างอิง Stripe', max_length=255)
+    # Stripe event id, so a webhook delivered twice cannot add a second row
+    idempotency_key = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'การชำระเงิน'
+        verbose_name_plural = 'การชำระเงิน'
+        ordering = ['created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['property', 'provider_ref'], name='bookings_payment_property_provider_ref_uniq',
+            ),
+            models.UniqueConstraint(
+                fields=['property', 'idempotency_key'],
+                name='bookings_payment_property_idempotency_key_uniq',
+            ),
+            models.CheckConstraint(condition=Q(amount__gt=0), name='bookings_payment_amount_positive'),
+        ]
+
+    def __str__(self):
+        return f'{self.booking} {self.kind} {self.amount}'
+
+    def clean(self):
+        super().clean()
+        _check_same_property(self, ['booking'])
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError('ไม่สามารถแก้ไขรายการชำระเงินที่บันทึกแล้ว')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('ไม่สามารถลบรายการชำระเงิน')

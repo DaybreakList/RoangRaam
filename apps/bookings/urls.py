@@ -5,6 +5,12 @@ from . import api, guest_views
 app_name = 'bookings'
 urlpatterns = [
     path('p/<slug:property_slug>/search/', guest_views.search, name='search'),
+    path('p/<slug:property_slug>/bookings/<uuid:booking_id>/pay/', guest_views.pay, name='pay'),
+    path(
+        'p/<slug:property_slug>/bookings/<uuid:booking_id>/payment/',
+        guest_views.payment_result,
+        name='payment-result',
+    ),
     path(
         'api/p/<slug:property_slug>/availability/',
         api.AvailabilityAPIView.as_view(),
