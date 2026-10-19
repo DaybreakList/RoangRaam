@@ -170,3 +170,37 @@ class TestMaxRoomsInService:
 
     def test_message_is_thai_and_names_the_limit(self):
         assert TOO_MANY_ROOMS_MESSAGE == 'จองได้สูงสุด 20 ห้องต่อครั้ง'
+
+
+class TestReleaseFailureDoesNotBlockNewBooking:
+    """If cancel_booking() fails while releasing a hold, skip it instead of failing the new guest."""
+
+    @pytest.fixture
+    def failing_cancel(self, monkeypatch):
+        def fail(property, booking_id):
+            raise ValidationError({'status': 'คืนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'})
+
+        monkeypatch.setattr('apps.bookings.payments.cancel_booking', fail)
+
+    def test_new_booking_uses_another_free_room(self, hotel_a, failing_cancel, caplog):
+        twin = make_room_type(hotel_a, rooms=2)
+        held_room, free_room = twin.rooms.order_by('number')
+        expired = hold(held_room)
+
+        booking = book(hotel_a, twin)
+
+        assert booking.booking_rooms.get().room == free_room
+        expired.refresh_from_db()
+        assert expired.status == Booking.Status.PENDING_PAYMENT
+        assert BookingRoom.objects.get(booking=expired).is_active
+        assert 'Could not release expired holds' in caplog.text
+
+    def test_no_other_room_reports_not_enough_rooms_not_a_refund_error(self, hotel_a, failing_cancel):
+        twin = make_room_type(hotel_a, rooms=1)
+        hold(twin.rooms.get())
+
+        with pytest.raises(ValidationError) as exc:
+            book(hotel_a, twin)
+
+        assert set(exc.value.message_dict) == {'rooms'}
+        assert 'เหลือไม่พอ' in exc.value.message_dict['rooms'][0]
