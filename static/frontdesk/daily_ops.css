@@ -1,0 +1,18 @@
+.do-page {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--rr-space-5);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--rr-space-6) var(--rr-space-5);
+  color: var(--rr-color-text);
+}
+.do-page h1 { margin: 0 0 var(--rr-space-2); }
+.do-summary { margin: 0; color: var(--rr-color-muted); }
+.do-section .rr-card__title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rr-space-3); }
+.do-code { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; white-space: nowrap; }
+.do-number { font-variant-numeric: tabular-nums; }
+.rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .do-page { padding: var(--rr-space-4) var(--rr-space-3); }
+}

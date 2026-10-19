@@ -1,0 +1,35 @@
+<section class="rr-card do-section" id="{{ section_id }}" aria-labelledby="{{ section_id }}-title">
+  <h2 class="rr-card__title" id="{{ section_id }}-title">{{ title }} <span class="rr-badge rr-badge--muted">{{ rows|length }} การจอง</span></h2>
+  <div class="rr-table-scroll" tabindex="0" role="region" aria-labelledby="{{ section_id }}-title">
+    <table class="rr-table">
+      <thead>
+        <tr>
+          <th scope="col">รหัสการจอง</th>
+          <th scope="col">แขก</th>
+          <th scope="col">ห้อง</th>
+          <th scope="col">ประเภทห้อง</th>
+          <th scope="col">คืน</th>
+          <th scope="col">ผู้เข้าพัก</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">วิธีชำระเงิน</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="do-code">{{ row.booking.code }}</td>
+          <td>{{ row.booking.guest }}</td>
+          <td>{{ row.room_numbers|join:", "|default:"—" }}</td>
+          <td>{{ row.room_type_names|join:", "|default:"—" }}</td>
+          <td class="do-number">{{ row.booking.nights }}</td>
+          <td>{{ row.booking.adults }} ผู้ใหญ่{% if row.booking.children %} · {{ row.booking.children }} เด็ก{% endif %}</td>
+          <td><span class="rr-badge{% if row.booking.status == 'CHECKED_OUT' %} rr-badge--muted{% endif %}">{{ row.booking.get_status_display }}</span></td>
+          <td>{{ row.booking.get_payment_option_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="rr-table__empty" colspan="8">{{ empty }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
