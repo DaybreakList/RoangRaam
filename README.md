@@ -19,12 +19,15 @@ cd RoangRaam
 copy .env.example .env        # Windows
 cp .env.example .env          # macOS / Linux
 
-docker compose up -d --build
-docker compose exec web python manage.py migrate
+docker compose up -d --build          # รัน migrate ให้อัตโนมัติทุกครั้งที่เปิด
 docker compose exec web python manage.py createsuperuser
 ```
 
 เปิด http://localhost:8000/admin/
+
+ถ้าอยากได้ข้อมูลเดโมด้วย (โรงแรม 2 แห่ง ห้อง ราคา พนักงาน และการจอง) ตั้ง `SEED_DEMO_PASSWORD`
+(รหัสผ่านของบัญชีเดโม) และ `SEED_ON_START=true` ใน `.env` แล้วรัน `docker compose up -d` อีกครั้ง
+หรือรันเอง `docker compose exec web python manage.py seed_demo` (ใส่ `--reset` เพื่อลบแล้วสร้างใหม่)
 
 > ค่าใน `.env` ห้ามมีตัว `$` เพราะ Docker Compose จะอ่านเป็นตัวแปร
 > สร้าง secret key ได้ด้วย `python -c "import secrets; print(secrets.token_urlsafe(50))"`
