@@ -198,6 +198,7 @@
 | --- | --- | --- |
 | ยกเลิกการจอง | — | service `cancel_booking()` มีแล้ว (#54) ยังไม่มี endpoint |
 | ชำระเงิน (PromptPay / Stripe test) | C | ต้องกำหนดการหมดเวลาของ `PENDING_PAYMENT` ด้วย |
-| Arrival / Departure / In-house, เช็คอิน / เช็คเอาต์ | A, B | |
+| Arrival / Departure / In-house | E | #83 (TASK-40) |
+| เช็คอิน / เช็คเอาต์ | A, B | ตาม `AGENTS.md` |
 | Tape Chart (แสดงผล + ลากย้ายห้อง) | D | ผลการลากต้อง validate ฝั่ง server |
 | Dashboard KPI | E | |
