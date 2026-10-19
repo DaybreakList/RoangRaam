@@ -178,7 +178,7 @@ def test_pay_view_other_property_booking_is_404(client, hotel_b, pending_booking
 @pytest.mark.parametrize('status,text', [
     (Booking.Status.PENDING_PAYMENT, 'รอชำระเงิน'),
     (Booking.Status.CONFIRMED, 'ชำระเงินเรียบร้อย'),
-    (Booking.Status.CANCELLED, 'หมดเวลาชำระเงิน'),
+    (Booking.Status.CANCELLED, 'การจองนี้ถูกยกเลิกแล้ว'),
 ])
 def test_payment_result_shows_booking_status(client, hotel_a, status, text):
     booking = BookingFactory(property=hotel_a, status=status)
