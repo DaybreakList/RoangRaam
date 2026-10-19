@@ -24,6 +24,7 @@ PAYMENT_WINDOW = timedelta(minutes=30)
 # minute covers clock drift between us and Stripe
 CHECKOUT_LIFETIME = timedelta(minutes=31)
 CURRENCY = 'thb'
+REFUND_FAILED_MESSAGE = 'คืนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
 
 
 def to_satang(amount):
@@ -172,6 +173,23 @@ def refund_charge(property, charge):
     except IntegrityError:
         # A parallel delivery of the same webhook recorded it first
         return None
+
+
+def refund_booking(property, booking):
+    """
+    Refund every CHARGE of `booking` that has not been refunded yet.
+
+    Used by cancel_booking() while it holds the booking lock. A Stripe error
+    becomes a ValidationError keyed by 'status'; refund_charge() sends the same
+    idempotency key on the retry, so the guest is never refunded twice.
+    """
+    charges = Payment.scoped.for_property(property).filter(booking=booking, kind=Payment.Kind.CHARGE)
+    try:
+        for charge in charges.order_by('created_at'):
+            refund_charge(property, charge)
+    except stripe.StripeError as error:
+        logger.exception('Refund for booking %s failed', booking.pk)
+        raise ValidationError({'status': REFUND_FAILED_MESSAGE}) from error
 
 
 def release_unpaid_booking(session):

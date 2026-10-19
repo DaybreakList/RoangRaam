@@ -1,12 +1,16 @@
 from datetime import timedelta
+from decimal import Decimal
+from unittest import mock
 
 import pytest
+import stripe
 from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.utils import timezone
 
 from apps.bookings.cancellation import cancel_booking
-from apps.bookings.models import Booking, BookingRoom
+from apps.bookings.models import Booking, BookingRoom, Payment
+from apps.bookings.payments import REFUND_FAILED_MESSAGE
 from apps.bookings.services import get_available_room_types
 from apps.rooms.tests.factories import DailyRateFactory, RoomFactory
 
@@ -98,3 +102,91 @@ def test_other_hotel_cannot_cancel(hotel_b, booking):
     assert booking.status == Booking.Status.CONFIRMED
     assert booking.cancelled_at is None
     assert BookingRoom.objects.filter(booking=booking, is_active=True).count() == 2
+
+
+@pytest.fixture
+def stripe_refund():
+    with mock.patch('apps.bookings.payments.stripe.Refund.create') as create:
+        create.return_value = mock.Mock(id='re_test_1')
+        yield create
+
+
+def _payment(booking, kind=Payment.Kind.CHARGE, ref='pi_1', key=None):
+    return Payment.scoped.for_property(booking.property).create(
+        property=booking.property, booking=booking, kind=kind, amount=Decimal('3600.00'),
+        provider_ref=ref, idempotency_key=key or f'evt-{ref}',
+    )
+
+
+def _payments(booking):
+    return sorted(
+        Payment.scoped.for_property(booking.property).filter(booking=booking)
+        .values_list('kind', 'amount', 'provider_ref'),
+    )
+
+
+def test_cancel_paid_booking_refunds_in_full(hotel_a, booking, stripe_refund):
+    _payment(booking)
+
+    cancel_booking(hotel_a, booking.pk)
+
+    booking.refresh_from_db()
+    assert booking.status == Booking.Status.CANCELLED
+    stripe_refund.assert_called_once_with(
+        api_key=mock.ANY, payment_intent='pi_1', idempotency_key='refund-pi_1',
+    )
+    assert _payments(booking) == [
+        (Payment.Kind.CHARGE, Decimal('3600.00'), 'pi_1'),
+        (Payment.Kind.REFUND, Decimal('3600.00'), 're_test_1'),
+    ]
+
+
+def test_unpaid_booking_is_cancelled_without_stripe(hotel_a, booking, stripe_refund):
+    cancel_booking(hotel_a, booking.pk)
+
+    stripe_refund.assert_not_called()
+    assert _payments(booking) == []
+
+
+def test_failed_refund_keeps_booking_and_can_be_retried(hotel_a, booking, stripe_refund):
+    _payment(booking)
+    stripe_refund.side_effect = stripe.APIConnectionError('down')
+
+    with pytest.raises(ValidationError) as error:
+        cancel_booking(hotel_a, booking.pk)
+
+    assert error.value.message_dict == {'status': [REFUND_FAILED_MESSAGE]}
+    booking.refresh_from_db()
+    assert booking.status == Booking.Status.CONFIRMED
+    assert booking.booking_rooms.filter(is_active=True).count() == 2
+    assert [kind for kind, _, _ in _payments(booking)] == [Payment.Kind.CHARGE]
+
+    stripe_refund.side_effect = None
+    cancel_booking(hotel_a, booking.pk)
+
+    booking.refresh_from_db()
+    assert booking.status == Booking.Status.CANCELLED
+    assert [kind for kind, _, _ in _payments(booking)] == [Payment.Kind.CHARGE, Payment.Kind.REFUND]
+
+
+def test_charge_refunded_earlier_is_not_refunded_again(hotel_a, booking, stripe_refund):
+    # A second Checkout page paid too and the webhook already gave that money back
+    _payment(booking, ref='pi_1')
+    _payment(booking, ref='pi_2')
+    _payment(booking, kind=Payment.Kind.REFUND, ref='re_old', key='refund-pi_2')
+
+    cancel_booking(hotel_a, booking.pk)
+
+    stripe_refund.assert_called_once_with(
+        api_key=mock.ANY, payment_intent='pi_1', idempotency_key='refund-pi_1',
+    )
+
+
+def test_other_hotel_cannot_cancel_paid_booking(hotel_b, booking, stripe_refund):
+    _payment(booking)
+
+    with pytest.raises(Http404):
+        cancel_booking(hotel_b, booking.pk)
+
+    stripe_refund.assert_not_called()
+    assert [kind for kind, _, _ in _payments(booking)] == [Payment.Kind.CHARGE]

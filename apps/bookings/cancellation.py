@@ -13,9 +13,10 @@ def cancel_booking(property, booking_id):
     """
     Cancel a booking of `property` without a fee and release its rooms.
 
-    Raises Http404 when the booking belongs to another property, like
-    create_booking does. Raises ValidationError keyed by 'status' when the
-    booking is no longer cancellable, so callers can read message_dict.
+    Money paid online is refunded in full first. Raises Http404 when the
+    booking belongs to another property, like create_booking does. Raises
+    ValidationError keyed by 'status' when the booking is no longer
+    cancellable or the refund failed, so callers can read message_dict.
     """
     with transaction.atomic():
         # Lock the row so a double click, or a cancel racing a check-in,
@@ -28,6 +29,12 @@ def cancel_booking(property, booking_id):
             raise ValidationError({
                 'status': f'ไม่สามารถยกเลิกการจองที่มีสถานะ "{booking.get_status_display()}" ได้',
             })
+
+        # Refund before the status changes, so a failed refund rolls the whole
+        # cancel back and the guest can try again. Imported here because
+        # payments.py imports this module.
+        from .payments import refund_booking
+        refund_booking(property, booking)
 
         booking.status = Booking.Status.CANCELLED
         booking.cancelled_at = timezone.now()
