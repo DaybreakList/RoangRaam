@@ -114,6 +114,7 @@ def with_room_type_details(room_types, property):
 
 def create_booking(
     property, *, check_in, check_out, rooms, guest, adults, children, payment_option,
+    idempotency_key=None,
 ):
     """
     Book several rooms on one bill and assign real rooms immediately.
@@ -127,8 +128,19 @@ def create_booking(
     deadlock. The exclusion constraint on BookingRoom still guards any writer
     that skips these locks; its IntegrityError becomes a Thai ValidationError.
 
+    Idempotency: when `idempotency_key` (a UUID) was already used in this property,
+    the booking made with it is returned and nothing new is created, even if the
+    payload differs. The key is re-checked after the locks are taken, so a
+    duplicate that waited behind the original gets the original booking rather
+    than "rooms not enough"; a duplicate that skipped those locks (other room
+    types) hits the unique constraint and is answered the same way.
+
     Query count is constant no matter how many rooms are booked.
     """
+    if idempotency_key is not None:
+        existing = _booking_for_key(property, idempotency_key)
+        if existing is not None:
+            return existing
     validate_stay_dates(check_in, check_out)
     if payment_option not in INITIAL_STATUS:
         raise ValidationError({'payment_option': 'วิธีชำระเงินไม่ถูกต้อง'})
@@ -138,6 +150,10 @@ def create_booking(
     try:
         with transaction.atomic():
             room_types = _lock_room_types(property, quantities)
+            if idempotency_key is not None:
+                existing = _booking_for_key(property, idempotency_key)
+                if existing is not None:
+                    return existing
             _check_occupancy(room_types, quantities, adults, children)
             assigned = _assign_rooms(property, room_types, quantities, check_in, check_out)
             prices = _nightly_prices(property, room_types, nights)
@@ -160,8 +176,10 @@ def create_booking(
                 total_amount=sum(
                     (subtotals[room.room_type_id] for room in assigned), Decimal('0.00'),
                 ),
+                idempotency_key=idempotency_key,
             )
-            booking.full_clean()
+            # A racing duplicate key is settled by the DB constraint below
+            booking.full_clean(exclude=['idempotency_key'])
             booking.save()
 
             booking_rooms = BookingRoom.scoped.bulk_create([
@@ -186,9 +204,40 @@ def create_booking(
                 for night in nights
             ])
     except IntegrityError as error:
+        if idempotency_key is not None:
+            existing = _booking_for_key(property, idempotency_key)
+            if existing is not None:
+                return existing
         # Last line of defence: the exclusion constraint saw an overlap
         raise ValidationError({'rooms': ROOM_TAKEN_MESSAGE}) from error
     return booking
+
+
+def _booking_for_key(property, idempotency_key):
+    return Booking.scoped.for_property(property).filter(idempotency_key=idempotency_key).first()
+
+
+def find_booking(property, code, email):
+    """
+    A guest looks up their booking with the 8-character code and their email.
+
+    Code and email are matched ignoring case and surrounding spaces. A wrong
+    code and a wrong email both raise Http404, so the answer never reveals
+    whether a code exists. Returns the booking from `booking_with_details()`.
+    """
+    code = (code or '').strip().upper()
+    email = (email or '').strip()
+    if not code or not email:
+        raise Http404
+    booking_id = (
+        Booking.scoped.for_property(property)
+        .filter(code=code, guest__email__iexact=email)
+        .values_list('pk', flat=True)
+        .first()
+    )
+    if booking_id is None:
+        raise Http404
+    return booking_with_details(property, booking_id)
 
 
 def _merge_room_requests(rooms):

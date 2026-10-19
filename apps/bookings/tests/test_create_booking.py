@@ -404,3 +404,84 @@ class TestGuestReuse:
         assert response.json()['guest'] == {'email': GUEST['email']}
         content = response.content.decode()
         assert 'Somchai' not in content and '0812345678' not in content
+
+
+KEY = '3f6c1b2a-8d4e-4f7a-9b0c-1d2e3f4a5b6c'
+
+
+class TestIdempotency:
+    def test_same_key_returns_the_first_booking(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=3, name='Twin')
+        first = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        again = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        assert again.pk == first.pk
+        assert Booking.objects.count() == 1
+        assert BookingRoom.objects.count() == 1
+
+    def test_replay_works_even_when_rooms_are_now_full(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=1, name='Twin')
+        kwargs = dict(
+            check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        first = create_booking(hotel_a, **kwargs)
+        assert create_booking(hotel_a, **kwargs).pk == first.pk
+
+    def test_replay_ignores_a_different_payload(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=3, name='Twin')
+        first = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        again = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 2}],
+            guest=GUEST, adults=2, children=0, payment_option='PAY_AT_HOTEL', idempotency_key=KEY,
+        )
+        assert again.pk == first.pk
+        assert again.booking_rooms.count() == 1
+
+    def test_different_keys_and_no_key_create_separate_bookings(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=4, name='Twin')
+        for key in (KEY, '00000000-0000-4000-8000-000000000001', None, None):
+            create_booking(
+                hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': twin.pk, 'quantity': 1}],
+                guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=key,
+            )
+        assert Booking.objects.count() == 4
+
+    def test_key_is_scoped_to_the_property(self, hotel_a, hotel_b):
+        mine = make_room_type(hotel_a, name='Twin')
+        theirs = make_room_type(hotel_b, name='Twin')
+        a = create_booking(
+            hotel_a, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': mine.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        b = create_booking(
+            hotel_b, check_in=day(10), check_out=day(12), rooms=[{'room_type_id': theirs.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=KEY,
+        )
+        assert a.pk != b.pk
+        assert (a.property, b.property) == (hotel_a, hotel_b)
+
+    def test_api_replay_returns_the_same_booking(self, client, hotel_a):
+        twin = make_room_type(hotel_a, rooms=1, name='Twin')
+        data = payload([(twin, 1)], idempotency_key=KEY)
+
+        first = post(client, hotel_a, data)
+        second = post(client, hotel_a, data)
+
+        assert first.status_code == second.status_code == 201
+        assert first.json() == second.json()
+        assert Booking.objects.count() == 1
+
+    def test_api_rejects_a_key_that_is_not_a_uuid(self, client, hotel_a):
+        twin = make_room_type(hotel_a, name='Twin')
+        response = post(client, hotel_a, payload([(twin, 1)], idempotency_key='click-1'))
+        assert response.status_code == 400
+        assert response.json() == {'idempotency_key': ['idempotency_key ต้องเป็น UUID']}

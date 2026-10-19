@@ -139,3 +139,28 @@ def test_simultaneous_bookings_with_a_new_email_share_one_guest():
     assert statuses == {201: 10}
     assert Guest.objects.filter(property=prop).count() == 1
     assert Booking.objects.filter(guest__email='race@example.com').count() == 10
+
+
+def test_double_submit_of_the_last_room_returns_one_booking_to_everyone():
+    """Same idempotency key x10 for a type with one room: the waiters must get the original."""
+    prop = PropertyFactory()
+    single = make_room_type(prop, rooms=1, name='Single')
+    data = {**payload([single]), 'idempotency_key': '3f6c1b2a-8d4e-4f7a-9b0c-1d2e3f4a5b6c'}
+
+    statuses = fire(prop, [data] * 10)
+
+    assert statuses == {201: 10}
+    assert Booking.objects.count() == 1
+
+
+def test_double_submit_racing_on_different_room_types_returns_one_booking():
+    """Same key, different types: no shared lock, so the unique constraint settles it."""
+    prop = PropertyFactory()
+    room_types = [make_room_type(prop, rooms=1, name=f'T{i}') for i in range(10)]
+    key = '3f6c1b2a-8d4e-4f7a-9b0c-1d2e3f4a5b6c'
+
+    statuses = fire(prop, [{**payload([rt]), 'idempotency_key': key} for rt in room_types])
+
+    assert statuses == {201: 10}
+    assert Booking.objects.count() == 1
+    assert BookingRoom.objects.count() == 1

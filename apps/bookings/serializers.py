@@ -105,6 +105,10 @@ class BookingInputSerializer(serializers.Serializer):
         choices=Booking.PaymentOption.choices, error_messages=thai_errors('วิธีชำระเงิน'),
     )
     guest = GuestInputSerializer(error_messages=thai_errors('ข้อมูลผู้เข้าพัก'))
+    idempotency_key = serializers.UUIDField(
+        required=False,
+        error_messages={'invalid': 'idempotency_key ต้องเป็น UUID'},
+    )
     rooms = serializers.ListField(
         child=RoomRequestSerializer(),
         min_length=1,
