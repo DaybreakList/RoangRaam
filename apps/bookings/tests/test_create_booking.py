@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from apps.bookings import services
 from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest
-from apps.bookings.services import ROOM_TAKEN_MESSAGE, create_booking
+from apps.bookings.services import ROOM_TAKEN_MESSAGE, create_booking, get_or_create_booking
 from apps.rooms.models import DailyRate
 from apps.rooms.tests.factories import DailyRateFactory, RoomFactory, RoomTypeFactory
 
@@ -485,3 +485,43 @@ class TestIdempotency:
         response = post(client, hotel_a, payload([(twin, 1)], idempotency_key='click-1'))
         assert response.status_code == 400
         assert response.json() == {'idempotency_key': ['idempotency_key ต้องเป็น UUID']}
+
+
+class TestGetOrCreateBooking:
+    """`created` tells callers whether to do once-only work such as the confirmation email."""
+
+    def kwargs(self, room_type, key):
+        return dict(
+            check_in=day(10), check_out=day(12), rooms=[{'room_type_id': room_type.pk, 'quantity': 1}],
+            guest=GUEST, adults=1, children=0, payment_option='FULL', idempotency_key=key,
+        )
+
+    def test_first_call_creates_and_replay_does_not(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        booking, created = get_or_create_booking(hotel_a, **self.kwargs(twin, KEY))
+        again, created_again = get_or_create_booking(hotel_a, **self.kwargs(twin, KEY))
+        assert created is True
+        assert created_again is False
+        assert again.pk == booking.pk
+
+    def test_replay_after_rooms_ran_out_is_not_created(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=1, name='Twin')
+        get_or_create_booking(hotel_a, **self.kwargs(twin, KEY))
+        _, created = get_or_create_booking(hotel_a, **self.kwargs(twin, KEY))
+        assert created is False
+
+    def test_without_key_every_call_is_created(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=2, name='Twin')
+        assert get_or_create_booking(hotel_a, **self.kwargs(twin, None))[1] is True
+        assert get_or_create_booking(hotel_a, **self.kwargs(twin, None))[1] is True
+        assert Booking.objects.count() == 2
+
+    def test_errors_still_raise(self, hotel_a):
+        twin = make_room_type(hotel_a, rooms=1, name='Twin')
+        get_or_create_booking(hotel_a, **self.kwargs(twin, None))
+        with pytest.raises(ValidationError):
+            get_or_create_booking(hotel_a, **self.kwargs(twin, KEY))
+
+    def test_create_booking_still_returns_only_the_booking(self, hotel_a):
+        twin = make_room_type(hotel_a, name='Twin')
+        assert isinstance(create_booking(hotel_a, **self.kwargs(twin, KEY)), Booking)

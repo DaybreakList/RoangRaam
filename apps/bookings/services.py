@@ -112,12 +112,22 @@ def with_room_type_details(room_types, property):
     )
 
 
-def create_booking(
+def create_booking(property, **kwargs):
+    """Same as get_or_create_booking() but returns only the booking."""
+    booking, _created = get_or_create_booking(property, **kwargs)
+    return booking
+
+
+def get_or_create_booking(
     property, *, check_in, check_out, rooms, guest, adults, children, payment_option,
     idempotency_key=None,
 ):
     """
     Book several rooms on one bill and assign real rooms immediately.
+
+    Returns (booking, created). `created` is False only when `idempotency_key`
+    was already used, so callers can do once-only work such as sending the
+    confirmation email. When it returns, the booking is already committed.
 
     `rooms` is a list of {'room_type_id': int, 'quantity': int}; repeated types are merged.
     `guest` is a dict with first_name, last_name, email and phone. An existing guest
@@ -129,7 +139,7 @@ def create_booking(
     that skips these locks; its IntegrityError becomes a Thai ValidationError.
 
     Idempotency: when `idempotency_key` (a UUID) was already used in this property,
-    the booking made with it is returned and nothing new is created, even if the
+    (that booking, False) is returned and nothing new is created, even if the
     payload differs. The key is re-checked after the locks are taken, so a
     duplicate that waited behind the original gets the original booking rather
     than "rooms not enough"; a duplicate that skipped those locks (other room
@@ -140,7 +150,7 @@ def create_booking(
     if idempotency_key is not None:
         existing = _booking_for_key(property, idempotency_key)
         if existing is not None:
-            return existing
+            return existing, False
     validate_stay_dates(check_in, check_out)
     if payment_option not in INITIAL_STATUS:
         raise ValidationError({'payment_option': 'วิธีชำระเงินไม่ถูกต้อง'})
@@ -153,7 +163,7 @@ def create_booking(
             if idempotency_key is not None:
                 existing = _booking_for_key(property, idempotency_key)
                 if existing is not None:
-                    return existing
+                    return existing, False
             _check_occupancy(room_types, quantities, adults, children)
             assigned = _assign_rooms(property, room_types, quantities, check_in, check_out)
             prices = _nightly_prices(property, room_types, nights)
@@ -207,10 +217,10 @@ def create_booking(
         if idempotency_key is not None:
             existing = _booking_for_key(property, idempotency_key)
             if existing is not None:
-                return existing
+                return existing, False
         # Last line of defence: the exclusion constraint saw an overlap
         raise ValidationError({'rooms': ROOM_TAKEN_MESSAGE}) from error
-    return booking
+    return booking, True
 
 
 def _booking_for_key(property, idempotency_key):
