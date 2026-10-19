@@ -20,8 +20,8 @@
             <p class="rr-pay__lead">หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณารีเฟรชหน้านี้อีกครั้งในอีกสักครู่</p>
         {% elif status == Status.CANCELLED %}
             <div class="rr-pay__icon" aria-hidden="true">&times;</div>
-            <h1 class="rr-pay__title">หมดเวลาชำระเงิน</h1>
-            <p class="rr-pay__lead">การจองนี้ถูกยกเลิกแล้ว กรุณาจองใหม่</p>
+            <h1 class="rr-pay__title">การจองนี้ถูกยกเลิกแล้ว</h1>
+            <p class="rr-pay__lead">หากต้องการเข้าพัก กรุณาทำการจองใหม่</p>
         {% else %}
             <div class="rr-pay__icon" aria-hidden="true">&#10003;</div>
             <h1 class="rr-pay__title">ชำระเงินเรียบร้อย</h1>
