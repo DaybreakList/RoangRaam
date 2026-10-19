@@ -14,7 +14,7 @@ from apps.properties.models import Property
 
 from .cancellation import cancel_booking
 from .emails import send_booking_confirmation_safely
-from .models import Booking, Payment
+from .models import Booking, BookingRoom, Payment
 
 logger = logging.getLogger(__name__)
 
@@ -199,3 +199,32 @@ def release_unpaid_booking(session):
         # Another Checkout page may have paid it already; only an unpaid booking goes
         if booking is not None and booking.status == Booking.Status.PENDING_PAYMENT:
             cancel_booking(property, booking.pk)
+
+
+def release_expired_bookings(property, room_types=None):
+    """
+    Cancel bookings of `property` still unpaid PAYMENT_WINDOW after they were made.
+
+    Covers guests who never opened the payment page, so Stripe never sends an
+    expired event. `room_types` (instances or ids) limits it to bookings holding
+    those types, for a caller that is about to book them. Each booking is locked
+    and re-checked on its own; one that another request has locked is skipped
+    rather than waited for, since that request is paying or cancelling it.
+    Returns how many bookings were cancelled.
+    """
+    expired = Booking.scoped.for_property(property).filter(
+        status=Booking.Status.PENDING_PAYMENT,
+        created_at__lte=timezone.now() - PAYMENT_WINDOW,
+    )
+    if room_types is not None:
+        holding = BookingRoom.scoped.for_property(property).filter(room_type__in=room_types)
+        expired = expired.filter(pk__in=holding.values('booking_id'))
+
+    released = 0
+    for booking_id in list(expired.values_list('pk', flat=True)):
+        with transaction.atomic():
+            booking = expired.select_for_update(skip_locked=True).filter(pk=booking_id).first()
+            if booking is not None:
+                cancel_booking(property, booking.pk)
+                released += 1
+    return released
