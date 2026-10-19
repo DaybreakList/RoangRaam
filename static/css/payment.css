@@ -1,0 +1,127 @@
+/*
+ * Payment result page (after Stripe Checkout). Requires css/tokens.css and
+ * css/components.css. rr- prefix, tokens only.
+ */
+
+.rr-pay {
+  box-sizing: border-box;
+  min-height: calc(100vh - 66px);
+  padding: var(--rr-space-7) var(--rr-space-4);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  line-height: var(--rr-line-height);
+}
+.rr-pay__card {
+  --rr-pay-accent: var(--rr-color-primary);
+  --rr-pay-tint: #e7f2ed;
+  max-width: 520px;
+  margin: 0 auto;
+  border-top: 6px solid var(--rr-pay-accent);
+  box-shadow: 0 8px 24px rgba(23, 43, 53, 0.08);
+  text-align: center;
+}
+.rr-pay__card--pending {
+  --rr-pay-accent: var(--rr-color-focus);
+  --rr-pay-tint: #fff6e3;
+}
+.rr-pay__card--cancelled {
+  --rr-pay-accent: var(--rr-color-danger);
+  --rr-pay-tint: #fff0f0;
+}
+.rr-pay__hotel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rr-space-2);
+  margin-bottom: var(--rr-space-5);
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+  font-weight: bold;
+}
+.rr-pay__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--rr-radius-sm);
+  object-fit: contain;
+}
+.rr-pay__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--rr-space-4);
+  border-radius: 50%;
+  background: var(--rr-pay-tint);
+  color: var(--rr-pay-accent);
+  font-size: 2.25rem;
+  font-weight: bold;
+  line-height: 1;
+}
+.rr-pay__title {
+  margin: 0 0 var(--rr-space-2);
+  font-size: 1.5rem;
+}
+.rr-pay__lead {
+  margin: 0 auto var(--rr-space-5);
+  max-width: 380px;
+  color: var(--rr-color-muted);
+}
+.rr-pay__error {
+  margin: 0 0 var(--rr-space-4);
+  padding: var(--rr-space-3) var(--rr-space-4);
+  border: 1px solid #edb8bd;
+  border-radius: var(--rr-radius-md);
+  background: #fff0f0;
+  color: #84212a;
+}
+.rr-pay__code {
+  margin-bottom: var(--rr-space-5);
+  padding: var(--rr-space-4);
+  border: 2px dashed var(--rr-pay-accent);
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-pay-tint);
+}
+.rr-pay__code-label {
+  display: block;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+}
+.rr-pay__code-value {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 1.75rem;
+  letter-spacing: 0.2em;
+}
+.rr-pay__details {
+  margin: 0 0 var(--rr-space-5);
+  text-align: left;
+}
+.rr-pay__details div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--rr-space-4);
+  padding: var(--rr-space-2) 0;
+  border-bottom: 1px solid var(--rr-color-border);
+}
+.rr-pay__details dt {
+  color: var(--rr-color-muted);
+}
+.rr-pay__details dd {
+  margin: 0;
+  font-weight: bold;
+}
+.rr-pay__details .rr-pay__total {
+  border-bottom: 0;
+  font-size: var(--rr-font-size-lg);
+}
+.rr-pay__details .rr-pay__total dt {
+  color: var(--rr-color-text);
+  font-weight: bold;
+}
+.rr-pay__details .rr-pay__total dd {
+  color: var(--rr-color-primary);
+}
+.rr-pay__actions .rr-btn {
+  min-width: 200px;
+}
