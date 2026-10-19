@@ -12,6 +12,7 @@ urlpatterns = [
     path('p/<slug:property_slug>/inventory/', include('apps.rooms.urls')),
     path('', include('apps.bookings.urls')),
     path('p/<slug:property_slug>/frontdesk/tape-chart/', include('apps.frontdesk.tape_chart_urls')),
+    path('p/<slug:property_slug>/frontdesk/today/', include('apps.frontdesk.daily_ops_urls')),
 ]
 
 if settings.DEBUG:

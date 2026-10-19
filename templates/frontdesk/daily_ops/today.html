@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}รายการวันนี้ · {{ request.property.name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/daily_ops.css' %}">{% endblock %}
+{% block content %}
+<main class="do-page">
+  <header>
+    <h1>รายการวันนี้</h1>
+    <p class="do-summary">{{ request.property.name }} · {{ lists.today|date:"l j F Y" }} (ตามเขตเวลาของโรงแรม)</p>
+  </header>
+
+  {% include "frontdesk/daily_ops/_list.html" with section_id="arrivals" title="เช็คอินวันนี้" rows=lists.arrivals empty="ไม่มีแขกที่จะเช็คอินวันนี้" %}
+  {% include "frontdesk/daily_ops/_list.html" with section_id="departures" title="เช็คเอาต์วันนี้" rows=lists.departures empty="ไม่มีแขกที่จะเช็คเอาต์วันนี้" %}
+  {% include "frontdesk/daily_ops/_list.html" with section_id="in-house" title="กำลังเข้าพัก" rows=lists.in_house empty="ไม่มีแขกที่กำลังเข้าพัก" %}
+</main>
+{% endblock %}
