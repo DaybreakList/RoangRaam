@@ -77,6 +77,33 @@ def test_start_checkout_cancels_booking_past_payment_window(hotel_a, pending_boo
     stripe_create.assert_not_called()
 
 
+def test_start_checkout_keeps_booking_paid_while_window_passed(hotel_a, pending_booking, stripe_create):
+    # The webhook confirms the booking after start_checkout() has read it
+    # unlocked as PENDING_PAYMENT, but before the payment window check acts.
+    Booking.scoped.for_property(hotel_a).filter(pk=pending_booking.pk).update(
+        created_at=timezone.now() - timedelta(minutes=31),
+    )
+    stale = Booking.scoped.for_property(hotel_a).get(pk=pending_booking.pk)
+    Booking.scoped.for_property(hotel_a).filter(pk=pending_booking.pk).update(
+        status=Booking.Status.CONFIRMED,
+    )
+    _charge(pending_booking)
+
+    with (
+        mock.patch('apps.bookings.payments.get_object_or_404', return_value=stale),
+        mock.patch('apps.bookings.payments.stripe.Refund.create') as refund,
+        pytest.raises(ValidationError) as exc,
+    ):
+        refund.return_value = mock.Mock(id='re_test_1')
+        start_checkout(hotel_a, pending_booking.pk, SUCCESS_URL, CANCEL_URL)
+
+    assert exc.value.message_dict['status'] == ['การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน']
+    pending_booking.refresh_from_db()
+    assert pending_booking.status == Booking.Status.CONFIRMED
+    refund.assert_not_called()
+    stripe_create.assert_not_called()
+
+
 def test_start_checkout_404_for_other_property_booking(hotel_b, pending_booking, stripe_create):
     with pytest.raises(Http404):
         start_checkout(hotel_b, pending_booking.pk, SUCCESS_URL, CANCEL_URL)

@@ -24,6 +24,7 @@ PAYMENT_WINDOW = timedelta(minutes=30)
 # minute covers clock drift between us and Stripe
 CHECKOUT_LIFETIME = timedelta(minutes=31)
 CURRENCY = 'thb'
+NOT_PENDING_MESSAGE = 'การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน'
 REFUND_FAILED_MESSAGE = 'คืนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
 
 
@@ -49,9 +50,18 @@ def start_checkout(property, booking_id, success_url, cancel_url):
         Booking.scoped.for_property(property).select_related('guest'), pk=booking_id,
     )
     if booking.status != Booking.Status.PENDING_PAYMENT:
-        raise ValidationError({'status': 'การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน'})
+        raise ValidationError({'status': NOT_PENDING_MESSAGE})
     if timezone.now() >= booking.created_at + PAYMENT_WINDOW:
-        cancel_booking(property, booking.pk)
+        # Lock and check again: the webhook may have confirmed the booking since
+        # it was read above, and a paid booking must not be cancelled here.
+        with transaction.atomic():
+            unpaid = Booking.scoped.for_property(property).select_for_update().filter(
+                pk=booking.pk, status=Booking.Status.PENDING_PAYMENT,
+            ).first()
+            if unpaid is not None:
+                cancel_booking(property, unpaid.pk)
+        if unpaid is None:
+            raise ValidationError({'status': NOT_PENDING_MESSAGE})
         raise ValidationError({'status': 'หมดเวลาชำระเงิน การจองนี้ถูกยกเลิกแล้ว กรุณาจองใหม่'})
 
     # The webhook reads these back to find the booking without trusting the browser
