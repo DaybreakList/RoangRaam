@@ -1,0 +1,17 @@
+{% autoescape off %}{{ property.name }}
+
+ยืนยันการจอง
+รหัสการจอง: {{ booking.code }}
+สถานะ: {{ booking.get_status_display }}
+
+เรียน คุณ{{ booking.guest.first_name }} {{ booking.guest.last_name }}
+
+เช็คอิน: {{ booking.check_in_date|date:"j F Y" }}
+เช็คเอาต์: {{ booking.check_out_date|date:"j F Y" }}
+จำนวน: {{ booking.nights }} คืน
+{% for booking_room in booking.booking_rooms.all %}
+ห้อง {{ booking_room.room.number }} ({{ booking_room.room_type.name }})
+{% for rate in booking_room.night_rates.all %}  - คืนวันที่ {{ rate.night|date:"j F Y" }}: {{ rate.price|floatformat:"2g" }} บาท
+{% endfor %}{% endfor %}
+ยอดรวม: {{ booking.total_amount|floatformat:"2g" }} บาท
+{% endautoescape %}
