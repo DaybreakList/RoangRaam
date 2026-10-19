@@ -7,7 +7,10 @@ Each BookingRoom is a bar using `[check_in, check_out)`. Only active booking-roo
 rows are shown. Checked-out stays remain visible when in the window; cancelled
 or expired bookings disappear after refresh through the shared cancel_booking service.
 Active rooms are listed even without bookings. Inactive rooms with a visible booking
-remain listed and labelled. Bars show booking codes and status, never guest contacts.
+remain listed and labelled. Bars show booking codes, guest names and status, never
+guest email or phone. Guest relations are also scoped to the current property.
+Room headers stay fixed horizontally; date headers stay fixed vertically inside
+the scrollable chart (maximum height 70vh). This completes issues #79 and #80.
 
 Access agreed by A/C: OWNER, MANAGER and FRONT_DESK; HOUSEKEEPING is denied.
 All querysets are property-scoped, including related property checks. Anonymous users
@@ -20,12 +23,12 @@ private route automatically; its public-route allowlist is unchanged.
 
 ## Validation
 
-- Docker: `pytest --create-db -q`: 592 passed.
-- Tape Chart + accounts isolation sweep: 80 passed.
+- Docker: `pytest --create-db -q`: 620 passed after merging main 89e8051.
+- Regression tests cover guest names, HTML escaping and cross-property guest relations.
 - Ruff 0.17.1: `ruff check .`: passed.
 - `manage.py check`: passed; `makemigrations --check --dry-run`: no changes.
-- Edge headless: rendered synthetic three-room preview; mobile document width fits.
-  Synthetic preview database writes were rolled back.
+- Edge: demo data renders guest names; scrolling vertically keeps date headers visible.
+- Earlier desktop/mobile layout checks passed; no real guest data was used.
 
 No migrations or new application dependencies. Filters/date navigation/HTMX belong
 to PR 2. Navbar integration and refresh controls belong to PR 3. Dragging is outside
