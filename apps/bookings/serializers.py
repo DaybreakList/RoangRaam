@@ -3,8 +3,7 @@ from rest_framework import serializers
 from apps.rooms.models import RoomType
 
 from .models import Booking, BookingRoom, Guest
-
-MAX_ROOMS_PER_BOOKING = 20
+from .services import MAX_ROOMS_PER_BOOKING, TOO_MANY_ROOMS_MESSAGE
 
 DATE_ERRORS = {
     'required': 'กรุณาระบุวันที่',
@@ -87,7 +86,7 @@ class RoomRequestSerializer(serializers.Serializer):
         error_messages={
             **thai_errors('จำนวนห้อง'),
             'min_value': 'จำนวนห้องต้องมีอย่างน้อย 1 ห้อง',
-            'max_value': f'จองได้สูงสุด {MAX_ROOMS_PER_BOOKING} ห้องต่อครั้ง',
+            'max_value': TOO_MANY_ROOMS_MESSAGE,
         },
     )
 
@@ -122,7 +121,7 @@ class BookingInputSerializer(serializers.Serializer):
 
     def validate_rooms(self, rooms):
         if sum(item['quantity'] for item in rooms) > MAX_ROOMS_PER_BOOKING:
-            raise serializers.ValidationError(f'จองได้สูงสุด {MAX_ROOMS_PER_BOOKING} ห้องต่อครั้ง')
+            raise serializers.ValidationError(TOO_MANY_ROOMS_MESSAGE)
         return rooms
 
 
