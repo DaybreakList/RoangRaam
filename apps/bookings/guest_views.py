@@ -11,7 +11,7 @@ from apps.properties.permissions import public_property_view
 
 from .forms import SearchForm
 from .models import Booking
-from .payments import start_checkout
+from .payments import checkout_is_open, start_checkout
 from .services import MAX_ROOMS_PER_BOOKING, get_available_room_types, with_room_type_details
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def search(request):
 
 def _render_payment_result(request, booking_id, error=None, status=200):
     booking = get_object_or_404(Booking.scoped.for_property(request.property), pk=booking_id)
-    context = {'booking': booking, 'error': error}
+    context = {'booking': booking, 'error': error, 'checkout_open': checkout_is_open(booking)}
     return render(request, 'bookings/payment_result.html', context, status=status)
 
 

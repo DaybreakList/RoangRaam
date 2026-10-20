@@ -18,13 +18,20 @@ from .models import Booking, BookingRoom, Payment
 
 logger = logging.getLogger(__name__)
 
-# A booking waiting for payment holds its rooms for this long
-PAYMENT_WINDOW = timedelta(minutes=30)
 # Stripe rejects a Checkout Session that lives under 30 minutes; the extra
 # minute covers clock drift between us and Stripe
 CHECKOUT_LIFETIME = timedelta(minutes=31)
+# A guest can open a Checkout page only this long after booking
+CHECKOUT_DEADLINE = timedelta(minutes=25)
+# Time for Stripe to deliver the webhook of a payment made at the last moment
+WEBHOOK_GRACE = timedelta(minutes=4)
+# A booking waiting for payment holds its rooms for this long (60 minutes). It
+# outlasts the last Checkout page a guest can open, so a guest who pays always
+# keeps the booking instead of being refunded for a released room.
+PAYMENT_WINDOW = CHECKOUT_DEADLINE + CHECKOUT_LIFETIME + WEBHOOK_GRACE
 CURRENCY = 'thb'
 NOT_PENDING_MESSAGE = 'การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน'
+CHECKOUT_CLOSED_MESSAGE = 'หมดเวลาชำระเงิน กรุณาทำการจองใหม่'
 REFUND_FAILED_MESSAGE = 'คืนเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
 
 
@@ -38,31 +45,31 @@ def from_satang(amount):
     return (Decimal(amount) / 100).quantize(Decimal('0.01'))
 
 
+def checkout_is_open(booking):
+    """Whether the guest may still open a Checkout page for `booking`."""
+    return (
+        booking.status == Booking.Status.PENDING_PAYMENT
+        and timezone.now() < booking.created_at + CHECKOUT_DEADLINE
+    )
+
+
 def start_checkout(property, booking_id, success_url, cancel_url):
     """
     Open a Stripe Checkout page for a booking of `property` and return its URL.
 
     Raises Http404 for another property's booking. Raises ValidationError keyed
-    by 'status' when the booking is not waiting for payment, and cancels the
-    booking first when its payment window has already passed.
+    by 'status' when the booking is not waiting for payment, or when
+    CHECKOUT_DEADLINE has passed. The booking is not cancelled here: a Checkout
+    page opened earlier may still be paid, and release_expired_bookings() cancels
+    it once PAYMENT_WINDOW has passed.
     """
     booking = get_object_or_404(
         Booking.scoped.for_property(property).select_related('guest'), pk=booking_id,
     )
     if booking.status != Booking.Status.PENDING_PAYMENT:
         raise ValidationError({'status': NOT_PENDING_MESSAGE})
-    if timezone.now() >= booking.created_at + PAYMENT_WINDOW:
-        # Lock and check again: the webhook may have confirmed the booking since
-        # it was read above, and a paid booking must not be cancelled here.
-        with transaction.atomic():
-            unpaid = Booking.scoped.for_property(property).select_for_update().filter(
-                pk=booking.pk, status=Booking.Status.PENDING_PAYMENT,
-            ).first()
-            if unpaid is not None:
-                cancel_booking(property, unpaid.pk)
-        if unpaid is None:
-            raise ValidationError({'status': NOT_PENDING_MESSAGE})
-        raise ValidationError({'status': 'หมดเวลาชำระเงิน การจองนี้ถูกยกเลิกแล้ว กรุณาจองใหม่'})
+    if not checkout_is_open(booking):
+        raise ValidationError({'status': CHECKOUT_CLOSED_MESSAGE})
 
     # The webhook reads these back to find the booking without trusting the browser
     metadata = {'property_id': str(property.pk), 'booking_id': str(booking.pk)}
