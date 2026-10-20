@@ -14,10 +14,14 @@
             <span>{{ request.property.name }}</span>
         </header>
 
-        {% if status == Status.PENDING_PAYMENT %}
+        {% if status == Status.PENDING_PAYMENT and checkout_open %}
             <div class="rr-pay__icon" aria-hidden="true">!</div>
             <h1 class="rr-pay__title">รอชำระเงิน</h1>
             <p class="rr-pay__lead">หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณารีเฟรชหน้านี้อีกครั้งในอีกสักครู่</p>
+        {% elif status == Status.PENDING_PAYMENT %}
+            <div class="rr-pay__icon" aria-hidden="true">!</div>
+            <h1 class="rr-pay__title">หมดเวลาชำระเงิน</h1>
+            <p class="rr-pay__lead">หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณารีเฟรชหน้านี้อีกครั้งในอีกสักครู่ หากยังไม่ได้ชำระ กรุณาทำการจองใหม่</p>
         {% elif status == Status.CANCELLED %}
             <div class="rr-pay__icon" aria-hidden="true">&times;</div>
             <h1 class="rr-pay__title">การจองนี้ถูกยกเลิกแล้ว</h1>
@@ -43,12 +47,12 @@
         </dl>
 
         <div class="rr-pay__actions">
-            {% if status == Status.PENDING_PAYMENT %}
+            {% if status == Status.PENDING_PAYMENT and checkout_open %}
                 <form method="post" action="{% url 'bookings:pay' property_slug=request.property.slug booking_id=booking.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="rr-btn">ชำระเงิน</button>
                 </form>
-            {% elif status == Status.CANCELLED %}
+            {% elif status == Status.PENDING_PAYMENT or status == Status.CANCELLED %}
                 <a class="rr-btn" href="{% url 'bookings:search' property_slug=request.property.slug %}">จองใหม่</a>
             {% else %}
                 <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าโรงแรม</a>

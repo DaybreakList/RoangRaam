@@ -11,7 +11,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.bookings.models import Booking, Payment
-from apps.bookings.payments import start_checkout, to_satang
+from apps.bookings.payments import (
+    CHECKOUT_CLOSED_MESSAGE,
+    CHECKOUT_DEADLINE,
+    CHECKOUT_LIFETIME,
+    PAYMENT_WINDOW,
+    start_checkout,
+    to_satang,
+)
 
 from .factories import BookingFactory
 
@@ -64,44 +71,39 @@ def test_start_checkout_rejects_booking_not_waiting_for_payment(hotel_a, stripe_
     stripe_create.assert_not_called()
 
 
-def test_start_checkout_cancels_booking_past_payment_window(hotel_a, pending_booking, stripe_create):
-    Booking.scoped.for_property(hotel_a).filter(pk=pending_booking.pk).update(
-        created_at=timezone.now() - timedelta(minutes=31),
+def _age(booking, age):
+    Booking.scoped.for_property(booking.property).filter(pk=booking.pk).update(
+        created_at=timezone.now() - age,
     )
 
-    with pytest.raises(ValidationError):
+
+def test_start_checkout_is_allowed_until_the_checkout_deadline(hotel_a, pending_booking, stripe_create):
+    _age(pending_booking, CHECKOUT_DEADLINE - timedelta(minutes=1))
+
+    assert start_checkout(hotel_a, pending_booking.pk, SUCCESS_URL, CANCEL_URL)
+    stripe_create.assert_called_once()
+
+
+@pytest.mark.parametrize('age', [CHECKOUT_DEADLINE, PAYMENT_WINDOW + timedelta(minutes=1)])
+def test_start_checkout_after_the_deadline_is_refused_without_cancelling(
+    hotel_a, pending_booking, stripe_create, age,
+):
+    # A Checkout page opened before the deadline may still be paid, so the
+    # booking stays PENDING_PAYMENT until release_expired_bookings() runs
+    _age(pending_booking, age)
+
+    with pytest.raises(ValidationError) as exc:
         start_checkout(hotel_a, pending_booking.pk, SUCCESS_URL, CANCEL_URL)
 
+    assert exc.value.message_dict['status'] == [CHECKOUT_CLOSED_MESSAGE]
     pending_booking.refresh_from_db()
-    assert pending_booking.status == Booking.Status.CANCELLED
+    assert pending_booking.status == Booking.Status.PENDING_PAYMENT
     stripe_create.assert_not_called()
 
 
-def test_start_checkout_keeps_booking_paid_while_window_passed(hotel_a, pending_booking, stripe_create):
-    # The webhook confirms the booking after start_checkout() has read it
-    # unlocked as PENDING_PAYMENT, but before the payment window check acts.
-    Booking.scoped.for_property(hotel_a).filter(pk=pending_booking.pk).update(
-        created_at=timezone.now() - timedelta(minutes=31),
-    )
-    stale = Booking.scoped.for_property(hotel_a).get(pk=pending_booking.pk)
-    Booking.scoped.for_property(hotel_a).filter(pk=pending_booking.pk).update(
-        status=Booking.Status.CONFIRMED,
-    )
-    _charge(pending_booking)
-
-    with (
-        mock.patch('apps.bookings.payments.get_object_or_404', return_value=stale),
-        mock.patch('apps.bookings.payments.stripe.Refund.create') as refund,
-        pytest.raises(ValidationError) as exc,
-    ):
-        refund.return_value = mock.Mock(id='re_test_1')
-        start_checkout(hotel_a, pending_booking.pk, SUCCESS_URL, CANCEL_URL)
-
-    assert exc.value.message_dict['status'] == ['การจองนี้ไม่ได้อยู่ในสถานะรอชำระเงิน']
-    pending_booking.refresh_from_db()
-    assert pending_booking.status == Booking.Status.CONFIRMED
-    refund.assert_not_called()
-    stripe_create.assert_not_called()
+def test_last_checkout_page_closes_before_the_rooms_are_released():
+    assert PAYMENT_WINDOW == timedelta(minutes=60)
+    assert CHECKOUT_DEADLINE + CHECKOUT_LIFETIME < PAYMENT_WINDOW
 
 
 def test_start_checkout_404_for_other_property_booking(hotel_b, pending_booking, stripe_create):
@@ -215,6 +217,26 @@ def test_payment_result_shows_booking_status(client, hotel_a, status, text):
     assert response.status_code == 200
     assert booking.code in response.content.decode()
     assert text in response.content.decode()
+
+
+def test_payment_result_after_the_deadline_offers_a_new_booking(client, hotel_a, pending_booking):
+    _age(pending_booking, CHECKOUT_DEADLINE)
+
+    content = client.get(_result_url(hotel_a, pending_booking)).content.decode()
+
+    assert 'หมดเวลาชำระเงิน' in content
+    assert _pay_url(hotel_a, pending_booking) not in content
+    assert 'จองใหม่' in content
+
+
+def test_pay_view_after_the_deadline_returns_to_the_result_page(client, hotel_a, pending_booking, stripe_create):
+    _age(pending_booking, CHECKOUT_DEADLINE)
+
+    response = client.post(_pay_url(hotel_a, pending_booking))
+
+    assert response.status_code == 302
+    assert response['Location'].endswith(_result_url(hotel_a, pending_booking))
+    stripe_create.assert_not_called()
 
 
 def test_payment_result_other_property_booking_is_404(client, hotel_b, pending_booking):
