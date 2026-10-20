@@ -87,7 +87,10 @@ class TestSearchPage:
         # Per-night sum 1000 + 1500 + 1200.50, not rate x nights
         assert '3,700.50' in content
         assert '<img class="rr-room-card__image"' in content
-        assert 'disabled' in content and 'เลือกห้องนี้' in content
+        # One quantity box per card and one active submit button; the old disabled button is gone
+        assert f'name="room_{room_type.pk}"' in content
+        assert 'จองห้องที่เลือก' in content
+        assert 'disabled' not in content and 'เลือกห้องนี้' not in content
         assert isinstance(response.context['room_types'][0].total_price, Decimal)
 
     def test_form_is_prefilled_after_search(self, client, hotel_a):

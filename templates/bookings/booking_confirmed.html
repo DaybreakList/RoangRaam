@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}การจอง {{ booking.code }} · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/booking.css' %}">{% endblock %}
+
+{% block content %}
+{% comment %}
+Opened with the booking's UUID alone, so it must not show who the guest is:
+never touch booking.guest here. Rooms are shown as type x count, never as room numbers.
+{% endcomment %}
+{% with status=booking.status Status=booking.Status %}
+<main class="rr-book">
+    <header class="rr-book__hotel">
+        {% if request.property.logo %}<img class="rr-book__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <span>{{ request.property.name }}</span>
+    </header>
+
+    {% if status == Status.CANCELLED %}
+    <section class="rr-card rr-book__card rr-book__card--cancelled">
+        <h1 class="rr-book__title">การจองนี้ถูกยกเลิกแล้ว</h1>
+        <p class="rr-book__lead">หากต้องการเข้าพัก กรุณาทำการจองใหม่</p>
+        <a class="rr-btn" href="{% url 'bookings:search' property_slug=request.property.slug %}">ค้นหาห้องว่าง</a>
+    </section>
+    {% else %}
+    <section class="rr-card rr-book__card rr-book__card--done">
+        <h1 class="rr-book__title">จองห้องพักเรียบร้อย</h1>
+        <p class="rr-book__lead">กรุณาจดรหัสการจองไว้ใช้ตอนเช็คอิน</p>
+
+        {% for message in messages %}
+        <p class="rr-book__flash rr-book__flash--{{ message.tags }}" role="status">{{ message }}</p>
+        {% endfor %}
+
+        <div class="rr-book__code">
+            <span class="rr-book__code-label">รหัสการจอง</span>
+            <strong class="rr-book__code-value">{{ booking.code }}</strong>
+        </div>
+
+        <dl class="rr-book__details">
+            <div><dt>สถานะ</dt><dd>{{ booking.get_status_display }}</dd></div>
+            <div><dt>เช็คอิน</dt><dd>{{ booking.check_in_date|date:"j M Y" }} · {{ request.property.check_in_time|time:"H:i" }} น.</dd></div>
+            <div><dt>เช็คเอาต์</dt><dd>{{ booking.check_out_date|date:"j M Y" }} · {{ request.property.check_out_time|time:"H:i" }} น.</dd></div>
+            <div><dt>จำนวนคืน</dt><dd>{{ booking.nights }} คืน</dd></div>
+            <div><dt>ผู้เข้าพัก</dt><dd>ผู้ใหญ่ {{ booking.adults }} คน · เด็ก {{ booking.children }} คน</dd></div>
+        </dl>
+
+        <ul class="rr-book__rooms">
+            {% for name, count in room_lines %}
+            <li><div class="rr-book__room-name">{{ name }} × {{ count }}</div></li>
+            {% endfor %}
+        </ul>
+
+        <p class="rr-book__total"><span>ยอดรวม</span><strong>{{ booking.total_amount|floatformat:"2g" }} บาท</strong></p>
+        <p class="rr-book__note">วิธีชำระเงิน: ชำระที่โรงแรม</p>
+
+        {% if request.property.policy_text %}
+        <div class="rr-book__policy">
+            <h2 class="rr-card__title">นโยบายโรงแรม</h2>
+            <p>{{ request.property.policy_text|linebreaksbr }}</p>
+        </div>
+        {% endif %}
+
+        <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าค้นหา</a>
+    </section>
+    {% endif %}
+</main>
+{% endwith %}
+{% endblock %}

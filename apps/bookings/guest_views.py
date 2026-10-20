@@ -12,7 +12,7 @@ from apps.properties.permissions import public_property_view
 from .forms import SearchForm
 from .models import Booking
 from .payments import start_checkout
-from .services import get_available_room_types, with_room_type_details
+from .services import MAX_ROOMS_PER_BOOKING, get_available_room_types, with_room_type_details
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,11 @@ def _search_results(property, form):
     room_types = get_available_room_types(
         property, data['check_in'], data['check_out'], guests=data['guests'],
     )
-    return list(with_room_type_details(room_types, property))
+    results = list(with_room_type_details(room_types, property))
+    for room_type in results:
+        # Caps the quantity box: never more than the free rooms or the per-booking limit
+        room_type.max_bookable = min(room_type.available_count, MAX_ROOMS_PER_BOOKING)
+    return results
 
 
 # The same URL returns a full page or a partial, so caches must key on HX-Request.
@@ -44,7 +48,13 @@ def search(request):
 
     is_htmx = bool(request.headers.get('HX-Request'))
     template = 'bookings/_results.html' if is_htmx else 'bookings/search.html'
-    return render(request, template, {'form': form, 'room_types': room_types, 'is_htmx': is_htmx})
+    context = {
+        'form': form,
+        'room_types': room_types,
+        'is_htmx': is_htmx,
+        'max_rooms_per_booking': MAX_ROOMS_PER_BOOKING,
+    }
+    return render(request, template, context)
 
 
 def _render_payment_result(request, booking_id, error=None, status=200):

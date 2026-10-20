@@ -32,5 +32,9 @@
     <section id="results" class="rr-search__results" aria-live="polite">
         {% include 'bookings/_results.html' %}
     </section>
+
+    {# Empty on purpose: the quantity boxes and the button in #results point here with form="book-form", #}
+    {# so the results can be swapped by HTMX without carrying a <form> of their own #}
+    <form id="book-form" method="get" action="{% url 'bookings:book' property_slug=request.property.slug %}"></form>
 </main>
 {% endblock %}

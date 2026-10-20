@@ -90,6 +90,29 @@
 .rr-room-card__price strong {
   font-size: var(--rr-font-size-lg);
 }
+/* Quantity box under the price: one per room type, submitted with the single booking button */
+.rr-room-card__qty {
+  display: inline-block;
+  width: 120px;
+  text-align: left;
+}
+.rr-room-card__qty .rr-input {
+  text-align: center;
+}
+.rr-search__submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rr-space-3);
+  margin-top: var(--rr-space-4);
+}
+.rr-search__hint {
+  margin: 0;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+}
+
 /* Card without an image: drop the image column */
 .rr-room-card:not(:has(.rr-room-card__image)) {
   grid-template-columns: 1fr auto;
