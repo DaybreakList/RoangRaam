@@ -17,6 +17,7 @@ METHODS = ('get', 'post', 'patch', 'delete')
 PUBLIC_ROUTES = {
     'bookings:search', 'bookings:api-availability', 'bookings:api-booking-create',
     'bookings:pay', 'bookings:payment-result',
+    'bookings:book', 'bookings:booking-confirmed',
 }
 
 # Sample values so every route can be reversed; the middleware answers before

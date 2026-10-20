@@ -4,8 +4,11 @@ Search results. States:
   - form invalid, full page: nothing here, errors show on the fields
   - not searched yet: nothing
   - searched, none available: empty message
-  - searched, results: one card per room type
+  - searched, results: one card per room type, one quantity box per card, one submit button
 Prices come from the service (per-night sum); never compute them here.
+The inputs and the button belong to <form id="book-form"> in search.html through their
+form="book-form" attribute, so this partial has no <form> of its own and can be swapped by HTMX.
+The hidden fields come from the validated search (form.cleaned_data), not from the raw query string.
 {% endcomment %}
 {% if form.errors %}
     {% if is_htmx %}
@@ -37,11 +40,22 @@ Prices come from the service (per-night sum); never compute them here.
             </div>
             <div class="rr-room-card__action">
                 <p class="rr-room-card__price">ราคารวม <strong>{{ rt.total_price|floatformat:"2g" }}</strong> บาท</p>
-                <button type="button" class="rr-btn" disabled>เลือกห้องนี้</button>
+                <div class="rr-room-card__qty">
+                    <label class="rr-field__label" for="room-qty-{{ rt.pk }}">จำนวนห้อง</label>
+                    <input class="rr-input" type="number" id="room-qty-{{ rt.pk }}" name="room_{{ rt.pk }}"
+                           form="book-form" min="0" max="{{ rt.max_bookable }}" value="0" inputmode="numeric">
+                </div>
             </div>
         </li>
         {% endfor %}
     </ul>
+    <div class="rr-card rr-search__submit">
+        <input type="hidden" form="book-form" name="check_in" value="{{ form.cleaned_data.check_in|date:'Y-m-d' }}">
+        <input type="hidden" form="book-form" name="check_out" value="{{ form.cleaned_data.check_out|date:'Y-m-d' }}">
+        <input type="hidden" form="book-form" name="guests" value="{{ form.cleaned_data.guests }}">
+        <p class="rr-search__hint">เลือกจำนวนห้องของแต่ละประเภท รวมได้สูงสุด {{ max_rooms_per_booking }} ห้องต่อครั้ง</p>
+        <button type="submit" form="book-form" class="rr-btn">จองห้องที่เลือก</button>
+    </div>
     {% else %}
     <div class="rr-card rr-search__empty">
         <p class="rr-card__title">ไม่มีห้องว่างตรงกับเงื่อนไขที่ค้นหา</p>

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}กรอกข้อมูลการจอง · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/booking.css' %}">{% endblock %}
+
+{% block content %}
+{% comment %}
+Two states:
+  - error_messages: the chosen rooms cannot be booked. No form, only the message(s) and a way back to the search.
+  - form: the room summary and the guest form.
+Prices are the service's per-night sums (lines); the estimate only multiplies them by quantity.
+{% endcomment %}
+<main class="rr-book">
+    <header class="rr-book__hotel">
+        {% if request.property.logo %}<img class="rr-book__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <span>{{ request.property.name }}</span>
+    </header>
+
+    {% if error_messages %}
+    <section class="rr-card rr-book__card" role="alert">
+        <h1 class="rr-book__title">ไม่สามารถดำเนินการจองได้</h1>
+        <ul class="rr-book__messages">
+            {% for message in error_messages %}<li>{{ message }}</li>{% endfor %}
+        </ul>
+        <a class="rr-btn" href="{{ back_url }}">ค้นหาห้องว่างอีกครั้ง</a>
+    </section>
+    {% else %}
+    <h1 class="rr-book__title">กรอกข้อมูลการจอง</h1>
+
+    <section class="rr-card rr-book__card" aria-labelledby="summary-title">
+        <h2 class="rr-card__title" id="summary-title">สรุปการจอง</h2>
+        <dl class="rr-book__details">
+            <div><dt>เช็คอิน</dt><dd>{{ check_in|date:"j M Y" }} · {{ request.property.check_in_time|time:"H:i" }} น.</dd></div>
+            <div><dt>เช็คเอาต์</dt><dd>{{ check_out|date:"j M Y" }} · {{ request.property.check_out_time|time:"H:i" }} น.</dd></div>
+            <div><dt>จำนวนคืน</dt><dd>{{ nights }} คืน</dd></div>
+        </dl>
+        <ul class="rr-book__rooms">
+            {% for line in lines %}
+            <li>
+                <div class="rr-book__room-name">{{ line.room_type.name }} × {{ line.quantity }}</div>
+                <div class="rr-book__room-price">
+                    ราคาต่อห้อง {{ line.room_type.total_price|floatformat:"2g" }} บาท (ตลอดช่วงที่พัก)
+                    · รวม {{ line.subtotal|floatformat:"2g" }} บาท
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="rr-book__total"><span>ยอดโดยประมาณ</span><strong>{{ estimated_total|floatformat:"2g" }} บาท</strong></p>
+        <p class="rr-book__note">ยอดสุดท้ายจะยืนยันอีกครั้งเมื่อทำการจอง</p>
+    </section>
+
+    <form class="rr-card rr-book__card rr-book__form" method="post"
+          action="{% url 'bookings:book' property_slug=request.property.slug %}">
+        {% csrf_token %}
+        <h2 class="rr-card__title">ข้อมูลผู้เข้าพัก</h2>
+
+        {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+        {% for line in lines %}<input type="hidden" name="room_{{ line.room_type.pk }}" value="{{ line.quantity }}">{% endfor %}
+
+        {% if form.errors %}
+        <div class="rr-book__errors" role="alert">
+            <p class="rr-book__errors-title">กรุณาตรวจสอบข้อมูลที่กรอก</p>
+            <ul>
+                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                {% for field in form.hidden_fields %}{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="rr-book__grid">
+            {% include 'partials/form_field.html' with field=form.first_name %}
+            {% include 'partials/form_field.html' with field=form.last_name %}
+        </div>
+        {% include 'partials/form_field.html' with field=form.email %}
+        {% include 'partials/form_field.html' with field=form.phone %}
+        <div class="rr-book__grid">
+            {% include 'partials/form_field.html' with field=form.adults %}
+            {% include 'partials/form_field.html' with field=form.children %}
+        </div>
+
+        <fieldset class="rr-field rr-book__payment{% if form.payment_option.errors %} rr-field--error{% endif %}">
+            <legend class="rr-field__label">{{ form.payment_option.label }}<span class="rr-field__required" aria-hidden="true"> *</span></legend>
+            {% for radio in form.payment_option %}
+            <label class="rr-book__option">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+            {% endfor %}
+            {% if form.payment_option.errors %}
+            <ul class="rr-field__errors">
+                {% for error in form.payment_option.errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+        </fieldset>
+
+        <div class="rr-book__actions">
+            <button type="submit" class="rr-btn">ยืนยันการจอง</button>
+            <a class="rr-btn rr-btn--secondary" href="{{ back_url }}">กลับไปเลือกห้อง</a>
+        </div>
+    </form>
+    {% endif %}
+</main>
+{% endblock %}
