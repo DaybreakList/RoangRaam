@@ -9,7 +9,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.bookings.models import Booking
-from apps.bookings.payments import release_expired_bookings
+from apps.bookings.payments import PAYMENT_WINDOW, release_expired_bookings
 from apps.properties.tests.factories import PropertyFactory
 
 from .factories import BookingFactory, BookingRoomFactory
@@ -17,6 +17,7 @@ from .factories import BookingFactory, BookingRoomFactory
 pytestmark = pytest.mark.django_db
 
 PENDING = Booking.Status.PENDING_PAYMENT
+WINDOW = int(PAYMENT_WINDOW / timedelta(minutes=1))
 
 
 def _booking(prop, minutes_ago, status=PENDING):
@@ -32,7 +33,7 @@ def _status(booking):
     return booking.status
 
 
-@pytest.mark.parametrize('minutes_ago', [30, 31, 24 * 60])
+@pytest.mark.parametrize('minutes_ago', [WINDOW, WINDOW + 1, 24 * 60])
 def test_unpaid_booking_past_the_window_is_cancelled(hotel_a, minutes_ago):
     booking = _booking(hotel_a, minutes_ago)
 
@@ -43,9 +44,9 @@ def test_unpaid_booking_past_the_window_is_cancelled(hotel_a, minutes_ago):
 
 
 @pytest.mark.parametrize('minutes_ago,status', [
-    (29, PENDING),
-    (31, Booking.Status.CONFIRMED),
-    (31, Booking.Status.CHECKED_IN),
+    (WINDOW - 1, PENDING),
+    (WINDOW + 1, Booking.Status.CONFIRMED),
+    (WINDOW + 1, Booking.Status.CHECKED_IN),
 ])
 def test_booking_inside_the_window_or_not_waiting_for_payment_is_kept(hotel_a, minutes_ago, status):
     booking = _booking(hotel_a, minutes_ago, status)
@@ -66,8 +67,8 @@ def test_window_comes_from_payment_window(hotel_a):
 
 
 def test_room_types_limit_what_is_released(hotel_a):
-    wanted = _booking(hotel_a, minutes_ago=31)
-    other = _booking(hotel_a, minutes_ago=31)
+    wanted = _booking(hotel_a, minutes_ago=WINDOW + 1)
+    other = _booking(hotel_a, minutes_ago=WINDOW + 1)
     wanted_type = wanted.booking_rooms.get().room_type
 
     assert release_expired_bookings(hotel_a, room_types=[wanted_type]) == 1
@@ -80,7 +81,7 @@ def test_room_types_limit_what_is_released(hotel_a):
 
 
 def test_other_property_is_not_touched(hotel_a, hotel_b):
-    foreign = _booking(hotel_b, minutes_ago=31)
+    foreign = _booking(hotel_b, minutes_ago=WINDOW + 1)
     foreign_type = foreign.booking_rooms.get().room_type
 
     assert release_expired_bookings(hotel_a) == 0
@@ -92,7 +93,7 @@ def test_other_property_is_not_touched(hotel_a, hotel_b):
 @pytest.mark.django_db(transaction=True)
 def test_booking_locked_by_another_request_is_skipped():
     prop = PropertyFactory()
-    booking = _booking(prop, minutes_ago=31)
+    booking = _booking(prop, minutes_ago=WINDOW + 1)
     locked, done = threading.Event(), threading.Event()
 
     def pay_in_another_request():
@@ -119,7 +120,7 @@ def test_booking_locked_by_another_request_is_skipped():
 
 
 def test_command_releases_every_property(hotel_a, hotel_b):
-    first, second = _booking(hotel_a, minutes_ago=31), _booking(hotel_b, minutes_ago=31)
+    first, second = _booking(hotel_a, minutes_ago=WINDOW + 1), _booking(hotel_b, minutes_ago=WINDOW + 1)
     fresh = _booking(hotel_a, minutes_ago=5)
     out = StringIO()
 
@@ -131,7 +132,7 @@ def test_command_releases_every_property(hotel_a, hotel_b):
 
 
 def test_command_can_run_for_one_property(hotel_a, hotel_b):
-    mine, other = _booking(hotel_a, minutes_ago=31), _booking(hotel_b, minutes_ago=31)
+    mine, other = _booking(hotel_a, minutes_ago=WINDOW + 1), _booking(hotel_b, minutes_ago=WINDOW + 1)
 
     call_command('release_expired_bookings', property=hotel_a.slug, stdout=StringIO())
 
