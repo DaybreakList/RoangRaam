@@ -18,6 +18,7 @@ PUBLIC_ROUTES = {
     'bookings:search', 'bookings:api-availability', 'bookings:api-booking-create',
     'bookings:pay', 'bookings:payment-result',
     'bookings:book', 'bookings:booking-confirmed',
+    'bookings:manage-booking', 'bookings:manage-booking-cancel',
 }
 
 # Sample values so every route can be reversed; the middleware answers before

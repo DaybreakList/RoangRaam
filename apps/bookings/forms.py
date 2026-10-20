@@ -133,3 +133,22 @@ class BookingForm(forms.Form):
         if check_in and check_out:
             validate_stay_dates(check_in, check_out)
         return cleaned_data
+
+
+# --- Manage booking page ---
+
+class BookingLookupForm(forms.Form):
+    """
+    The booking code and the guest's email. The code is not checked for its shape
+    here: every wrong code, long or short, must end in the same "not found" answer.
+    """
+
+    code = forms.CharField(
+        label='รหัสการจอง', max_length=20,
+        error_messages=_errors('รหัสการจอง'),
+        widget=forms.TextInput(attrs={'autocomplete': 'off', 'autocapitalize': 'characters'}),
+    )
+    email = forms.EmailField(
+        label='อีเมล', max_length=254,
+        error_messages=_errors('อีเมล', invalid='รูปแบบอีเมลไม่ถูกต้อง'),
+    )

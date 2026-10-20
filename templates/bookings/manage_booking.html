@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ดูการจองของฉัน · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/booking.css' %}">
+<link rel="stylesheet" href="{% static 'css/manage_booking.css' %}">
+{% endblock %}
+
+{% block content %}
+{% comment %}
+Two states:
+  - no `booking`: the lookup form (empty, with field errors, or with the one not-found message).
+  - `booking`: its details, with the pay / cancel buttons its status allows.
+The code and the email only travel in POST bodies and hidden fields, never in a URL.
+{% endcomment %}
+{% with status=booking.status Status=booking.Status %}
+<main class="rr-book">
+    <header class="rr-book__hotel">
+        {% if request.property.logo %}<img class="rr-book__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <span>{{ request.property.name }}</span>
+    </header>
+
+    {% if not booking %}
+    <h1 class="rr-book__title">ดูการจองของฉัน</h1>
+    <form class="rr-card rr-book__card" method="post"
+          action="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">
+        {% csrf_token %}
+        <p class="rr-book__lead">กรอกรหัสการจองและอีเมลที่ใช้ตอนจอง</p>
+        {% if not_found %}
+        <p class="rr-book__errors" role="alert">{{ not_found_message }}</p>
+        {% endif %}
+        {% include 'partials/form_field.html' with field=form.code %}
+        {% include 'partials/form_field.html' with field=form.email %}
+        <div class="rr-book__actions">
+            <button type="submit" class="rr-btn">ค้นหาการจอง</button>
+            <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าค้นหา</a>
+        </div>
+    </form>
+    {% else %}
+    {% if notice %}<p class="rr-book__flash" role="status">{{ notice }}</p>{% endif %}
+    {% if error %}<p class="rr-book__errors" role="alert">{{ error }}</p>{% endif %}
+
+    <section class="rr-card rr-book__card{% if status == Status.CANCELLED %} rr-book__card--cancelled{% endif %}">
+        {% if status == Status.CANCELLED %}
+        <h1 class="rr-book__title">การจองนี้ถูกยกเลิกแล้ว</h1>
+        <p class="rr-book__lead">หากต้องการเข้าพัก กรุณาทำการจองใหม่</p>
+        {% else %}
+        <h1 class="rr-book__title">การจองของฉัน</h1>
+        {% endif %}
+
+        <div class="rr-book__code">
+            <span class="rr-book__code-label">รหัสการจอง</span>
+            <strong class="rr-book__code-value">{{ booking.code }}</strong>
+        </div>
+
+        {% include 'bookings/_manage_summary.html' %}
+
+        {% if payment_expired %}
+        <p class="rr-book__note">หมดเวลาชำระเงิน หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณาตรวจสอบอีกครั้งในอีกสักครู่ หากยังไม่ได้ชำระ กรุณาทำการจองใหม่</p>
+        {% endif %}
+
+        <div class="rr-book__actions">
+            {% if can_pay %}
+            <form method="post" action="{% url 'bookings:pay' property_slug=request.property.slug booking_id=booking.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="rr-btn">ชำระเงิน</button>
+            </form>
+            {% endif %}
+            {% if can_cancel %}
+            <form method="post" action="{% url 'bookings:manage-booking-cancel' property_slug=request.property.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="code" value="{{ booking.code }}">
+                <input type="hidden" name="email" value="{{ booking.guest.email }}">
+                <button type="submit" class="rr-btn rr-btn--danger">ยกเลิกการจอง</button>
+            </form>
+            {% endif %}
+            <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">{% if status == Status.CANCELLED %}ค้นหาห้องว่าง{% else %}กลับไปหน้าค้นหา{% endif %}</a>
+        </div>
+    </section>
+    {% endif %}
+</main>
+{% endwith %}
+{% endblock %}

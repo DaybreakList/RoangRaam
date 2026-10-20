@@ -12,6 +12,7 @@
         <div>
             <h1 class="rr-search__title">{{ request.property.name }}</h1>
             {% if request.property.policy_text %}<p class="rr-search__policy">{{ request.property.policy_text|linebreaksbr }}</p>{% endif %}
+            <p class="rr-search__policy"><a href="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">ดูการจองของฉัน</a></p>
         </div>
     </header>
 

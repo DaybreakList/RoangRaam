@@ -1,0 +1,31 @@
+{% comment %}
+Booking summary shared by the details page and the cancel confirmation page.
+Needs `booking` and `room_groups` (see manage_views._room_groups).
+The guest proved the booking with its code and email, so the name and email are shown;
+the phone number and the room numbers never are. Rooms are shown as type x count.
+{% endcomment %}
+<dl class="rr-book__details">
+    <div><dt>สถานะ</dt><dd>{{ booking.get_status_display }}</dd></div>
+    <div><dt>เช็คอิน</dt><dd>{{ booking.check_in_date|date:"j M Y" }} · {{ request.property.check_in_time|time:"H:i" }} น.</dd></div>
+    <div><dt>เช็คเอาต์</dt><dd>{{ booking.check_out_date|date:"j M Y" }} · {{ request.property.check_out_time|time:"H:i" }} น.</dd></div>
+    <div><dt>จำนวนคืน</dt><dd>{{ booking.nights }} คืน</dd></div>
+    <div><dt>ผู้เข้าพัก</dt><dd>ผู้ใหญ่ {{ booking.adults }} คน · เด็ก {{ booking.children }} คน</dd></div>
+    <div><dt>ชื่อผู้จอง</dt><dd>{{ booking.guest.first_name }} {{ booking.guest.last_name }}</dd></div>
+    <div><dt>อีเมล</dt><dd>{{ booking.guest.email }}</dd></div>
+    <div><dt>วิธีชำระเงิน</dt><dd>{{ booking.get_payment_option_display }}</dd></div>
+</dl>
+
+<ul class="rr-book__rooms">
+    {% for group in room_groups %}
+    <li>
+        <div class="rr-book__room-name">{{ group.name }} × {{ group.count }}</div>
+        <ul class="rr-manage__nights">
+            {% for night in group.nights %}
+            <li><span>{{ night.night|date:"j M Y" }}</span><span>{{ night.price|floatformat:"2g" }} บาท / ห้อง</span></li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+
+<p class="rr-book__total"><span>ยอดรวม</span><strong>{{ booking.total_amount|floatformat:"2g" }} บาท</strong></p>
