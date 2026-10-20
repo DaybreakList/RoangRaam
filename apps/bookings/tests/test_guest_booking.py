@@ -25,11 +25,10 @@ from django.utils import timezone
 from apps.bookings.booking_views import (
     EMAIL_FAILED_MESSAGE,
     EMAIL_SENT_MESSAGE,
-    INVALID_ROOMS_MESSAGE,
     NO_ROOMS_MESSAGE,
     ROOM_UNAVAILABLE_MESSAGE,
 )
-from apps.bookings.forms import STALE_FORM_MESSAGE, read_room_quantities
+from apps.bookings.forms import INVALID_ROOMS_MESSAGE, STALE_FORM_MESSAGE, read_room_quantities
 from apps.bookings.models import Booking, BookingRoom, Guest
 from apps.bookings.payments import PAYMENT_WINDOW
 from apps.bookings.services import MAX_ROOMS_PER_BOOKING, TOO_MANY_ROOMS_MESSAGE
@@ -427,6 +426,9 @@ class TestBookPostFull:
         assert response.status_code == 502
         assert 'ระบบชำระเงินขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง' in content
         assert booking.code in content
+        # The booking is brand new, so the guest can still retry: pay button, not "expired"
+        assert 'รอชำระเงิน' in content and 'หมดเวลาชำระเงิน' not in content
+        assert url('pay', hotel_a, booking_id=booking.pk) in content
         assert booking.status == Booking.Status.PENDING_PAYMENT
         assert mail.outbox == []
 

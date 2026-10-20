@@ -23,7 +23,7 @@ from apps.properties.permissions import public_property_view
 from .emails import send_booking_confirmation_safely
 from .forms import STALE_FORM_MESSAGE, BookingForm, SearchForm, read_room_quantities
 from .models import Booking
-from .payments import start_checkout
+from .payments import checkout_is_open, start_checkout
 from .services import (
     MAX_ROOMS_PER_BOOKING,
     TOO_MANY_ROOMS_MESSAGE,
@@ -172,7 +172,12 @@ def _booking_confirmed_url(property, booking_id):
 
 
 def _render_payment_failure(request, booking):
-    context = {'booking': booking, 'error': PAYMENT_ERROR_MESSAGE}
+    # Without checkout_open the page treats a fresh booking as past its Checkout deadline
+    context = {
+        'booking': booking,
+        'error': PAYMENT_ERROR_MESSAGE,
+        'checkout_open': checkout_is_open(booking),
+    }
     return render(request, 'bookings/payment_result.html', context, status=502)
 
 
