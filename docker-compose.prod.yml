@@ -1,0 +1,78 @@
+# Staging / production stack: Caddy (HTTPS) -> web (gunicorn) -> db (PostgreSQL).
+# Not for development: use docker-compose.yml for that.
+#
+# On the server, from the repository folder, with .env.production next to this file:
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+#
+# Only Caddy publishes ports. web and db are reachable inside the stack only, which
+# is also what makes it safe to trust Caddy's X-Forwarded-Proto header (DJANGO_HTTPS).
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    # Small settings for a 1 GiB server
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env.production}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ghcr.io/daybreaklist/roangraam:${IMAGE_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      POSTGRES_HOST: db
+    volumes:
+      # Uploaded files (room photos, logos) survive a redeploy
+      - media_data:/app/media
+    # Migrations on every start. With SEED_ON_START=true the demo hotels are loaded too
+    # (seed_demo does nothing when they already exist); a failing seed only prints a
+    # warning. WEB_CONCURRENCY sets the gunicorn workers (2 fits 1 GiB).
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        python manage.py migrate --noinput
+        case "$${SEED_ON_START:-false}" in
+          true|True|TRUE|1)
+            python manage.py seed_demo || echo "seed_demo failed: starting without demo data"
+            ;;
+        esac
+        exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers "$${WEB_CONCURRENCY:-2}" --timeout 60 --access-logfile -
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      # The public host name, e.g. roangraam-staging.indonesiacentral.cloudapp.azure.com
+      # (Caddy gets its HTTPS certificate for it). ":80" means plain HTTP, for local tests.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  media_data:
+  caddy_data:
+  caddy_config:

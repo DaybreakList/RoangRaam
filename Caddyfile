@@ -1,0 +1,5 @@
+# Reverse proxy for docker-compose.prod.yml. SITE_ADDRESS comes from the environment.
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy web:8000
+}
