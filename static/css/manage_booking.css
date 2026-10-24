@@ -1,0 +1,20 @@
+/*
+ * Manage booking pages (look up, details, cancel). Requires css/tokens.css,
+ * css/components.css and css/booking.css. rr- prefix, tokens only.
+ */
+
+/* Price of each night under a room type: date on the left, price on the right */
+.rr-manage__nights {
+  margin: var(--rr-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+}
+.rr-manage__nights li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--rr-space-4);
+  border-bottom: 0;
+  padding: 0;
+}

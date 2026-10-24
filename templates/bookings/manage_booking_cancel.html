@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ยืนยันการยกเลิก · {{ request.property.name }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/booking.css' %}">
+<link rel="stylesheet" href="{% static 'css/manage_booking.css' %}">
+{% endblock %}
+
+{% block content %}
+{% comment %}
+Step 1 of the cancel: nothing has changed yet. "ยืนยันการยกเลิก" posts again with `confirm`;
+"กลับ" posts to the details page. Both carry the code and email in hidden fields.
+{% endcomment %}
+{% with status=booking.status Status=booking.Status Option=booking.PaymentOption %}
+<main class="rr-book">
+    <header class="rr-book__hotel">
+        {% if request.property.logo %}<img class="rr-book__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
+        <span>{{ request.property.name }}</span>
+    </header>
+
+    <section class="rr-card rr-book__card rr-book__card--cancelled">
+        <h1 class="rr-book__title">ยืนยันการยกเลิกการจอง</h1>
+
+        <div class="rr-book__code">
+            <span class="rr-book__code-label">รหัสการจอง</span>
+            <strong class="rr-book__code-value">{{ booking.code }}</strong>
+        </div>
+
+        {% include 'bookings/_manage_summary.html' %}
+
+        <p class="rr-book__flash" role="status">
+            {% if booking.payment_option == Option.PAY_AT_HOTEL %}ไม่มีค่าใช้จ่าย
+            {% elif status == Status.CONFIRMED %}ระบบจะคืนเงินเต็มจำนวน {{ booking.total_amount|floatformat:"2g" }} บาท ไปยังช่องทางที่ชำระ
+            {% else %}ยังไม่มีการชำระเงิน{% endif %}
+        </p>
+
+        <div class="rr-book__actions">
+            <form method="post" action="{% url 'bookings:manage-booking-cancel' property_slug=request.property.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="code" value="{{ booking.code }}">
+                <input type="hidden" name="email" value="{{ booking.guest.email }}">
+                <input type="hidden" name="confirm" value="1">
+                <button type="submit" class="rr-btn rr-btn--danger">ยืนยันการยกเลิก</button>
+            </form>
+            <form method="post" action="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="code" value="{{ booking.code }}">
+                <input type="hidden" name="email" value="{{ booking.guest.email }}">
+                <button type="submit" class="rr-btn rr-btn--secondary">กลับ</button>
+            </form>
+        </div>
+    </section>
+</main>
+{% endwith %}
+{% endblock %}

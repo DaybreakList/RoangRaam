@@ -2,6 +2,7 @@ from django.urls import path
 
 from . import api, guest_views, webhooks
 from . import booking_views
+from . import manage_views
 
 app_name = 'bookings'
 urlpatterns = [
@@ -14,6 +15,8 @@ urlpatterns = [
     ),
     path('p/<slug:property_slug>/book/', booking_views.book, name='book'),
     path('p/<slug:property_slug>/bookings/<uuid:booking_id>/confirmed/', booking_views.booking_confirmed, name='booking-confirmed'),
+    path('p/<slug:property_slug>/my-booking/', manage_views.manage_booking, name='manage-booking'),
+    path('p/<slug:property_slug>/my-booking/cancel/', manage_views.cancel, name='manage-booking-cancel'),
     path('stripe/webhook/', webhooks.stripe_webhook, name='stripe-webhook'),
     path(
         'api/p/<slug:property_slug>/availability/',

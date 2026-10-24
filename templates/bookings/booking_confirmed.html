@@ -61,7 +61,10 @@ never touch booking.guest here. Rooms are shown as type x count, never as room n
         </div>
         {% endif %}
 
-        <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าค้นหา</a>
+        <div class="rr-book__actions">
+            <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">กลับไปหน้าค้นหา</a>
+            <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">ดูการจองของฉัน</a>
+        </div>
     </section>
     {% endif %}
 </main>
