@@ -12,6 +12,10 @@ past check-in dates. Stays that start today or later go through create_booking()
 cancel_booking(), the same code the real booking flow uses.
 
 Prices are VAT-inclusive, like the booking API contract (docs/project/API_CONTRACT.md).
+
+Money: past FULL bookings carry the Payment rows a real payment would leave (see
+_save_payments). Future bookings are all pay-at-hotel, so they hold no money and
+cancelling them never reaches Stripe.
 """
 
 import random
@@ -29,7 +33,7 @@ from django.utils import timezone
 from psycopg.types.range import DateRange
 
 from apps.bookings.cancellation import cancel_booking
-from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest
+from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest, Payment
 from apps.bookings.services import create_booking
 from apps.properties.models import Membership, Property
 from apps.rooms.models import Amenity, DailyRate, Room, RoomType, RoomTypeAmenity
@@ -45,7 +49,8 @@ FUTURE_DAYS = 30
 FUTURE_ATTEMPTS_PER_ROOM = 4
 GUEST_POOL_SIZE = 60
 CANCEL_RATE = 0.08
-FULL_PAYMENT_RATE = 0.12
+# A seeded guest pays this long after booking
+CHARGE_DELAY = timedelta(minutes=5)
 STAY_NIGHTS = (1, 1, 2, 2, 3, 4)
 GAP_DAYS = (0, 1)
 ADULT_CHOICES = (1, 2, 2, 3)
@@ -197,7 +202,10 @@ def reset_demo_data():
 
 
 def _delete_hotel(property):
-    # PROTECT foreign keys force this order: children before the rows they point to
+    # PROTECT foreign keys force this order: children before the rows they point to.
+    # Payment.delete() is blocked (append-only) but a queryset delete is not, and
+    # the demo hotels are removed whole, so their money rows go with them.
+    Payment.scoped.for_property(property).delete()
     BookingNightRate.scoped.for_property(property).delete()
     BookingRoom.scoped.for_property(property).delete()
     Booking.scoped.for_property(property).delete()
@@ -489,6 +497,43 @@ def _save_history(property, stays, guests, prices, front_desk, today, rng):
         for booking_room, stay in zip(booking_rooms, room_stays)
         for night in _nights(stay.check_in, stay.check_out)
     ])
+    _save_payments(property, [booking for booking, _, _ in plan])
+
+
+def _save_payments(property, bookings):
+    """
+    Money rows for the past FULL bookings, shaped like the ones the Stripe webhook writes.
+
+    A paid stay (checked in or out) has one CHARGE. A cancelled one has its CHARGE and
+    the REFUND that cancel_booking() would have recorded, with the same
+    `refund-<charge ref>` key, so nothing can refund it a second time. Pay-at-hotel
+    bookings have no row: the system does not record cash. References start with
+    `seed_`, so they can never be mistaken for a Stripe id.
+    """
+    payments = []
+    for booking in bookings:
+        if booking.payment_option != Booking.PaymentOption.FULL:
+            continue
+        charge_ref = f'seed_pi_{booking.code}'
+        payments.append((Payment(
+            property=property, booking=booking, kind=Payment.Kind.CHARGE,
+            amount=booking.total_amount, provider_ref=charge_ref,
+            idempotency_key=f'seed_evt_{booking.code}',
+        ), booking.created_at + CHARGE_DELAY))
+        if booking.status == Booking.Status.CANCELLED:
+            payments.append((Payment(
+                property=property, booking=booking, kind=Payment.Kind.REFUND,
+                amount=booking.total_amount, provider_ref=f'seed_re_{booking.code}',
+                idempotency_key=f'refund-{charge_ref}',
+            ), booking.cancelled_at))
+
+    for payment, _ in payments:
+        payment.full_clean()
+    Payment.scoped.bulk_create([payment for payment, _ in payments])
+    # created_at is auto_now_add, so it can only be backdated after the insert
+    for payment, created_at in payments:
+        payment.created_at = created_at
+    Payment.scoped.bulk_update([payment for payment, _ in payments], ['created_at'])
 
 
 def _mark_departures_dirty(stays, today):
@@ -507,7 +552,10 @@ def _mark_departures_dirty(stays, today):
 def _book_future(property, room_types, guests, rng, today, room_count):
     """Bookings that start today or later, made through the real booking service."""
     # (check-in, nights, scripted). Scripted ones are today's arrivals: one Standard room,
-    # pay at hotel, never cancelled.
+    # never cancelled. Every future booking is pay-at-hotel (CONFIRMED at once): a FULL
+    # booking would wait in PENDING_PAYMENT for a Stripe payment the demo never makes,
+    # and is released after PAYMENT_WINDOW, so its rooms would disappear from search.
+    # It also means cancelling any seeded future booking never calls Stripe.
     requests = [(today, nights, True) for nights in ARRIVAL_TODAY_NIGHTS]
     for _ in range(FUTURE_ATTEMPTS_PER_ROOM * room_count):
         check_in = today + timedelta(days=rng.randint(1, FUTURE_DAYS))
@@ -517,10 +565,6 @@ def _book_future(property, room_types, guests, rng, today, room_count):
         room_type = room_types[0] if scripted else rng.choices(room_types, weights=TYPE_WEIGHTS)[0]
         quantity = 1 if scripted or rng.random() >= 0.3 else 2
         guest = rng.choice(guests)
-        if scripted or rng.random() >= FULL_PAYMENT_RATE:
-            payment_option = Booking.PaymentOption.PAY_AT_HOTEL
-        else:
-            payment_option = Booking.PaymentOption.FULL  # stays PENDING_PAYMENT
         try:
             booking = create_booking(
                 property,
@@ -535,7 +579,7 @@ def _book_future(property, room_types, guests, rng, today, room_count):
                 },
                 adults=min(rng.choice(ADULT_CHOICES), room_type.max_occupancy * quantity),
                 children=0,
-                payment_option=payment_option,
+                payment_option=Booking.PaymentOption.PAY_AT_HOTEL,
             )
         except ValidationError:
             continue  # sold out for these dates: skip it
