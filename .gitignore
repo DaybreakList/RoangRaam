@@ -15,6 +15,7 @@ staticfiles/
 
 # Secrets
 .env
+.env.production
 
 # Editor / OS
 .vscode/
