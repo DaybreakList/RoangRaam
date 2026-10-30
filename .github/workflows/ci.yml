@@ -5,14 +5,17 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Runs CI and, on main, a deploy without a new merge (first deploy, or a retry)
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# A newer push to the same ref makes the older run obsolete
+# A newer push to a PR makes the older run obsolete. Runs on main wait in line instead,
+# so a merge never stops a deploy halfway.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -66,3 +69,55 @@ jobs:
       # --create-db: CI always starts from an empty database, so this also proves
       # every migration runs on a blank DB
       - run: python -m pytest --create-db
+
+  # Setup and operations: docs/project/STAGING.md
+  deploy:
+    needs: test
+    if: >-
+      github.event_name != 'pull_request'
+      && github.ref == 'refs/heads/main'
+      && vars.STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # Its secrets are limited to main, so a PR that edits this file cannot read them
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/daybreaklist/roangraam
+      STAGING_HOST: ${{ vars.STAGING_HOST }}
+      STAGING_SSH_USER: ${{ vars.STAGING_SSH_USER }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker build \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --tag "$IMAGE:$GITHUB_SHA" --tag "$IMAGE:latest" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+
+      # The server's forced command runs scripts/deploy_staging.sh with this commit
+      - name: Deploy over SSH
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/staging_deploy
+          printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/staging_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$STAGING_SSH_USER@$STAGING_HOST" "$GITHUB_SHA"
+
+      # Migrations run before gunicorn starts, so the site may need a moment
+      - name: Check the site responds
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --retry 20 --retry-delay 6 --retry-all-errors --max-time 10 \
+            "https://$STAGING_HOST/accounts/login/"
