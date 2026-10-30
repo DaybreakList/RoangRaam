@@ -1,0 +1,12 @@
+<form method="get" class="rr-card db-range" aria-label="เลือกช่วงวันที่">
+  {% for field in form %}
+  <div class="rr-field db-range__field{% if field.errors %} rr-field--error{% endif %}">
+    <label class="rr-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.errors %}
+    <ul class="rr-field__errors">{% for error in field.errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="rr-btn db-range__submit">ดูข้อมูล</button>
+</form>

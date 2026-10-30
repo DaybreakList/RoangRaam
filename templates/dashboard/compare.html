@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}เปรียบเทียบโรงแรม · RoangRaam{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">{% endblock %}
+{% block content %}
+<main class="db-page">
+  <header>
+    <h1>เปรียบเทียบโรงแรม</h1>
+    <p class="db-summary">เฉพาะโรงแรมที่คุณเป็นเจ้าของ</p>
+  </header>
+
+  {% include "dashboard/_range_form.html" %}
+
+  {% if rows %}
+  <p class="db-note" id="kpi-definitions">
+    {{ rows.0.summary.nights }} คืน ({{ rows.0.summary.start|date:"j M Y" }} ถึง {{ rows.0.summary.end|date:"j M Y" }})
+    · รายได้เป็นรายได้ห้องพักไม่รวม VAT
+    · นับการจองที่ยืนยัน เช็คอิน หรือเช็คเอาต์แล้ว ไม่นับที่ยังรอชำระเงินหรือยกเลิก
+    · คำนวณจากห้องที่เปิดใช้งานอยู่ตอนนี้ของแต่ละโรงแรม
+  </p>
+
+  <section class="rr-card" aria-labelledby="compare-title">
+    <h2 class="rr-card__title" id="compare-title">ตัวชี้วัดของแต่ละโรงแรม</h2>
+    <div class="rr-table-scroll" tabindex="0" role="region" aria-labelledby="compare-title">
+      <table class="rr-table">
+        <thead>
+          <tr>
+            <th scope="col">โรงแรม</th>
+            <th scope="col">Occupancy (%)</th>
+            <th scope="col">ADR (บาท)</th>
+            <th scope="col">RevPAR (บาท)</th>
+            <th scope="col">รายได้ห้องพัก (บาท)</th>
+            <th scope="col">ห้องคืนที่ขายได้ / ทั้งหมด</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <th scope="row"><a href="{% url 'dashboard:hotel' property_slug=row.property.slug %}">{{ row.property.name }}</a></th>
+            <td class="db-number">{{ row.summary.occupancy|floatformat:"2g"|default:"—" }}</td>
+            <td class="db-number">{{ row.summary.adr|floatformat:"2g"|default:"—" }}</td>
+            <td class="db-number">{{ row.summary.revpar|floatformat:"2g"|default:"—" }}</td>
+            <td class="db-number">{{ row.summary.room_revenue|floatformat:"2g" }}</td>
+            <td class="db-number">{{ row.summary.rooms_sold }} / {{ row.summary.rooms_available }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="db-charts">
+    <section class="rr-card" aria-labelledby="occupancy-title">
+      <h2 class="rr-card__title" id="occupancy-title">Occupancy (%)</h2>
+      <div class="db-chart"><canvas id="occupancy-chart" role="img" aria-label="กราฟแท่งเปรียบเทียบ Occupancy ของแต่ละโรงแรม ตารางข้อมูลอยู่ด้านบน"></canvas></div>
+    </section>
+    <section class="rr-card" aria-labelledby="revpar-title">
+      <h2 class="rr-card__title" id="revpar-title">RevPAR (บาท)</h2>
+      <div class="db-chart"><canvas id="revpar-chart" role="img" aria-label="กราฟแท่งเปรียบเทียบ RevPAR ของแต่ละโรงแรม ตารางข้อมูลอยู่ด้านบน"></canvas></div>
+    </section>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}
+{% block extra_js %}
+{% if rows %}
+{{ chart|json_script:"compare-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'dashboard/dashboard.js' %}"></script>
+{% endif %}
+{% endblock %}
