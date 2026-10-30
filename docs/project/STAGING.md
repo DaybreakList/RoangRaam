@@ -38,6 +38,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 ### 2. สร้าง deploy key
 
 สร้างบนเครื่องของตัวเอง นอกโฟลเดอร์ repo และใช้กับงานนี้เท่านั้น
+บน Windows ให้รันคำสั่งบนเครื่องตัวเองในขั้น 2 และ 3 ด้วย Git Bash ไม่ใช่ PowerShell
+เพราะ PowerShell ไม่รองรับ `<`, อาจเขียนไฟล์จาก `>` เป็น UTF-16 และอาจส่ง `-N ""` ไม่ถูกต้อง
 
 ```bash
 ssh-keygen -t ed25519 -N "" -C github-actions-staging -f ~/.ssh/roangraam_staging_deploy
@@ -119,6 +121,8 @@ bash scripts/deploy_staging.sh <full commit sha>
 ```
 
 - Migration ไม่ถูกย้อนอัตโนมัติ ถ้ารุ่นใหม่แก้ schema ต้องตรวจก่อนว่ารุ่นเก่ายังทำงานกับ schema นี้ได้
+- อย่าย้อนไป commit ที่เก่ากว่าตอนเพิ่ม `scripts/deploy_staging.sh` เพราะไฟล์จะหายจาก VM และ deploy อัตโนมัติครั้งถัดไปจะล้มเหลว
+  ถ้าเกิดขึ้นแล้ว ให้ login ด้วย key ส่วนตัว รัน `git checkout --detach origin/main` ใน `/opt/roangraam` แล้วสั่ง `gh workflow run CI --ref main` จากเครื่องตัวเอง
 - merge ครั้งถัดไปจะ deploy รุ่นล่าสุดทับ ถ้าต้องหยุดชั่วคราวให้ตั้ง `STAGING_DEPLOY_ENABLED` เป็น `false`
 
 ### หมุนเวียน deploy key
