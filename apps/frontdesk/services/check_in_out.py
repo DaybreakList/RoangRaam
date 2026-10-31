@@ -6,7 +6,9 @@ Rules agreed by the team for Sprint 3:
 - Every room must be active and Clean. A room may be swapped for another active,
   Clean room of the same type that is free for the whole stay; the price stays as
   booked. The exclusion constraint on BookingRoom stays the last line of defence.
-- Check-out any day after check_in_date. Leaving early does not change the price.
+- Check-out any day after check_in_date. Leaving early does not change the price,
+  and the nights left stay held: releasing them would edit the booking, which is
+  out of scope (AGENTS.md) and would need a refund decision.
 - Check-out marks every room of the booking Dirty.
 
 Ids sent by the client that are not in this booking or this property are 404,

@@ -38,6 +38,8 @@
 2. ห้ามเรียก `Model.objects` ตรง ๆ ใน view / service ใช้ scoped manager เช่น
    `Model.scoped.for_property(request.property)` หรือ base view ที่ filter ตามโรงแรมแล้ว
    ตรวจ API จริงใน repo ก่อนใช้ ตัวอย่างนี้ไม่ใช่หลักฐานว่ามี implementation แล้ว
+   ยกเว้นโมเดลส่วนกลาง `Property` และ `Membership` ที่ไม่ได้ scoped ตามโรงแรม ใช้ `objects` ได้
+   แต่ต้องกรองด้วย slug, user หรือข้อมูลที่ตรวจแล้ว (รายการจุดที่ใช้อยู่ใน docs/project/PERMISSIONS.md)
 3. เข้าถึง object ของโรงแรมอื่นต้องได้ 404 ไม่ใช่ 403 และต้องไม่เกิดการเปลี่ยนข้อมูล
 4. ตรวจ isolation ทุกช่องทาง: query, URL, request body, form choices, serializer,
    related object, ไฟล์อัปโหลด และรายงานข้ามโรงแรม
@@ -52,6 +54,8 @@
 10. ธุรกรรมการเงินเป็น append-only: สร้าง record ใหม่ ห้าม update ทับ และต้อง idempotent
 11. ห้าม hardcode โดเมน, secret หรือ API key ให้อ่านจาก environment variable
 12. ไฟล์อัปโหลดเก็บที่ `properties/<property_id>/<filename>` และตรวจสิทธิ์ตอนเข้าถึง
+    ยกเว้นโลโก้โรงแรมและรูปห้องที่แสดงบนหน้าลูกค้าอยู่แล้ว ถือเป็นข้อมูลสาธารณะ
+    ไฟล์ที่มีข้อมูลแขกหรือการเงิน เช่น ใบเสร็จ PDF ต้องตรวจสิทธิ์เสมอ
 13. validate ฝั่ง server ทุกครั้ง รวมถึงผลการลาก Tape Chart ห้ามเชื่อค่าจาก frontend
 
 ## Roles
