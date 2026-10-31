@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Folio {{ booking.code }} · {{ request.property.name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/folio.css' %}">{% endblock %}
+{% block content %}
+<main class="fo-page">
+  <a class="fo-back" href="{% url 'daily_ops:index' property_slug=request.property.slug %}">← กลับไปรายการวันนี้</a>
+
+  <header class="fo-header">
+    <div class="fo-header__title">
+      <p class="fo-eyebrow">Folio</p>
+      <h1>{{ booking.guest }}</h1>
+    </div>
+    <span class="fo-status fo-status--{{ booking.status|lower }}">{{ booking.get_status_display }}</span>
+  </header>
+
+  <ul class="fo-meta" aria-label="ข้อมูลการจอง">
+    <li><span>รหัสการจอง</span><strong class="fo-code">{{ booking.code }}</strong></li>
+    <li><span>เข้าพัก</span><strong>{{ booking.check_in_date|date:"j M" }} – {{ booking.check_out_date|date:"j M Y" }}</strong></li>
+    <li><span>จำนวนคืน</span><strong>{{ booking.nights }} คืน</strong></li>
+    <li><span>วิธีชำระเงิน</span><strong>{{ booking.get_payment_option_display }}</strong></li>
+  </ul>
+
+  {% if messages %}
+  <div class="fo-messages" role="status">
+    {% for message in messages %}<p class="fo-message fo-message--{{ message.tags }}">{{ message }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="fo-layout">
+    <div class="fo-main">
+      <section class="rr-card fo-card" aria-labelledby="fo-charges-title">
+        <h2 class="fo-card__title" id="fo-charges-title">ค่าห้องรายคืน <span class="fo-count">{{ folio.lines|length }} รายการ</span></h2>
+        <div class="rr-table-scroll" tabindex="0" role="region" aria-labelledby="fo-charges-title">
+          <table class="rr-table fo-table">
+            <thead>
+              <tr>
+                <th scope="col">คืนวันที่</th>
+                <th scope="col">ห้อง</th>
+                <th scope="col">ประเภทห้อง</th>
+                <th scope="col" class="fo-money">ราคา (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line in folio.lines %}
+              <tr>
+                <td>{{ line.night|date:"D j M Y" }}</td>
+                <td><span class="fo-room">{{ line.room_number }}</span></td>
+                <td>{{ line.room_type_name }}</td>
+                <td class="fo-money">{{ line.price|floatformat:"2g" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td class="rr-table__empty" colspan="4">การจองนี้ไม่มีห้องที่ใช้งานอยู่</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="rr-card fo-card" aria-labelledby="fo-payments-title">
+        <h2 class="fo-card__title" id="fo-payments-title">การชำระเงิน <span class="fo-count">{{ folio.payments|length }} รายการ</span></h2>
+        {% if folio.payments %}
+        <ul class="fo-payments">
+          {% for payment in folio.payments %}
+          <li class="fo-payment{% if payment.kind == 'REFUND' %} fo-payment--refund{% endif %}">
+            <span class="fo-payment__icon" aria-hidden="true">{% if payment.kind == 'REFUND' %}↩{% else %}✓{% endif %}</span>
+            <div class="fo-payment__body">
+              <strong>{{ payment.get_kind_display }} · {{ payment.get_source_display }}</strong>
+              <span>{{ payment.created_at|date:"j M Y H:i" }}{% if payment.recorded_by %} · โดย {{ payment.recorded_by }}{% endif %}</span>
+            </div>
+            <span class="fo-payment__amount">{% if payment.kind == 'REFUND' %}−{% endif %}{{ payment.amount|floatformat:"2g" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="fo-empty">ยังไม่มีการชำระเงิน</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="rr-card fo-summary" aria-labelledby="fo-summary-title">
+      <h2 class="fo-card__title" id="fo-summary-title">สรุปยอด</h2>
+      <dl class="fo-totals">
+        <div><dt>ยอดก่อนภาษี</dt><dd>{{ folio.net_amount|floatformat:"2g" }}</dd></div>
+        <div><dt>VAT {{ folio.tax_rate|floatformat:"-2" }}% (รวมในราคาแล้ว)</dt><dd>{{ folio.tax_amount|floatformat:"2g" }}</dd></div>
+        <div class="fo-totals__total"><dt>ยอดรวม</dt><dd>{{ folio.total|floatformat:"2g" }}</dd></div>
+        <div><dt>ชำระแล้ว</dt><dd>{{ folio.paid|floatformat:"2g" }}</dd></div>
+      </dl>
+
+      {% if folio.is_closed %}
+      <div class="fo-balance fo-balance--closed">
+        <span class="fo-balance__label">ปิดบิลแล้ว</span>
+        <span class="fo-balance__amount">ใบเสร็จเลขที่ <strong>{{ folio.receipt.number }}</strong></span>
+        <span class="fo-balance__note">{{ folio.receipt.issued_at|date:"j M Y H:i" }}{% if folio.receipt.issued_by %} · โดย {{ folio.receipt.issued_by }}{% endif %}</span>
+      </div>
+      {% else %}
+      <div class="fo-balance{% if folio.balance > 0 %} fo-balance--due{% else %} fo-balance--clear{% endif %}">
+        <span class="fo-balance__label">ยอดคงเหลือ</span>
+        <span class="fo-balance__amount">{{ folio.balance|floatformat:"2g" }} <small>บาท</small></span>
+      </div>
+      {% endif %}
+
+      {% if not folio.is_closed %}
+        {% if booking.status != 'CHECKED_IN' %}
+        <p class="fo-note">รับชำระและปิดบิลได้หลังเช็คอิน</p>
+        {% else %}
+        <div class="fo-actions">
+          {% if can_pay %}
+          <form method="post" action="{% url 'folio:pay' property_slug=request.property.slug booking_id=booking.pk %}"
+                x-data x-on:submit="if (!confirm('รับชำระ {{ folio.balance|floatformat:"2g" }} บาท?')) $event.preventDefault()">
+            {% csrf_token %}
+            <input type="hidden" name="idempotency_key" value="{{ payment_key }}">
+            <button type="submit" class="rr-btn fo-btn">รับชำระ {{ folio.balance|floatformat:"2g" }} บาท</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{% url 'folio:close' property_slug=request.property.slug booking_id=booking.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="rr-btn fo-btn{% if can_pay %} rr-btn--secondary{% endif %}"{% if not can_close %} disabled{% endif %}>ปิดบิล</button>
+          </form>
+          {% if not can_close %}<p class="fo-note">ต้องรับชำระให้ครบก่อนจึงปิดบิลได้</p>{% endif %}
+        </div>
+        {% endif %}
+      {% endif %}
+    </aside>
+  </div>
+</main>
+{% endblock %}
