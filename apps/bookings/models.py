@@ -236,6 +236,7 @@ class BookingNightRate(PropertyScopedModel):
         super().clean()
         _check_same_property(self, ['booking_room'])
 
+
 class Payment(PropertyScopedModel):
     """
     One real money movement for a booking, append-only.
@@ -248,19 +249,33 @@ class Payment(PropertyScopedModel):
         CHARGE = 'CHARGE', 'รับชำระ'
         REFUND = 'REFUND', 'คืนเงิน'
 
+    class Source(models.TextChoices):
+        STRIPE = 'STRIPE', 'Stripe'
+        FRONT_DESK = 'FRONT_DESK', 'เคาน์เตอร์โรงแรม'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     booking = models.ForeignKey(
         Booking, on_delete=models.PROTECT, related_name='payments', verbose_name='การจอง',
     )
     kind = models.CharField('ประเภท', max_length=10, choices=Kind.choices)
+    source = models.CharField(
+        'ช่องทาง', max_length=20, choices=Source.choices, default=Source.STRIPE,
+    )
     amount = models.DecimalField(
         'จำนวนเงิน', max_digits=12, decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))],
     )
-    # Stripe object id: the PaymentIntent for a charge, the Refund for a refund
+    # Stripe object id: the PaymentIntent for a charge, the Refund for a refund.
+    # A FRONT_DESK payment uses its own idempotency key, since there is no Stripe object
     provider_ref = models.CharField('รหัสอ้างอิง Stripe', max_length=255)
-    # Stripe event id, so a webhook delivered twice cannot add a second row
+    # Stripe event id, so a webhook delivered twice cannot add a second row.
+    # A FRONT_DESK payment uses the key sent by the folio form
     idempotency_key = models.CharField(max_length=255)
+    # Staff member who took a FRONT_DESK payment; empty for Stripe
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='บันทึกโดย',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -292,3 +307,63 @@ class Payment(PropertyScopedModel):
 
     def delete(self, *args, **kwargs):
         raise ValidationError('ไม่สามารถลบรายการชำระเงิน')
+
+
+class Receipt(PropertyScopedModel):
+    """
+    The closed bill of a booking, append-only like Payment.
+
+    Created once by close_bill() when nothing is left to pay. The amounts and the
+    tax rate are copied at that moment, so changing Property.tax_rate later does
+    not change a receipt already issued. `number` runs 1, 2, 3, ... per property.
+    """
+
+    booking = models.ForeignKey(
+        Booking, on_delete=models.PROTECT, related_name='receipts', verbose_name='การจอง',
+    )
+    number = models.PositiveIntegerField('เลขที่ใบเสร็จ')
+    # Room prices already include VAT (API_CONTRACT), so total includes tax_amount
+    total = models.DecimalField(
+        'ยอดรวม', max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    tax_rate = models.DecimalField('อัตราภาษี (%)', max_digits=5, decimal_places=2)
+    tax_amount = models.DecimalField('ภาษีมูลค่าเพิ่ม', max_digits=12, decimal_places=2)
+    issued_at = models.DateTimeField('ออกเมื่อ', auto_now_add=True)
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='ออกโดย',
+    )
+
+    class Meta:
+        verbose_name = 'ใบเสร็จ'
+        verbose_name_plural = 'ใบเสร็จ'
+        ordering = ['number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['property', 'number'], name='bookings_receipt_property_number_uniq',
+            ),
+            models.UniqueConstraint(
+                fields=['property', 'booking'], name='bookings_receipt_property_booking_uniq',
+            ),
+            models.CheckConstraint(condition=Q(number__gte=1), name='bookings_receipt_number_min_1'),
+            models.CheckConstraint(condition=Q(total__gte=0), name='bookings_receipt_total_nonnegative'),
+            models.CheckConstraint(
+                condition=Q(tax_amount__gte=0) & Q(tax_amount__lte=F('total')),
+                name='bookings_receipt_tax_within_total',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.booking} #{self.number}'
+
+    def clean(self):
+        super().clean()
+        _check_same_property(self, ['booking'])
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError('ไม่สามารถแก้ไขใบเสร็จที่ออกแล้ว')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('ไม่สามารถลบใบเสร็จ')
