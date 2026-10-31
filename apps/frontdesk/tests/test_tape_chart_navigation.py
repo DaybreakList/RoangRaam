@@ -16,6 +16,10 @@ pytestmark = pytest.mark.django_db
 Role = Membership.Role
 
 
+def daily_ops_url(prop):
+    return reverse('daily_ops:index', kwargs={'property_slug': prop.slug})
+
+
 def tape_url(prop):
     return reverse('tape_chart:index', kwargs={'property_slug': prop.slug})
 
@@ -68,9 +72,11 @@ def test_allowed_staff_see_menu_and_brand_to_home(client, hotel_a, login_member,
     login_member(hotel_a, role)
     response = client.get(home_url(hotel_a))
     assert response.status_code == 200
-    expected = [tape_url(hotel_a), room_status_url(hotel_a)] + ([dashboard_url(hotel_a)] if sees_dashboard else [])
+    expected = [daily_ops_url(hotel_a), tape_url(hotel_a), room_status_url(hotel_a)]
+    expected += [dashboard_url(hotel_a)] if sees_dashboard else []
     assert menu_hrefs(response) == expected
     assert brand_href(response) == home_url(hotel_a)
+    assert 'รายการวันนี้' in response.content.decode()
     assert 'ตารางการจอง' in response.content.decode()
 
 
@@ -104,7 +110,10 @@ def test_member_of_both_hotels_gets_current_hotel_link(client, hotel_a, hotel_b,
     membership = login_member(hotel_a, Role.OWNER)
     MembershipFactory(user=membership.user, property=hotel_b, role=Role.MANAGER)
     response = client.get(home_url(hotel_b))
-    assert menu_hrefs(response) == [tape_url(hotel_b), room_status_url(hotel_b), dashboard_url(hotel_b)]
+    assert menu_hrefs(response) == [
+        daily_ops_url(hotel_b), tape_url(hotel_b), room_status_url(hotel_b), dashboard_url(hotel_b),
+    ]
+    assert daily_ops_url(hotel_a) not in response.content.decode()
     assert tape_url(hotel_a) not in response.content.decode()
     assert room_status_url(hotel_a) not in response.content.decode()
     assert dashboard_url(hotel_a) not in response.content.decode()
@@ -134,6 +143,12 @@ def test_menu_marks_the_room_status_page_as_current(client, hotel_a, login_membe
     assert 'href="%s" aria-current="page">สถานะห้อง' % room_status_url(hotel_a) in on_board
 
 
+def test_menu_marks_the_daily_ops_page_as_current(client, hotel_a, login_member):
+    login_member(hotel_a, Role.FRONT_DESK)
+    on_today = client.get(daily_ops_url(hotel_a)).content.decode()
+    assert 'href="%s" aria-current="page">รายการวันนี้' % daily_ops_url(hotel_a) in on_today
+
+
 # ---------- template filter ----------
 
 @pytest.mark.parametrize('role,expected', [
@@ -156,6 +171,14 @@ def test_dashboard_menu_follows_the_dashboard_view_roles(hotel_a, role, expected
 def test_room_status_menu_follows_the_room_status_view_roles(hotel_a, role):
     membership = MembershipFactory(property=hotel_a, role=role)
     assert can_view_page(membership, 'room_status') is True
+
+
+@pytest.mark.parametrize('role,expected', [
+    (Role.OWNER, True), (Role.MANAGER, True), (Role.FRONT_DESK, True), (Role.HOUSEKEEPING, False),
+])
+def test_daily_ops_menu_follows_the_daily_ops_view_roles(hotel_a, role, expected):
+    membership = MembershipFactory(property=hotel_a, role=role)
+    assert can_view_page(membership, 'daily_ops') is expected
 
 
 def test_can_view_page_fails_closed(hotel_a):
