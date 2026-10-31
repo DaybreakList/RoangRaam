@@ -4,6 +4,7 @@ import pytest
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
+from apps.bookings.folio import close_bill
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.daily_ops import property_today
@@ -67,6 +68,7 @@ def test_check_in_with_a_room_change(client, hotel_a, login_member):
 
 def test_check_out_marks_the_room_dirty(client, hotel_a, login_member):
     booking = arriving_today(hotel_a, status=Booking.Status.CHECKED_IN, days_ago=1)
+    close_bill(hotel_a, booking.pk, user=None)
     login_member(hotel_a)
 
     response = client.post(url('check_out', booking))
@@ -75,6 +77,18 @@ def test_check_out_marks_the_room_dirty(client, hotel_a, login_member):
     booking.refresh_from_db()
     assert booking.status == Booking.Status.CHECKED_OUT
     assert booking.booking_rooms.get().room.hk_status == Room.HousekeepingStatus.DIRTY
+
+
+def test_check_out_with_an_open_bill_shows_why(client, hotel_a, login_member):
+    booking = arriving_today(hotel_a, status=Booking.Status.CHECKED_IN, days_ago=1)
+    login_member(hotel_a)
+
+    response = client.post(url('check_out', booking))
+
+    assert response['Location'] == today_url(hotel_a)
+    assert texts(response) == ['กรุณารับชำระและปิดบิลก่อนเช็คเอาต์']
+    booking.refresh_from_db()
+    assert booking.status == Booking.Status.CHECKED_IN
 
 
 @pytest.mark.parametrize('name', ['check_in', 'check_out'])

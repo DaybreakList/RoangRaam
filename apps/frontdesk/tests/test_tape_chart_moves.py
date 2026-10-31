@@ -348,6 +348,7 @@ def test_move_serializes_with_booking_lifecycle(operation):
     else:
         booking.status = Booking.Status.CHECKED_IN
         booking.save(update_fields=['status'])
+        close_bill(prop, booking.pk, user=user)  # check_out() needs a closed bill
         def action():
             return check_out(prop, booking.pk, today=today + timedelta(days=1))
     results = race(lambda: move_booking_room(prop, stay.pk, target_room_id=target.pk), action)
