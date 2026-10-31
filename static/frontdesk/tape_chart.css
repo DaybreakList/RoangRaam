@@ -28,3 +28,7 @@
 .tc-navigation { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0; }
 .tc-navigation [aria-disabled] { color: #64748b; }
 #tc-loading { min-height: 24px; margin: 4px 0; }
+
+.tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 2px 7px; border: 1px solid; border-radius: 999px; font-size: 12px; line-height: 1.5; vertical-align: middle; }
+.tc-housekeeping--clean { color: #125336; background: #d7f3e6; border-color: #448b6c; }
+.tc-housekeeping--dirty { color: #674508; background: #fff2cf; border-color: #b08224; }
