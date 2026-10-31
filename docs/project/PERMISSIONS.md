@@ -1,6 +1,6 @@
 # สิทธิ์ของทุก endpoint (TECH-09 / TASK-47)
 
-ตรวจเมื่อ 31 ตุลาคม 2026 บน main หลัง merge PR #135
+ตรวจเมื่อ 31 ตุลาคม 2026 บน main หลัง merge PR #136
 ถ้าเพิ่มหรือเปลี่ยน view ต้องอัปเดตไฟล์นี้และ `MATRIX` ใน
 `apps/properties/tests/test_permission_matrix.py` ใน PR เดียวกัน
 
@@ -36,7 +36,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `rooms:<kind>-delete` | `inventory/<kind>/<pk>/delete/` | GET, POST | ✓ | ✓ | | | D |
 | `dashboard:hotel` | `dashboard/` | GET | ✓ | ✓ | | | E |
 | `tape_chart:index` | `frontdesk/tape-chart/` | GET | ✓ | ✓ | ✓ | | D |
-| `daily_ops:index` | `frontdesk/today/` | GET | ✓ | ✓ | ✓ | | A |
+| `daily_ops:index` | `frontdesk/today/` | GET | ✓ | ✓ | ✓ | | E |
 | `check_in_out:check_in` | `frontdesk/bookings/<uuid>/check-in/` | POST | ✓ | ✓ | ✓ | | A |
 | `check_in_out:check_out` | `frontdesk/bookings/<uuid>/check-out/` | POST | ✓ | ✓ | ✓ | | A |
 | `room_status:index` | `frontdesk/rooms/` | GET | ✓ | ✓ | ✓ | ✓ | A |
@@ -51,7 +51,8 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `accounts:home` | `/accounts/` | ผู้ใช้ที่ล็อกอิน เห็นเฉพาะโรงแรมที่ตัวเองเป็นสมาชิก | `apps/accounts/tests/` |
 | login / logout | `/accounts/login/`, `/accounts/logout/` | ทุกคน | Django |
 | `dashboard:compare` | `/dashboard/compare/` | ผู้ที่เป็น OWNER อย่างน้อย 1 โรงแรม เห็นเฉพาะโรงแรมที่ตัวเองเป็น OWNER (อื่น ๆ ได้ 403) | `apps/dashboard/tests/test_dashboard_views.py` |
-| `stripe_webhook` | `/stripe/webhook/` | Stripe เท่านั้น: ตรวจลายเซ็น `STRIPE_WEBHOOK_SECRET` ก่อนทำงาน | `apps/bookings/tests/test_webhooks.py` |
+| `bookings:stripe-webhook` | `/stripe/webhook/` | Stripe เท่านั้น: ตรวจลายเซ็น `STRIPE_WEBHOOK_SECRET` ก่อนทำงาน | `apps/bookings/tests/test_webhooks.py` |
+| Django admin | `/admin/` | ผู้ใช้ที่มี `is_staff` ของ Django ผ่าน login ของ admin เอง ไม่ใช้ Membership หรือ role ของโรงแรม | Django |
 | media | `/media/...` | เฉพาะตอน `DEBUG=True` ดูข้อสังเกตข้อ 1 | — |
 
 ## หน้าสำหรับลูกค้า (ไม่ต้องล็อกอิน)
@@ -80,5 +81,6 @@ id ของโรงแรมอื่นได้ 404 หรือข้อค
 2. **ลำดับการตรวจใน inventory (D):** `inventory_detail`, `inventory_edit`, `inventory_delete` และ `price_edit`
    หา object ก่อนตรวจ role ทำให้ HOUSEKEEPING ได้ 404 สำหรับ id ที่ไม่มี และ 403 สำหรับ id ที่มี
    เห็นแค่ข้อมูลในโรงแรมตัวเอง จึงไม่ใช่การรั่วข้ามโรงแรม
-3. **หน้ายืนยันการจองและผลการชำระเงิน (A, C):** ใครมี UUID ของการจองก็เปิดได้โดยไม่ล็อกอิน
+3. **หน้ายืนยันการจอง, ปุ่มชำระเงิน และผลการชำระเงิน (A, C):** `bookings:booking-confirmed`, `bookings:pay`
+   และ `bookings:payment-result` ใครมี UUID ของการจองก็เปิดได้โดยไม่ล็อกอิน
    UUID เดายาก จึงใช้เป็นลิงก์ส่วนตัวของลูกค้าได้ แต่ห้ามแสดง UUID ในที่สาธารณะ

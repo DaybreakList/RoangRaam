@@ -47,7 +47,7 @@ MATRIX = {
     },
     # Dashboard (E)
     'dashboard:hotel': ((GET,), MANAGEMENT),
-    # Front desk (A, B, D)
+    # Front desk (A, B, D, E)
     'tape_chart:index': ((GET,), FRONT_DESK),
     'daily_ops:index': ((GET,), FRONT_DESK),
     'check_in_out:check_in': ((POST,), FRONT_DESK),
