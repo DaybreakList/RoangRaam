@@ -10,8 +10,11 @@ from django.utils import timezone
 from apps.bookings.cancellation import cancel_booking
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
+from apps.frontdesk.services.check_in_out import check_out
+from apps.frontdesk.services.room_status import mark_room_clean
 from apps.frontdesk.services.tape_chart import build_tape_chart
 from apps.properties.models import Membership
+from apps.rooms.models import Room
 from apps.rooms.tests.factories import RoomFactory
 
 pytestmark = pytest.mark.django_db
@@ -201,3 +204,65 @@ def test_inconsistent_foreign_guest_is_not_exposed(client, hotel_a, hotel_b, log
     content = client.get(url(hotel_a)).content.decode()
     assert str(other.booking.guest) not in content
     assert mine.booking.code not in content
+
+
+@pytest.mark.parametrize('partial', [False, True])
+@pytest.mark.parametrize('status,label', [('CLEAN', 'สะอาด'), ('DIRTY', 'รอทำความสะอาด')])
+def test_room_cleanliness_without_booking(client, hotel_a, login_member, partial, status, label):
+    login_member(hotel_a)
+    RoomFactory(property=hotel_a, hk_status=status)
+    headers = {'HTTP_HX_REQUEST': 'true'} if partial else {}
+    response = client.get(url(hotel_a), **headers)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'class="tc-housekeeping tc-housekeeping--{status.lower()}">{label}</span>' in content
+    assert 'ไม่มีการจองในช่วงนี้' in content
+
+
+def test_closed_room_keeps_cleanliness_and_booking_status(client, hotel_a, login_member):
+    login_member(hotel_a)
+    room = RoomFactory(property=hotel_a, is_active=False, hk_status=Room.HousekeepingStatus.DIRTY)
+    item = stay(hotel_a, room=room)
+    content = client.get(url(hotel_a)).content.decode()
+    assert 'tc-housekeeping--dirty">รอทำความสะอาด</span>' in content
+    assert 'ปิดใช้งาน' in content
+    assert 'tc-bar tc-confirmed' in content
+    assert item.booking.code in content
+
+
+@pytest.mark.parametrize('partial', [False, True])
+def test_cleanliness_refreshes_after_checkout_and_cleaning(client, hotel_a, login_member, partial):
+    login_member(hotel_a)
+    room = RoomFactory(property=hotel_a, hk_status=Room.HousekeepingStatus.CLEAN)
+    item = stay(hotel_a, -1, 2, room=room)
+    item.booking.status = Booking.Status.CHECKED_IN
+    item.booking.save(update_fields=['status'])
+    headers = {'HTTP_HX_REQUEST': 'true'} if partial else {}
+    assert 'tc-housekeeping--clean' in client.get(url(hotel_a), **headers).content.decode()
+    check_out(hotel_a, item.booking_id, today=item.booking.check_in_date + timedelta(days=1))
+    content = client.get(url(hotel_a), **headers).content.decode()
+    assert 'tc-housekeeping--dirty">รอทำความสะอาด</span>' in content
+    assert 'tc-bar tc-checked_out' in content
+    mark_room_clean(hotel_a, room.pk)
+    content = client.get(url(hotel_a), **headers).content.decode()
+    assert 'tc-housekeeping--clean">สะอาด</span>' in content
+    assert 'tc-housekeeping--dirty' not in content
+    assert 'tc-bar tc-checked_out' in content
+
+
+@pytest.mark.parametrize('partial', [False, True])
+def test_foreign_room_cleanliness_is_not_exposed(client, hotel_a, hotel_b, login_member, partial):
+    login_member(hotel_a)
+    RoomFactory(property=hotel_a, number='LOCAL-CLEAN', hk_status=Room.HousekeepingStatus.CLEAN)
+    other = RoomFactory(property=hotel_b, number='FOREIGN-DIRTY', hk_status=Room.HousekeepingStatus.DIRTY)
+    headers = {'HTTP_HX_REQUEST': 'true'} if partial else {}
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(url(hotel_a), {'property_id': str(hotel_b.pk)}, **headers)
+    content = response.content.decode()
+    assert 'LOCAL-CLEAN' in content
+    assert 'tc-housekeeping--clean' in content
+    assert other.number not in content
+    assert 'tc-housekeeping--dirty' not in content
+    assert not any(q['sql'].lstrip().upper().startswith(('INSERT', 'UPDATE', 'DELETE')) for q in queries)
+    other.refresh_from_db()
+    assert other.hk_status == Room.HousekeepingStatus.DIRTY
