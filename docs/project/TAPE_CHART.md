@@ -74,3 +74,32 @@ D should still review the Tape Chart parts (`services/tape_chart.py`, `_tape_cha
 - Tests: `apps/frontdesk/tests/test_tape_chart_navigation.py`. No migrations, routes or dependencies.
 - Docker: `pytest --create-db -q`: 744 passed; Ruff 0.17.1, `manage.py check` and
   `makemigrations --check --dry-run` clean.
+
+
+## Sprint 3: room cleanliness (D portion of US-12, #96)
+
+Room headers show the current `Room.hk_status` as a text badge: CLEAN = สะอาด,
+DIRTY = รอทำความสะอาด. The badge is separate from the booking status color and
+remains visible for empty rooms and inactive rooms retained by visible bookings.
+It reflects current readiness, even when browsing historical booking dates.
+
+The existing scoped room query already loads this field; there is no new query,
+endpoint, permission, migration or dependency. Full reloads and HTMX panel requests
+read the latest state. There is no automatic polling or cleanliness write action
+on the chart. Check-out marks rooms Dirty; the existing housekeeping board marks
+them Clean. This change does not define drag-to-move eligibility.
+
+Tests in `test_tape_chart.py` cover both badges on full/partial responses, inactive
+rooms, the check-out/cleaning lifecycle, and cross-property isolation without writes.
+Existing chart tests cover roles, unsupported write methods and constant query counts.
+This implements only D's Tape Chart portion; #96 also includes the check-in screen.
+
+
+Validation on `d209089` plus this change (2026-10-31):
+- `docker compose exec -T web pytest apps/frontdesk/tests apps/accounts/tests/test_isolation_sweep.py apps/properties/tests/test_permission_matrix.py -q`: 362 passed (including 9 new cases).
+- `docker compose exec -T web python manage.py check`: no issues.
+- `git diff --check`: passed.
+- Browser layout inspection used a rendered template preview with unsaved synthetic
+  room objects; it was not a logged-in end-to-end browser test.
+- Host `python -m ruff check apps/frontdesk/tests/test_tape_chart.py` could not run:
+  Ruff is not installed in that Python environment.
