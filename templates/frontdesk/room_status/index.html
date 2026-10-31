@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}สถานะห้องพัก · {{ request.property.name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/room_status.css' %}">{% endblock %}
+{% block content %}
+<main class="rs-page">
+  <header>
+    <h1>สถานะห้องพัก</h1>
+    <p class="rs-summary">
+      {{ request.property.name }} ·
+      <strong>{{ board.dirty_count }}</strong> ห้องรอทำความสะอาด ·
+      <strong>{{ board.clean_count }}</strong> ห้องพร้อมเข้าพัก
+    </p>
+  </header>
+
+  {% if messages %}
+  <div class="rs-messages" role="status">
+    {% for message in messages %}<p class="rs-message rs-message--{{ message.tags }}">{{ message }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="get" class="rr-card rs-filters" aria-label="กรองห้อง">
+    {% for field in form %}
+    <div class="rr-field rs-filters__field{% if field.errors %} rr-field--error{% endif %}">
+      <label class="rr-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+      <ul class="rr-field__errors">{% for error in field.errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="rr-btn rr-btn--secondary rs-filters__submit">กรอง</button>
+  </form>
+
+  {% if board.rooms %}
+  <ul class="rs-grid" aria-label="รายการห้อง">
+    {% for room in board.rooms %}
+    <li class="rr-card rs-room{% if room.hk_status == 'DIRTY' %} rs-room--dirty{% endif %}">
+      <div class="rs-room__head">
+        <h2 class="rs-room__number">ห้อง {{ room.number }}</h2>
+        <span class="rr-badge{% if room.hk_status == 'DIRTY' %} rr-badge--warning{% endif %}">{{ room.get_hk_status_display }}</span>
+      </div>
+      <p class="rs-room__meta">ชั้น {{ room.floor }} · {{ room.room_type.name }}</p>
+      {% if can_mark_clean and room.hk_status == 'DIRTY' %}
+      <form method="post" action="{% url 'room_status:mark_clean' property_slug=request.property.slug room_id=room.pk %}">
+        {% csrf_token %}
+        {% for key, value in filters.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+        <button type="submit" class="rr-btn rs-room__action">ทำความสะอาดแล้ว</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="rr-card rs-empty">ไม่มีห้องที่ตรงกับตัวกรอง</p>
+  {% endif %}
+</main>
+{% endblock %}
