@@ -2,13 +2,17 @@ from datetime import date, timedelta
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.cache import patch_vary_headers
+from django.views import View
 from django.views.generic import TemplateView
 
 from apps.properties.permissions import Role, RoleRequiredMixin
 from .services.tape_chart import WINDOW_DAYS, build_tape_chart
-from .tape_chart_forms import LAST_START, TapeChartFilterForm
+from .services.tape_chart_moves import move_booking_room
+from .tape_chart_forms import LAST_START, TapeChartFilterForm, TapeChartMoveForm
 
 
 class TapeChartView(RoleRequiredMixin, TemplateView):
@@ -48,3 +52,23 @@ class TapeChartView(RoleRequiredMixin, TemplateView):
         response = self.response_class(request=request, template=template, context=context)
         patch_vary_headers(response, ['HX-Request', 'HX-History-Restore-Request'])
         return response
+
+
+class TapeChartMoveView(RoleRequiredMixin, View):
+    allowed_roles = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK)
+    http_method_names = ['post', 'options']
+
+    def post(self, request, booking_room_id, **kwargs):
+        form = TapeChartMoveForm(request.POST)
+        if not form.is_valid():
+            return JsonResponse({'errors': dict(form.errors)}, status=400)
+        try:
+            stay, changed = move_booking_room(
+                request.property, booking_room_id, **form.cleaned_data,
+            )
+        except ValidationError as error:
+            return JsonResponse({'errors': error.message_dict}, status=400)
+        return JsonResponse({
+            'booking_room_id': stay.pk, 'room_id': stay.room_id, 'changed': changed,
+            'message': 'ย้ายห้องเรียบร้อยแล้ว' if changed else 'การจองอยู่ในห้องนี้แล้ว',
+        })

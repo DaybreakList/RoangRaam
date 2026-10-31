@@ -49,6 +49,7 @@ MATRIX = {
     'dashboard:hotel': ((GET,), MANAGEMENT),
     # Front desk (A, B, D, E)
     'tape_chart:index': ((GET,), FRONT_DESK),
+    'tape_chart:move': ((POST,), FRONT_DESK),
     'daily_ops:index': ((GET,), FRONT_DESK),
     'check_in_out:check_in': ((POST,), FRONT_DESK),
     'check_in_out:check_out': ((POST,), FRONT_DESK),
@@ -64,13 +65,15 @@ def url_for(hotel_a):
     room = RoomFactory(property=hotel_a, room_type=room_type, hk_status=Room.HousekeepingStatus.DIRTY)
     amenity = AmenityFactory(property=hotel_a)
     booking = BookingFactory(property=hotel_a)
-    BookingRoomFactory(booking=booking, room=room)
+    booking_room = BookingRoomFactory(booking=booking, room=room)
+    target = RoomFactory(property=hotel_a, room_type=room_type)
     kwargs = {
         'rooms:price-day': {'pk': room_type.pk, 'day': (booking.check_in_date + timedelta(days=1)).isoformat()},
         'rooms:price-bulk': {'pk': room_type.pk},
         'check_in_out:check_in': {'booking_id': booking.pk},
         'check_in_out:check_out': {'booking_id': booking.pk},
         'room_status:mark_clean': {'room_id': room.pk},
+        'tape_chart:move': {'booking_room_id': booking_room.pk},
     }
     for action in ('detail', 'edit', 'delete'):
         kwargs[f'rooms:room-types-{action}'] = {'pk': room_type.pk}
@@ -80,6 +83,7 @@ def url_for(hotel_a):
     def build(name):
         return reverse(name, kwargs={'property_slug': hotel_a.slug, **kwargs.get(name, {})})
 
+    build.post_data = {'tape_chart:move': {'target_room_id': target.pk}}
     return build
 
 
@@ -104,7 +108,7 @@ def test_other_roles_get_403_and_write_nothing(client, hotel_a, login_member, ur
 
     with CaptureQueriesContext(connection) as queries:
         for method in methods:
-            response = getattr(client, method)(url)
+            response = getattr(client, method)(url, data=url_for.post_data.get(name, {}))
             assert response.status_code == 403, f'{role} {method.upper()} {url} returned {response.status_code}'
 
     writes = [q['sql'] for q in queries if q['sql'].lstrip().upper().startswith(('INSERT', 'UPDATE', 'DELETE'))]
@@ -118,6 +122,6 @@ def test_allowed_roles_get_in(client, hotel_a, login_member, url_for, name, role
     login_member(hotel_a, role=role)
     method = MATRIX[name][0][0]
 
-    response = getattr(client, method)(url)
+    response = getattr(client, method)(url, data=url_for.post_data.get(name, {}))
 
     assert response.status_code in (200, 302), f'{role} {method.upper()} {url} returned {response.status_code}'
