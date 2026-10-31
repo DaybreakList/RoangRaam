@@ -7,6 +7,9 @@
   <header>
     <h1>แดชบอร์ด</h1>
     <p class="db-summary">{{ request.property.name }}</p>
+    {% if request.membership.role == 'OWNER' %}
+    <p class="db-actions"><a class="rr-btn rr-btn--secondary" href="{% url 'dashboard:compare' %}">เปรียบเทียบโรงแรม</a></p>
+    {% endif %}
   </header>
 
   {% include "dashboard/_range_form.html" %}

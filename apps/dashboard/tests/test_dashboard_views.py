@@ -167,6 +167,23 @@ def test_a_hotel_without_rooms_shows_dashes_instead_of_failing(client, hotel_b, 
     assert '—' in response.content.decode()
 
 
+def test_the_navbar_marks_the_dashboard_as_the_current_page(client, hotel_a, login_member):
+    login_member(hotel_a, role=Role.MANAGER)
+
+    content = client.get(hotel_url(hotel_a)).content.decode()
+
+    assert f'href="{hotel_url(hotel_a)}" aria-current="page">แดชบอร์ด' in content
+
+
+@pytest.mark.parametrize('role,sees_link', [(Role.OWNER, True), (Role.MANAGER, False)])
+def test_only_the_owner_gets_the_link_to_the_comparison(client, hotel_a, login_member, role, sees_link):
+    login_member(hotel_a, role=role)
+
+    content = client.get(hotel_url(hotel_a)).content.decode()
+
+    assert (f'href="{reverse("dashboard:compare")}"' in content) is sees_link
+
+
 def test_query_count_does_not_grow_with_the_range(client, busy_hotel, login_member, today):
     login_member(busy_hotel, role=Role.OWNER)
     short = hotel_url(busy_hotel, start=(today - timedelta(days=2)).isoformat(), end=today.isoformat())
