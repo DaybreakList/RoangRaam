@@ -4,6 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.http import Http404
 
+from apps.bookings.folio import close_bill
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.check_in_out import check_in, check_out
@@ -208,9 +209,13 @@ def test_cancelled_rooms_of_the_booking_are_not_checked_in(hotel, room_type, cle
 
 # ---------- Check-out ----------
 
-def checked_in_booking(hotel, room_type, clerk, rooms=1):
+def checked_in_booking(hotel, room_type, clerk, rooms=1, bill_closed=True):
+    """Checked in; the bill is closed unless asked, since check_out() requires it."""
     booking = make_booking(hotel, [make_room(hotel, room_type) for _ in range(rooms)])
     do_check_in(hotel, booking, clerk)
+    if bill_closed:
+        # Factory bookings cost 0.00, so there is nothing to pay before closing
+        close_bill(hotel, booking.pk, user=clerk)
     return booking
 
 
@@ -246,6 +251,40 @@ def test_check_out_is_not_allowed_on_the_check_in_date(hotel, room_type, clerk):
     assert 'check_out_date' in error.value.message_dict
     refresh(booking)
     assert booking.status == Booking.Status.CHECKED_IN
+
+
+def test_check_out_with_an_open_bill_is_refused_and_changes_nothing(hotel, room_type, clerk):
+    booking = checked_in_booking(hotel, room_type, clerk, bill_closed=False)
+
+    with pytest.raises(ValidationError) as error:
+        check_out(hotel, booking.pk, today=TODAY + timedelta(days=1))
+
+    assert error.value.message_dict['balance'] == ['กรุณารับชำระและปิดบิลก่อนเช็คเอาต์']
+    refresh(booking)
+    assert booking.status == Booking.Status.CHECKED_IN
+    for booking_room in booking.booking_rooms.select_related('room'):
+        assert booking_room.checked_out_at is None
+        assert booking_room.room.hk_status == CLEAN
+
+
+def test_another_bookings_closed_bill_does_not_count(hotel, room_type, clerk):
+    booking = checked_in_booking(hotel, room_type, clerk, bill_closed=False)
+    checked_in_booking(hotel, room_type, clerk)  # same hotel, bill closed
+
+    with pytest.raises(ValidationError) as error:
+        check_out(hotel, booking.pk, today=TODAY + timedelta(days=1))
+
+    assert 'balance' in error.value.message_dict
+
+
+def test_check_out_works_once_the_bill_is_closed(hotel, room_type, clerk):
+    booking = checked_in_booking(hotel, room_type, clerk, bill_closed=False)
+    close_bill(hotel, booking.pk, user=clerk)
+
+    check_out(hotel, booking.pk, today=TODAY + timedelta(days=1))
+
+    refresh(booking)
+    assert booking.status == Booking.Status.CHECKED_OUT
 
 
 @pytest.mark.parametrize('status', [Booking.Status.CONFIRMED, Booking.Status.CHECKED_OUT, Booking.Status.CANCELLED])
