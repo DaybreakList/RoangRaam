@@ -18,8 +18,11 @@ staff on public pages (membership is None) go to the property's public search pa
     {% endif %}
 
     {% if request.property %}
-    {% if request.membership|can_view_page:'tape_chart' or request.membership|can_view_page:'room_status' or request.membership|can_view_page:'dashboard' %}
+    {% if request.membership|can_view_page:'daily_ops' or request.membership|can_view_page:'tape_chart' or request.membership|can_view_page:'room_status' or request.membership|can_view_page:'dashboard' %}
     <nav class="rr-navbar__nav" aria-label="เมนูหลัก">
+        {% if request.membership|can_view_page:'daily_ops' %}
+        <a class="rr-navbar__link" href="{% url 'daily_ops:index' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'daily_ops:index' %} aria-current="page"{% endif %}>รายการวันนี้</a>
+        {% endif %}
         {% if request.membership|can_view_page:'tape_chart' %}
         <a class="rr-navbar__link" href="{% url 'tape_chart:index' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'tape_chart:index' %} aria-current="page"{% endif %}>ตารางการจอง</a>
         {% endif %}
