@@ -207,3 +207,38 @@
 | เช็คอิน / เช็คเอาต์ | A, B | ตาม `AGENTS.md` |
 | Tape Chart (แสดงผล + ลากย้ายห้อง) | D | ผลการลากต้อง validate ฝั่ง server |
 | Dashboard KPI | E | |
+
+
+## Tape Chart room move — D, Sprint 3 (#107)
+
+`POST /p/<property_slug>/frontdesk/tape-chart/rooms/<booking_room_id>/move/`
+URL name: `tape_chart:move`. This identifies one **BookingRoom**, not a Booking UUID.
+Requires an authenticated membership with OWNER / MANAGER / FRONT_DESK and CSRF.
+Send form-encoded `target_room_id` (positive integer); JSON request bodies are not supported.
+Only this field is accepted by the form; extra fields cannot change property, dates or prices.
+
+Success (200):
+```json
+{"booking_room_id": 12, "room_id": 34, "changed": true, "message": "ย้ายห้องเรียบร้อยแล้ว"}
+```
+Repeating the same destination returns 200 with `changed: false` and
+`message: "การจองอยู่ในห้องนี้แล้ว"`, after checking eligibility again.
+
+- 400: invalid input or business rule; `{"errors": {"target_room_id": ["ข้อความภาษาไทย"]}}`
+  or `{"errors": {"status": ["ข้อความภาษาไทย"]}}`.
+- 404: missing/foreign BookingRoom or Room, foreign related data or no property membership.
+- 403: insufficient role or invalid/missing CSRF; anonymous requests redirect to login.
+- 405: authenticated, authorized GET/HEAD/PUT/PATCH/DELETE; only POST mutates.
+
+Rules confirmed by A: active BookingRoom, CONFIRMED or unexpired PENDING_PAYMENT only.
+Expiry uses `payments.PAYMENT_WINDOW`; at `created_at + PAYMENT_WINDOW` it is expired,
+matching the existing release service. CHECKED_IN / CHECKED_OUT / CANCELLED cannot move.
+The target must be active, in the same property and room type, and free over the full
+stored `[check_in, check_out)` range. Dirty targets are allowed; check-in still requires Clean.
+Dates, prices, nightly snapshots, payment records and cleanliness are unchanged.
+
+The move does not cancel expired target holds: active rows block until the existing
+release flow deactivates them. Other rooms of the same booking also block a move.
+Lock order is Booking -> BookingRoom -> source/destination Rooms ordered by primary key.
+A nested savepoint translates the named overlap ExclusionConstraint into a Thai 400 error;
+unrelated database integrity errors are not mislabeled as room collisions.
