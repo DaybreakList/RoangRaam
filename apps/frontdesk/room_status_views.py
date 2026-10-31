@@ -40,7 +40,7 @@ class RoomStatusView(RoleRequiredMixin, TemplateView):
 def mark_clean_view(request, room_id):
     room, changed = mark_room_clean(request.property, room_id)
     if changed:
-        messages.success(request, f'ห้อง {room.number} พร้อมให้เข้าพักแล้ว')
+        messages.success(request, f'ห้อง {room.number} ทำความสะอาดแล้ว')
     else:
         messages.info(request, f'ห้อง {room.number} สะอาดอยู่แล้ว')
 

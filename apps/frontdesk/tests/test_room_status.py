@@ -52,13 +52,20 @@ def test_board_filters_by_floor_and_status(hotel_a, rooms):
     assert [room.number for room in room_status_board(hotel_a, status=CLEAN).rooms] == ['101']
 
 
+@pytest.mark.parametrize('filters', [{'status': DIRTY}, {'status': CLEAN}, {'floor': 2}])
+def test_counts_cover_every_active_room_whatever_the_filters(hotel_a, rooms, filters):
+    board = room_status_board(hotel_a, **filters)
+
+    assert (board.dirty_count, board.clean_count) == (2, 1)
+
+
 def test_board_never_lists_another_hotels_rooms(hotel_a, hotel_b, rooms):
     RoomFactory(property=hotel_b, number='B-1', hk_status=DIRTY)
 
     assert 'B-1' not in [room.number for room in room_status_board(hotel_a).rooms]
 
 
-def test_board_runs_one_query_however_many_rooms(hotel_a, rooms):
+def test_board_runs_two_queries_however_many_rooms(hotel_a, rooms):
     with CaptureQueriesContext(connection) as few:
         room_status_board(hotel_a)
     for number in range(20):
@@ -67,7 +74,7 @@ def test_board_runs_one_query_however_many_rooms(hotel_a, rooms):
         board = room_status_board(hotel_a)
         [room.room_type.name for room in board.rooms]
 
-    assert len(few) == len(many) == 1
+    assert len(few) == len(many) == 2
 
 
 def test_mark_clean_changes_a_dirty_room(hotel_a, rooms):
@@ -127,6 +134,9 @@ def test_the_board_filters_from_the_query_string(client, hotel_a, rooms, login_m
     response = client.get(board_url(hotel_a, floor=2, status=DIRTY))
 
     assert [room.number for room in response.context['board'].rooms] == ['201']
+    # The summary still counts the whole hotel
+    assert '<strong>2</strong> ห้องรอทำความสะอาด' in response.content.decode()
+    assert '<strong>1</strong> ห้องสะอาด' in response.content.decode()
 
 
 @pytest.mark.parametrize('query', [{'floor': 'abc'}, {'floor': 42}, {'status': 'SPARKLING'}])
@@ -173,7 +183,7 @@ def test_cleaning_roles_mark_a_room_clean(client, hotel_a, rooms, login_member, 
     rooms['102'].refresh_from_db()
     assert rooms['102'].hk_status == CLEAN
     follow = client.get(response['Location'])
-    assert 'ห้อง 102 พร้อมให้เข้าพักแล้ว' in follow.content.decode()
+    assert 'ห้อง 102 ทำความสะอาดแล้ว' in follow.content.decode()
 
 
 def test_the_front_desk_cannot_mark_clean(client, hotel_a, rooms, login_member):
