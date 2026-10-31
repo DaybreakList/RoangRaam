@@ -8,6 +8,7 @@ Housekeeping marks them Clean again here; there is no manual Clean -> Dirty.
 from dataclasses import dataclass
 
 from django.db import transaction
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 
 from apps.rooms.models import Room
@@ -25,18 +26,23 @@ class RoomStatusBoard:
 
 def room_status_board(property, *, floor=None, status=None):
     """
-    Active rooms of `property`, Dirty first, then by floor and number. One query.
-    The counts are of the rooms listed, after the filters.
+    Active rooms of `property`, Dirty first, then by floor and number. Two queries.
+    The counts are of every active room of the hotel, whatever the filters, so the
+    summary does not change when the housekeeper narrows the list.
     """
-    rooms = Room.scoped.for_property(property).filter(is_active=True).select_related('room_type')
+    active = Room.scoped.for_property(property).filter(is_active=True)
+    counts = active.aggregate(
+        dirty=Count('pk', filter=Q(hk_status=DIRTY)),
+        clean=Count('pk', filter=Q(hk_status=CLEAN)),
+    )
+    rooms = active.select_related('room_type')
     if floor is not None:
         rooms = rooms.filter(floor=floor)
     if status:
         rooms = rooms.filter(hk_status=status)
     # 'DIRTY' sorts after 'CLEAN', so descending puts the rooms to clean first
     rooms = list(rooms.order_by('-hk_status', 'floor', 'number', 'pk'))
-    dirty_count = sum(1 for room in rooms if room.hk_status == DIRTY)
-    return RoomStatusBoard(rooms=rooms, dirty_count=dirty_count, clean_count=len(rooms) - dirty_count)
+    return RoomStatusBoard(rooms=rooms, dirty_count=counts['dirty'], clean_count=counts['clean'])
 
 
 def mark_room_clean(property, room_id):
