@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
+from decimal import Decimal
 from unittest.mock import patch
 
+import factory
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from apps.bookings.models import Booking
+from apps.bookings.models import Booking, Payment
+from apps.bookings.payment_status import PaymentStatus
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.daily_ops import daily_lists, property_today
 from apps.properties.models import Membership
@@ -22,12 +25,27 @@ def url(prop):
     return reverse('daily_ops:index', kwargs={'property_slug': prop.slug})
 
 
-def book(prop, numbers, start, end, status=Status.CONFIRMED, active=True):
+class PaymentFactory(factory.django.DjangoModelFactory):
+    """One money movement; apps/bookings keeps its own copy in its payment status tests."""
+
+    class Meta:
+        model = Payment
+
+    booking = factory.SubFactory(BookingFactory)
+    property = factory.SelfAttribute('booking.property')
+    kind = Payment.Kind.CHARGE
+    amount = Decimal('3000.00')
+    provider_ref = factory.Sequence(lambda n: f'pi_daily_{n}')
+    idempotency_key = factory.Sequence(lambda n: f'evt_daily_{n}')
+
+
+def book(prop, numbers, start, end, status=Status.CONFIRMED, active=True, **extra):
     """A booking of `prop` holding one room per number; days are offsets from the hotel's today."""
     today = property_today(prop)
     booking = BookingFactory(
         property=prop, status=status,
         check_in_date=today + timedelta(days=start), check_out_date=today + timedelta(days=end),
+        **extra,
     )
     for number in numbers:
         BookingRoomFactory(booking=booking, room=RoomFactory(property=prop, number=number), is_active=active)
@@ -111,8 +129,40 @@ def test_query_count_does_not_grow_with_bookings(hotel_a, today_bookings, django
     for number in range(201, 211):
         book(hotel_a, [str(number)], 0, 2)
 
-    with django_assert_num_queries(2):
+    with django_assert_num_queries(3):
         daily_lists(hotel_a)
+
+
+def test_each_row_carries_the_payment_status_of_its_booking(hotel_a):
+    paid = book(hotel_a, ['101'], 0, 2)
+    PaymentFactory(booking=paid)
+    at_hotel = book(hotel_a, ['102'], 0, 2, payment_option=Booking.PaymentOption.PAY_AT_HOTEL)
+    unpaid = book(hotel_a, ['103'], 0, 2)
+
+    rows = daily_lists(hotel_a)['arrivals']
+
+    assert {row.booking.code: row.payment_status for row in rows} == {
+        paid.code: PaymentStatus.PAID,
+        at_hotel.code: PaymentStatus.PAY_AT_HOTEL,
+        unpaid.code: PaymentStatus.AWAITING,
+    }
+
+
+def test_a_pay_at_hotel_guest_who_checked_out_still_shows_pay_at_hotel(hotel_a):
+    book(hotel_a, ['101'], -2, 0, Status.CHECKED_OUT, payment_option=Booking.PaymentOption.PAY_AT_HOTEL)
+
+    row = daily_lists(hotel_a)['departures'][0]
+
+    assert row.payment_status == PaymentStatus.PAY_AT_HOTEL
+
+
+def test_money_of_another_hotel_never_marks_a_booking_paid(hotel_a, hotel_b):
+    booking = book(hotel_a, ['101'], 0, 2)
+    PaymentFactory(booking=booking, property=hotel_b)
+
+    row = daily_lists(hotel_a)['arrivals'][0]
+
+    assert row.payment_status == PaymentStatus.AWAITING
 
 
 @pytest.mark.parametrize('role', [Membership.Role.OWNER, Membership.Role.MANAGER, Membership.Role.FRONT_DESK])
@@ -129,6 +179,21 @@ def test_allowed_roles_see_the_page(client, hotel_a, login_member, today_booking
     # Contact details stay out of the front desk list
     assert shown['arriving'].guest.email not in page
     assert shown['arriving'].guest.phone not in page
+
+
+def test_page_shows_the_payment_status_column(client, hotel_a, login_member):
+    paid = book(hotel_a, ['101'], 0, 2)
+    PaymentFactory(booking=paid)
+    book(hotel_a, ['102'], 0, 2, payment_option=Booking.PaymentOption.PAY_AT_HOTEL)
+    book(hotel_a, ['103'], 0, 2)
+    login_member(hotel_a)
+
+    page = client.get(url(hotel_a)).content.decode()
+
+    assert 'สถานะการชำระเงิน' in page
+    assert 'จ่ายแล้ว' in page
+    assert 'จ่ายที่โรงแรม' in page
+    assert 'รอชำระ' in page
 
 
 def test_housekeeping_is_denied(client, hotel_a, login_member):

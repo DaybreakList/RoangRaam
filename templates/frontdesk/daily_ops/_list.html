@@ -12,6 +12,7 @@
           <th scope="col">ผู้เข้าพัก</th>
           <th scope="col">สถานะ</th>
           <th scope="col">วิธีชำระเงิน</th>
+          <th scope="col">สถานะการชำระเงิน</th>
         </tr>
       </thead>
       <tbody>
@@ -25,9 +26,12 @@
           <td>{{ row.booking.adults }} ผู้ใหญ่{% if row.booking.children %} · {{ row.booking.children }} เด็ก{% endif %}</td>
           <td><span class="rr-badge{% if row.booking.status == 'CHECKED_OUT' %} rr-badge--muted{% endif %}">{{ row.booking.get_status_display }}</span></td>
           <td>{{ row.booking.get_payment_option_display }}</td>
+          {% with status=row.payment_status.value %}
+          <td><span class="rr-badge{% if status == 'AWAITING' %} rr-badge--warning{% elif status == 'REFUND_PENDING' %} rr-badge--danger{% elif status == 'PAY_AT_HOTEL' or status == 'REFUNDED' or status == 'NONE' %} rr-badge--muted{% endif %}">{{ row.payment_status.label }}</span></td>
+          {% endwith %}
         </tr>
         {% empty %}
-        <tr><td class="rr-table__empty" colspan="8">{{ empty }}</td></tr>
+        <tr><td class="rr-table__empty" colspan="9">{{ empty }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
