@@ -14,6 +14,7 @@ urlpatterns = [
     path('', include('apps.dashboard.urls')),
     path('p/<slug:property_slug>/frontdesk/tape-chart/', include('apps.frontdesk.tape_chart_urls')),
     path('p/<slug:property_slug>/frontdesk/today/', include('apps.frontdesk.daily_ops_urls')),
+    path('p/<slug:property_slug>/frontdesk/bookings/', include('apps.frontdesk.check_in_out_urls')),
 ]
 
 if settings.DEBUG:
