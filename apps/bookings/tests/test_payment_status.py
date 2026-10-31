@@ -175,3 +175,24 @@ def test_runs_one_query_however_many_bookings(hotel_a, django_assert_num_queries
         statuses = payment_statuses(hotel_a, bookings)
 
     assert len(statuses) == count
+
+
+
+def test_pay_at_hotel_booking_paid_in_full_at_the_desk_is_paid(hotel_a):
+    booking = BookingFactory(
+        property=hotel_a, status=Status.CHECKED_IN, payment_option=Option.PAY_AT_HOTEL,
+        total_amount=Decimal('3000.00'),
+    )
+    PaymentFactory(booking=booking, source=Payment.Source.FRONT_DESK)
+
+    assert _status_of(booking) == PaymentStatus.PAID
+
+
+def test_pay_at_hotel_booking_paid_in_part_is_still_pay_at_hotel(hotel_a):
+    booking = BookingFactory(
+        property=hotel_a, status=Status.CHECKED_IN, payment_option=Option.PAY_AT_HOTEL,
+        total_amount=Decimal('3000.00'),
+    )
+    PaymentFactory(booking=booking, amount=Decimal('1000.00'))
+
+    assert _status_of(booking) == PaymentStatus.PAY_AT_HOTEL

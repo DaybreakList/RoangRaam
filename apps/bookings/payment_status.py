@@ -71,6 +71,9 @@ def _status(booking, charged, refunded):
         return PaymentStatus.NONE
     # Shown even after check-out until the folio records payments at the hotel
     if booking.payment_option == Booking.PaymentOption.PAY_AT_HOTEL:
+        # Paid once the folio has taken the whole amount at the desk
+        if kept > 0 and kept >= booking.total_amount:
+            return PaymentStatus.PAID
         return PaymentStatus.PAY_AT_HOTEL
     if kept > 0:
         return PaymentStatus.PAID
