@@ -1,6 +1,7 @@
 from django import template
 
 from apps.dashboard.views import HotelDashboardView
+from apps.frontdesk.room_status_views import RoomStatusView
 from apps.frontdesk.tape_chart_views import TapeChartView
 
 register = template.Library()
@@ -9,6 +10,7 @@ register = template.Library()
 # truth for who sees the menu item; add one line here to expose another page.
 NAV_PAGES = {
     'tape_chart': TapeChartView,
+    'room_status': RoomStatusView,
     'dashboard': HotelDashboardView,
 }
 
