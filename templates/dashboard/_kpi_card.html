@@ -1,0 +1,5 @@
+<article class="rr-card db-kpi">
+  <h2 class="db-kpi__label">{{ label }}</h2>
+  <p class="db-kpi__value">{% if value is not None %}{{ prefix }}{{ value|floatformat:"2g" }}{{ suffix }}{% else %}—{% endif %}</p>
+  <p class="db-kpi__hint">{{ hint }}</p>
+</article>

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}แดชบอร์ด · {{ request.property.name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">{% endblock %}
+{% block content %}
+<main class="db-page">
+  <header>
+    <h1>แดชบอร์ด</h1>
+    <p class="db-summary">{{ request.property.name }}</p>
+  </header>
+
+  {% include "dashboard/_range_form.html" %}
+
+  {% if summary %}
+  <p class="db-note" id="kpi-definitions">
+    {{ summary.nights }} คืน ({{ summary.start|date:"j M Y" }} ถึง {{ summary.end|date:"j M Y" }})
+    · รายได้เป็นรายได้ห้องพักไม่รวม VAT
+    · นับการจองที่ยืนยัน เช็คอิน หรือเช็คเอาต์แล้ว ไม่นับที่ยังรอชำระเงินหรือยกเลิก
+    · คำนวณจากห้องที่เปิดใช้งานอยู่ตอนนี้
+  </p>
+
+  <section class="db-kpis" aria-label="ตัวชี้วัดหลัก">
+    {% include "dashboard/_kpi_card.html" with label="อัตราการเข้าพัก (Occupancy)" value=summary.occupancy suffix="%" hint="ห้องคืนที่ขายได้ ÷ ห้องคืนทั้งหมด" %}
+    {% include "dashboard/_kpi_card.html" with label="ราคาห้องเฉลี่ย (ADR)" value=summary.adr prefix="฿" hint="รายได้ห้องพัก ÷ ห้องคืนที่ขายได้" %}
+    {% include "dashboard/_kpi_card.html" with label="รายได้ต่อห้องว่าง (RevPAR)" value=summary.revpar prefix="฿" hint="รายได้ห้องพัก ÷ ห้องคืนทั้งหมด" %}
+    <article class="rr-card db-kpi">
+      <h2 class="db-kpi__label">รายได้ห้องพัก</h2>
+      <p class="db-kpi__value">฿{{ summary.room_revenue|floatformat:"2g" }}</p>
+      <p class="db-kpi__hint">ขายได้ {{ summary.rooms_sold }} จาก {{ summary.rooms_available }} ห้องคืน</p>
+    </article>
+  </section>
+
+  <section class="rr-card" aria-labelledby="revenue-title">
+    <h2 class="rr-card__title" id="revenue-title">รายได้ห้องพักรายวัน (บาท ไม่รวม VAT)</h2>
+    <div class="db-chart">
+      <canvas id="revenue-chart" role="img" aria-label="กราฟแท่งรายได้ห้องพักรายวัน ตารางข้อมูลอยู่ด้านล่าง"></canvas>
+    </div>
+    <details class="db-details">
+      <summary>ดูข้อมูลรายวันเป็นตาราง</summary>
+      <div class="rr-table-scroll" tabindex="0" role="region" aria-labelledby="revenue-title">
+        <table class="rr-table">
+          <thead>
+            <tr><th scope="col">วันที่</th><th scope="col">ห้องคืนที่ขายได้</th><th scope="col">รายได้ห้องพัก (บาท)</th></tr>
+          </thead>
+          <tbody>
+            {% for day in days %}
+            <tr>
+              <td>{{ day.night|date:"j M Y" }}</td>
+              <td class="db-number">{{ day.rooms_sold }}</td>
+              <td class="db-number">{{ day.room_revenue|floatformat:"2g" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
+{% block extra_js %}
+{% if summary %}
+{{ chart|json_script:"revenue-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'dashboard/dashboard.js' %}"></script>
+{% endif %}
+{% endblock %}
