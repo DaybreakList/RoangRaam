@@ -34,3 +34,15 @@ class TapeChartFilterForm(forms.Form):
         if pk is not None:
             return get_object_or_404(RoomType.scoped.for_property(self.property), pk=pk)
         return None
+
+
+class TapeChartMoveForm(forms.Form):
+    target_room_id = forms.IntegerField(
+        label='ห้องปลายทาง', min_value=1, max_value=9223372036854775807,
+        error_messages={
+            'required': 'กรุณาระบุห้องปลายทาง',
+            'invalid': 'รหัสห้องปลายทางต้องเป็นจำนวนเต็ม',
+            'min_value': 'รหัสห้องปลายทางไม่ถูกต้อง',
+            'max_value': 'รหัสห้องปลายทางไม่ถูกต้อง',
+        },
+    )

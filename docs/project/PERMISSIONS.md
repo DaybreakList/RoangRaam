@@ -36,6 +36,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `rooms:<kind>-edit` | `inventory/<kind>/<pk>/edit/` | GET, POST | ✓ | ✓ | | | D |
 | `rooms:<kind>-delete` | `inventory/<kind>/<pk>/delete/` | GET, POST | ✓ | ✓ | | | D |
 | `dashboard:hotel` | `dashboard/` | GET | ✓ | ✓ | | | E |
+| `tape_chart:move` | `frontdesk/tape-chart/rooms/<id>/move/` | POST | ✓ | ✓ | ✓ | | D |
 | `tape_chart:index` | `frontdesk/tape-chart/` | GET | ✓ | ✓ | ✓ | | D |
 | `daily_ops:index` | `frontdesk/today/` | GET | ✓ | ✓ | ✓ | | E |
 | `check_in_out:check_in` | `frontdesk/bookings/<uuid>/check-in/` | POST | ✓ | ✓ | ✓ | | A |
