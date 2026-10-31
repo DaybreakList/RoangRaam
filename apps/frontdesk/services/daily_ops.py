@@ -2,9 +2,10 @@
 Today's front desk lists (TASK-40): arrivals, departures and guests in house.
 
 "Today" is the property's own date, from Property.timezone, not the server's.
-PENDING_PAYMENT bookings are left out: they hold rooms for 30 minutes only and
-the front desk cannot check them in. Cancelled bookings and released rooms
-(BookingRoom.is_active=False) are never shown.
+PENDING_PAYMENT bookings are left out: they only hold rooms for the payment window
+(60 minutes) and the front desk cannot check them in. Cancelled bookings and
+released rooms (BookingRoom.is_active=False) are never shown. Each row carries the
+booking's payment status, worked out by apps.bookings.payment_status.
 """
 
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from apps.bookings.models import Booking, BookingRoom
+from apps.bookings.payment_status import PaymentStatus, payment_statuses
 
 # Arrivals keep guests who already checked in today, so the desk sees who is still to come
 ARRIVAL_STATUSES = (Booking.Status.CONFIRMED, Booking.Status.CHECKED_IN)
@@ -25,6 +27,7 @@ class DailyRow:
     booking: Booking
     room_numbers: list
     room_type_names: list
+    payment_status: PaymentStatus
 
     @property
     def sort_key(self):
@@ -39,8 +42,9 @@ def daily_lists(property, today=None):
     """
     Arrivals, departures and in-house bookings of `property` for its own today.
 
-    Runs two queries however many bookings there are: one for the bookings with
-    their guests, one for their active rooms.
+    Runs three queries however many bookings there are: one for the bookings with
+    their guests, one for their active rooms, one for their payments (none when
+    nothing is listed).
     """
     today = today or property_today(property)
     bookings = (
@@ -61,7 +65,9 @@ def daily_lists(property, today=None):
             to_attr='active_rooms',
         ))
     )
-    rows = sorted((_row(booking) for booking in bookings), key=lambda row: row.sort_key)
+    bookings = list(bookings)
+    statuses = payment_statuses(property, bookings)
+    rows = sorted((_row(booking, statuses[booking.pk]) for booking in bookings), key=lambda row: row.sort_key)
     return {
         'today': today,
         'arrivals': [
@@ -76,7 +82,7 @@ def daily_lists(property, today=None):
     }
 
 
-def _row(booking):
+def _row(booking, payment_status):
     rooms = booking.active_rooms
     type_names = []
     for booking_room in rooms:
@@ -86,4 +92,5 @@ def _row(booking):
         booking=booking,
         room_numbers=[booking_room.room.number for booking_room in rooms],
         room_type_names=type_names,
+        payment_status=payment_status,
     )
