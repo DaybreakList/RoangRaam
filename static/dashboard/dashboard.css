@@ -9,6 +9,7 @@
 }
 .db-page h1 { margin: 0 0 var(--rr-space-2); }
 .db-summary { margin: 0; color: var(--rr-color-muted); }
+.db-actions { margin: var(--rr-space-3) 0 0; }
 .db-note { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
 
 .db-range {

@@ -28,6 +28,10 @@ def home_url(prop):
     return reverse('property_home', kwargs={'property_slug': prop.slug})
 
 
+def dashboard_url(prop):
+    return reverse('dashboard:hotel', kwargs={'property_slug': prop.slug})
+
+
 def brand_href(response):
     return re.search(r'<a class="rr-navbar__brand" href="([^"]+)"', response.content.decode()).group(1)
 
@@ -53,12 +57,15 @@ def test_guest_brand_goes_to_search_without_menu(client, hotel_a):
     assert tape_url(hotel_a) not in response.content.decode()
 
 
-@pytest.mark.parametrize('role', [Role.OWNER, Role.MANAGER, Role.FRONT_DESK])
-def test_allowed_staff_see_menu_and_brand_to_home(client, hotel_a, login_member, role):
+@pytest.mark.parametrize('role,sees_dashboard', [
+    (Role.OWNER, True), (Role.MANAGER, True), (Role.FRONT_DESK, False),
+])
+def test_allowed_staff_see_menu_and_brand_to_home(client, hotel_a, login_member, role, sees_dashboard):
     login_member(hotel_a, role)
     response = client.get(home_url(hotel_a))
     assert response.status_code == 200
-    assert menu_hrefs(response) == [tape_url(hotel_a)]
+    expected = [tape_url(hotel_a)] + ([dashboard_url(hotel_a)] if sees_dashboard else [])
+    assert menu_hrefs(response) == expected
     assert brand_href(response) == home_url(hotel_a)
     assert 'ตารางการจอง' in response.content.decode()
 
@@ -92,8 +99,9 @@ def test_member_of_both_hotels_gets_current_hotel_link(client, hotel_a, hotel_b,
     membership = login_member(hotel_a, Role.OWNER)
     MembershipFactory(user=membership.user, property=hotel_b, role=Role.MANAGER)
     response = client.get(home_url(hotel_b))
-    assert menu_hrefs(response) == [tape_url(hotel_b)]
+    assert menu_hrefs(response) == [tape_url(hotel_b), dashboard_url(hotel_b)]
     assert tape_url(hotel_a) not in response.content.decode()
+    assert dashboard_url(hotel_a) not in response.content.decode()
     assert brand_href(response) == home_url(hotel_b)
 
 
@@ -122,6 +130,14 @@ def test_menu_marks_current_page_only_on_tape_chart(client, hotel_a, login_membe
 def test_can_view_page_follows_view_allowed_roles(hotel_a, role, expected):
     membership = MembershipFactory(property=hotel_a, role=role)
     assert can_view_page(membership, 'tape_chart') is expected
+
+
+@pytest.mark.parametrize('role,expected', [
+    (Role.OWNER, True), (Role.MANAGER, True), (Role.FRONT_DESK, False), (Role.HOUSEKEEPING, False),
+])
+def test_dashboard_menu_follows_the_dashboard_view_roles(hotel_a, role, expected):
+    membership = MembershipFactory(property=hotel_a, role=role)
+    assert can_view_page(membership, 'dashboard') is expected
 
 
 def test_can_view_page_fails_closed(hotel_a):
