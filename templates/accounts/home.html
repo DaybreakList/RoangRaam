@@ -1,21 +1,68 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}เลือกโรงแรม{% endblock %}
+{% block title %}เลือกโรงแรม · RoangRaam{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'accounts/accounts.css' %}">{% endblock %}
 
 {% block content %}
-<h1>สวัสดี {{ user.email }}</h1>
+<main class="ac-page">
+  <header class="ac-banner">
+    <span class="ac-avatar" aria-hidden="true">{{ user.email|slice:":1"|upper }}</span>
+    <div class="ac-banner__text">
+      <p class="ac-banner__eyebrow">ยินดีต้อนรับกลับมา</p>
+      <h1>สวัสดี {{ user.email }}</h1>
+      {% if memberships %}
+      <p>คุณทำงานอยู่ใน {{ memberships|length }} โรงแรม เลือกโรงแรมที่ต้องการเริ่มงานได้เลย</p>
+      {% else %}
+      <p>บัญชีนี้ยังไม่ได้อยู่ในโรงแรมใด</p>
+      {% endif %}
+    </div>
+  </header>
 
-<h2>เลือกโรงแรม</h2>
-{% if memberships %}
-<ul>
-    {% for membership in memberships %}
-    <li>
-        <a href="{% url 'property_home' property_slug=membership.property.slug %}">{{ membership.property.name }}</a>
-        ({{ membership.get_role_display }})
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<p>คุณยังไม่ได้เป็นสมาชิกของโรงแรมใด กรุณาติดต่อผู้ดูแลระบบ</p>
-{% endif %}
+  {% if memberships %}
+  <section aria-labelledby="ac-hotels-title">
+    <div class="ac-section-head">
+      <h2 id="ac-hotels-title">โรงแรมของคุณ</h2>
+      <p>กดที่การ์ดเพื่อเข้าโรงแรมนั้น เปลี่ยนโรงแรมทีหลังได้จากเมนูมุมขวาบน</p>
+    </div>
+    <ul class="ac-hotels">
+      {% for membership in memberships %}
+      {% with hotel=membership.property %}
+      <li>
+        <a class="ac-hotel" href="{% url 'property_home' property_slug=hotel.slug %}">
+          <span class="ac-hotel__cover" aria-hidden="true"></span>
+          <span class="ac-hotel__logo" aria-hidden="true">
+            {% if hotel.logo %}<img src="{{ hotel.logo.url }}" alt="">{% else %}
+            <svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M8 8h2M14 8h2M8 12h2M14 12h2"/></svg>
+            {% endif %}
+          </span>
+          <span class="ac-hotel__body">
+            <span class="ac-role ac-role--{{ membership.role|lower }}">{{ membership.get_role_display }}</span>
+            <strong class="ac-hotel__name">{{ hotel.name }}</strong>
+            <span class="ac-hotel__address">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              {{ hotel.address|default:"ยังไม่ได้ใส่ที่อยู่"|truncatechars:80 }}
+            </span>
+            <span class="ac-hotel__times">
+              <span>เช็คอิน <b>{{ hotel.check_in_time|time:"H:i" }}</b></span>
+              <span>เช็คเอาต์ <b>{{ hotel.check_out_time|time:"H:i" }}</b></span>
+            </span>
+          </span>
+          <span class="ac-hotel__footer">เข้าโรงแรมนี้ <span aria-hidden="true">→</span></span>
+        </a>
+      </li>
+      {% endwith %}
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <section class="ac-empty">
+    <span class="ac-empty__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5"/></svg>
+    </span>
+    <h2>ยังไม่มีโรงแรม</h2>
+    <p>คุณยังไม่ได้เป็นสมาชิกของโรงแรมใด กรุณาติดต่อผู้ดูแลระบบ</p>
+  </section>
+  {% endif %}
+</main>
 {% endblock %}
