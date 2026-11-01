@@ -18,7 +18,7 @@ staff on public pages (membership is None) go to the property's public search pa
     {% endif %}
 
     {% if request.property %}
-    {% if request.membership|can_view_page:'daily_ops' or request.membership|can_view_page:'tape_chart' or request.membership|can_view_page:'room_status' or request.membership|can_view_page:'dashboard' %}
+    {% if request.membership|can_view_page:'daily_ops' or request.membership|can_view_page:'tape_chart' or request.membership|can_view_page:'room_status' or request.membership|can_view_page:'dashboard' or request.membership|can_view_page:'settings' %}
     <nav class="rr-navbar__nav" aria-label="เมนูหลัก">
         {% if request.membership|can_view_page:'daily_ops' %}
         <a class="rr-navbar__link" href="{% url 'daily_ops:index' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'daily_ops:index' %} aria-current="page"{% endif %}>รายการวันนี้</a>
@@ -31,6 +31,9 @@ staff on public pages (membership is None) go to the property's public search pa
         {% endif %}
         {% if request.membership|can_view_page:'dashboard' %}
         <a class="rr-navbar__link" href="{% url 'dashboard:hotel' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'dashboard:hotel' %} aria-current="page"{% endif %}>แดชบอร์ด</a>
+        {% endif %}
+        {% if request.membership|can_view_page:'settings' %}
+        <a class="rr-navbar__link" href="{% url 'hotel_settings:edit' property_slug=request.property.slug %}"{% if request.resolver_match.view_name == 'hotel_settings:edit' %} aria-current="page"{% endif %}>ตั้งค่าโรงแรม</a>
         {% endif %}
     </nav>
     {% endif %}

@@ -1,5 +1,6 @@
 from django import template
 
+from apps.accounts.settings_views import HotelSettingsView
 from apps.dashboard.views import HotelDashboardView
 from apps.frontdesk.daily_ops_views import DailyOpsView
 from apps.frontdesk.room_status_views import RoomStatusView
@@ -14,6 +15,7 @@ NAV_PAGES = {
     'tape_chart': TapeChartView,
     'room_status': RoomStatusView,
     'dashboard': HotelDashboardView,
+    'settings': HotelSettingsView,
 }
 
 

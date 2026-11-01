@@ -43,6 +43,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `check_in_out:check_out` | `frontdesk/bookings/<uuid>/check-out/` | POST | ✓ | ✓ | ✓ | | A |
 | `room_status:index` | `frontdesk/rooms/` | GET | ✓ | ✓ | ✓ | ✓ | A |
 | `room_status:mark_clean` | `frontdesk/rooms/<id>/clean/` | POST | ✓ | ✓ | | ✓ | A |
+| `hotel_settings:edit` | `settings/` | GET, POST | ✓ | ✓ | | | C |
 
 `<kind>` คือ `room-types`, `rooms` และ `amenities` (route ละ 5 แบบ)
 
