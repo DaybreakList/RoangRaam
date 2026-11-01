@@ -9,6 +9,7 @@ until its roles are added here and to docs/project/PERMISSIONS.md.
 """
 
 from datetime import timedelta
+from decimal import Decimal
 
 import pytest
 from django.db import connection
@@ -16,6 +17,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from apps.accounts.tests.test_isolation_sweep import PRIVATE
+from apps.bookings.models import Receipt
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.properties.models import Membership
 from apps.rooms.models import Room
@@ -55,6 +57,11 @@ MATRIX = {
     'check_in_out:check_out': ((POST,), FRONT_DESK),
     'room_status:index': ((GET,), ALL),
     'room_status:mark_clean': ((POST,), CLEANING),
+    # Folio (C)
+    'folio:detail': ((GET,), FRONT_DESK),
+    'folio:pay': ((POST,), FRONT_DESK),
+    'folio:close': ((POST,), FRONT_DESK),
+    'folio:receipt': ((GET,), FRONT_DESK),
 }
 
 
@@ -67,6 +74,12 @@ def url_for(hotel_a):
     booking = BookingFactory(property=hotel_a)
     booking_room = BookingRoomFactory(booking=booking, room=room)
     target = RoomFactory(property=hotel_a, room_type=room_type)
+    # The receipt PDF exists only once the bill is closed
+    closed = BookingFactory(property=hotel_a)
+    Receipt.objects.create(
+        property=hotel_a, booking=closed, number=1,
+        total=Decimal('0.00'), tax_rate=Decimal('7.00'), tax_amount=Decimal('0.00'),
+    )
     kwargs = {
         'rooms:price-day': {'pk': room_type.pk, 'day': (booking.check_in_date + timedelta(days=1)).isoformat()},
         'rooms:price-bulk': {'pk': room_type.pk},
@@ -74,6 +87,10 @@ def url_for(hotel_a):
         'check_in_out:check_out': {'booking_id': booking.pk},
         'room_status:mark_clean': {'room_id': room.pk},
         'tape_chart:move': {'booking_room_id': booking_room.pk},
+        'folio:detail': {'booking_id': booking.pk},
+        'folio:pay': {'booking_id': booking.pk},
+        'folio:close': {'booking_id': booking.pk},
+        'folio:receipt': {'booking_id': closed.pk},
     }
     for action in ('detail', 'edit', 'delete'):
         kwargs[f'rooms:room-types-{action}'] = {'pk': room_type.pk}
