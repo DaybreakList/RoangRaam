@@ -55,6 +55,8 @@ MATRIX = {
     'check_in_out:check_out': ((POST,), FRONT_DESK),
     'room_status:index': ((GET,), ALL),
     'room_status:mark_clean': ((POST,), CLEANING),
+    # Hotel settings (C)
+    'hotel_settings:edit': WRITE_PAGE,
 }
 
 

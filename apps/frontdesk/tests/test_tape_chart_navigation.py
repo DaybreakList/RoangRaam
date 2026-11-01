@@ -36,6 +36,10 @@ def dashboard_url(prop):
     return reverse('dashboard:hotel', kwargs={'property_slug': prop.slug})
 
 
+def settings_url(prop):
+    return reverse('hotel_settings:edit', kwargs={'property_slug': prop.slug})
+
+
 def room_status_url(prop):
     return reverse('room_status:index', kwargs={'property_slug': prop.slug})
 
@@ -73,7 +77,8 @@ def test_allowed_staff_see_menu_and_brand_to_home(client, hotel_a, login_member,
     response = client.get(home_url(hotel_a))
     assert response.status_code == 200
     expected = [daily_ops_url(hotel_a), tape_url(hotel_a), room_status_url(hotel_a)]
-    expected += [dashboard_url(hotel_a)] if sees_dashboard else []
+    # Owner and manager also get the dashboard and the hotel settings
+    expected += [dashboard_url(hotel_a), settings_url(hotel_a)] if sees_dashboard else []
     assert menu_hrefs(response) == expected
     assert brand_href(response) == home_url(hotel_a)
     assert 'รายการวันนี้' in response.content.decode()
@@ -112,11 +117,13 @@ def test_member_of_both_hotels_gets_current_hotel_link(client, hotel_a, hotel_b,
     response = client.get(home_url(hotel_b))
     assert menu_hrefs(response) == [
         daily_ops_url(hotel_b), tape_url(hotel_b), room_status_url(hotel_b), dashboard_url(hotel_b),
+        settings_url(hotel_b),
     ]
     assert daily_ops_url(hotel_a) not in response.content.decode()
     assert tape_url(hotel_a) not in response.content.decode()
     assert room_status_url(hotel_a) not in response.content.decode()
     assert dashboard_url(hotel_a) not in response.content.decode()
+    assert settings_url(hotel_a) not in response.content.decode()
     assert brand_href(response) == home_url(hotel_b)
 
 
