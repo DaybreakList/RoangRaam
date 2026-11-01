@@ -93,6 +93,9 @@
         <span class="fo-balance__amount">ใบเสร็จเลขที่ <strong>{{ folio.receipt.number }}</strong></span>
         <span class="fo-balance__note">{{ folio.receipt.issued_at|date:"j M Y H:i" }}{% if folio.receipt.issued_by %} · โดย {{ folio.receipt.issued_by }}{% endif %}</span>
       </div>
+      <a class="rr-btn fo-btn fo-receipt" href="{% url 'folio:receipt' property_slug=request.property.slug booking_id=booking.pk %}" target="_blank" rel="noopener">
+        <span aria-hidden="true">⤓</span> ดาวน์โหลดใบเสร็จ (PDF)
+      </a>
       {% else %}
       <div class="fo-balance{% if folio.balance > 0 %} fo-balance--due{% else %} fo-balance--clear{% endif %}">
         <span class="fo-balance__label">ยอดคงเหลือ</span>
