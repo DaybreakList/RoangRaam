@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.bookings.cancellation import cancel_booking
+from apps.bookings.folio import close_bill
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.check_in_out import check_out
@@ -239,6 +240,7 @@ def test_cleanliness_refreshes_after_checkout_and_cleaning(client, hotel_a, logi
     item.booking.save(update_fields=['status'])
     headers = {'HTTP_HX_REQUEST': 'true'} if partial else {}
     assert 'tc-housekeeping--clean' in client.get(url(hotel_a), **headers).content.decode()
+    close_bill(hotel_a, item.booking_id, user=None)  # check_out() needs a closed bill
     check_out(hotel_a, item.booking_id, today=item.booking.check_in_date + timedelta(days=1))
     content = client.get(url(hotel_a), **headers).content.decode()
     assert 'tc-housekeeping--dirty">รอทำความสะอาด</span>' in content
