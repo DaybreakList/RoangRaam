@@ -43,6 +43,9 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `check_in_out:check_out` | `frontdesk/bookings/<uuid>/check-out/` | POST | ✓ | ✓ | ✓ | | A |
 | `room_status:index` | `frontdesk/rooms/` | GET | ✓ | ✓ | ✓ | ✓ | A |
 | `room_status:mark_clean` | `frontdesk/rooms/<id>/clean/` | POST | ✓ | ✓ | | ✓ | A |
+| `folio:detail` | `frontdesk/folio/<uuid>/` | GET | ✓ | ✓ | ✓ | | C |
+| `folio:pay` | `frontdesk/folio/<uuid>/pay/` | POST | ✓ | ✓ | ✓ | | C |
+| `folio:close` | `frontdesk/folio/<uuid>/close/` | POST | ✓ | ✓ | ✓ | | C |
 
 `<kind>` คือ `room-types`, `rooms` และ `amenities` (route ละ 5 แบบ)
 
@@ -75,6 +78,7 @@ id ของโรงแรมอื่นได้ 404 หรือข้อค
 | `apps/properties/middleware.py` | หาโรงแรมจาก slug และ Membership ของผู้ใช้ (ด่านแรกของการแยกข้อมูล) |
 | `apps/accounts/services.py` | รายการโรงแรมของผู้ใช้เอง กรองด้วย `user` |
 | `apps/bookings/payments.py` | หาโรงแรมจาก metadata ของ Stripe หลังตรวจลายเซ็น webhook แล้ว |
+| `apps/bookings/folio.py` | `close_bill()` ล็อกแถว `Property` ของโรงแรมที่ผ่าน middleware แล้ว (กรองด้วย pk) เพื่อออกเลขใบเสร็จทีละใบ และอ่าน `tax_rate` ล่าสุด |
 
 ## ข้อสังเกตที่ส่งต่อเจ้าของงาน
 
