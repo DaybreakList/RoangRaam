@@ -1,5 +1,8 @@
 # Staging บน Azure (TASK-03)
 
+> เลิกใช้แล้ว: ทีมย้ายไป Render ตามที่อาจารย์กำหนด ดู [DEPLOY.md](DEPLOY.md)
+> เก็บไว้เป็นประวัติ job `deploy` ใน CI ยังถูกข้ามตราบใดที่ไม่ได้ตั้ง `STAGING_DEPLOY_ENABLED`
+
 ทุก merge เข้า `main` ที่ CI ผ่าน จะ build image, push ขึ้น GHCR แล้ว deploy ขึ้น VM โดยอัตโนมัติ
 job `deploy` ทำงานเมื่อ repo variable `STAGING_DEPLOY_ENABLED` เป็น `true` เท่านั้น
 ถ้าปิดอยู่ job จะถูกข้ามและไม่กระทบ CI

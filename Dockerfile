@@ -16,4 +16,6 @@ RUN DJANGO_SECRET_KEY=build-only python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Server start (Render): migrations, optional demo data, then gunicorn. docker-compose.yml
+# and docker-compose.prod.yml set their own command, so development is unchanged.
+CMD ["sh", "scripts/start.sh"]

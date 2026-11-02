@@ -26,16 +26,26 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
-# On a real server behind Caddy (HTTPS): trust its X-Forwarded-Proto header and mark
-# cookies Secure. Off by default so local development and the tests are unchanged.
-# gunicorn must only be reachable through Caddy, or a client could fake the header.
+# Render sets this to the service's own host name (e.g. roangraam.onrender.com)
+RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
+
+# On a real server behind an HTTPS proxy (Render or Caddy): trust its X-Forwarded-Proto
+# header, redirect plain HTTP and mark cookies Secure. Off by default so local
+# development and the tests are unchanged. gunicorn must only be reachable through
+# the proxy, or a client could fake the header.
 HTTPS_ENABLED = os.getenv('DJANGO_HTTPS', 'False') == 'True'
 if HTTPS_ENABLED:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     # One hour while HTTPS is new; raise it once everything is known to work
     SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 # Application definition
