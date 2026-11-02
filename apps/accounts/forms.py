@@ -5,6 +5,9 @@ from apps.properties.models import Property
 
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 LOGO_TOO_BIG_MESSAGE = 'ไฟล์โลโก้ต้องไม่เกิน 2 MB'
+# Checked against what Pillow reads from the file, not the file name
+LOGO_FORMATS = {'JPEG', 'PNG', 'WEBP'}
+LOGO_WRONG_TYPE_MESSAGE = 'โลโก้ต้องเป็นรูป JPG, PNG หรือ WEBP'
 
 
 class HotelSettingsForm(forms.ModelForm):
@@ -42,6 +45,13 @@ class HotelSettingsForm(forms.ModelForm):
     def clean_logo(self):
         logo = self.cleaned_data.get('logo')
         # Only a new upload is checked; the logo already saved is left as it is
-        if isinstance(logo, UploadedFile) and logo.size > LOGO_MAX_BYTES:
+        if not isinstance(logo, UploadedFile):
+            return logo
+        if logo.size > LOGO_MAX_BYTES:
             raise forms.ValidationError(LOGO_TOO_BIG_MESSAGE)
+        # forms.ImageField has opened the file with Pillow and kept the result on .image,
+        # so a GIF or TIFF renamed to logo.png is caught here
+        image = getattr(logo, 'image', None)
+        if image is None or image.format not in LOGO_FORMATS:
+            raise forms.ValidationError(LOGO_WRONG_TYPE_MESSAGE)
         return logo

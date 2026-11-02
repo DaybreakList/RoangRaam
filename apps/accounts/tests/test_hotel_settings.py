@@ -175,6 +175,34 @@ def test_other_file_types_are_refused(client, hotel_a, login_member):
     assert not refreshed(hotel_a).logo
 
 
+@pytest.mark.parametrize('image_format', ['GIF', 'TIFF'])
+def test_another_format_renamed_to_png_is_refused(client, hotel_a, login_member, image_format):
+    # Regression: the extension check alone let these through as logo.png
+    login_member(hotel_a, role=Role.OWNER)
+    buffer = io.BytesIO()
+    Image.new('RGB', (8, 8)).save(buffer, format=image_format)
+    upload = SimpleUploadedFile('logo.png', buffer.getvalue(), content_type='image/png')
+
+    response = client.post(url(hotel_a), {**VALID, 'logo': upload})
+
+    assert response.status_code == 400
+    assert response.context['form'].errors['logo'] == ['โลโก้ต้องเป็นรูป JPG, PNG หรือ WEBP']
+    assert not refreshed(hotel_a).logo
+
+
+@pytest.mark.parametrize('image_format', ['JPEG', 'WEBP'])
+def test_jpeg_and_webp_logos_are_accepted(client, hotel_a, login_member, image_format):
+    login_member(hotel_a, role=Role.OWNER)
+    buffer = io.BytesIO()
+    Image.new('RGB', (8, 8)).save(buffer, format=image_format)
+    upload = SimpleUploadedFile(f'logo.{image_format.lower()}', buffer.getvalue())
+
+    response = client.post(url(hotel_a), {**VALID, 'logo': upload})
+
+    assert response.status_code == 302
+    assert refreshed(hotel_a).logo
+
+
 def test_a_logo_over_2_mb_is_refused(client, hotel_a, login_member, monkeypatch):
     monkeypatch.setattr('apps.accounts.forms.LOGO_MAX_BYTES', 50)
     login_member(hotel_a, role=Role.OWNER)
