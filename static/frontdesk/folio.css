@@ -177,6 +177,7 @@
 .fo-actions { display: grid; gap: var(--rr-space-2); }
 .fo-actions form { margin: 0; }
 .fo-btn { width: 100%; min-height: 44px; font-weight: bold; }
+.fo-receipt { display: flex; align-items: center; justify-content: center; gap: var(--rr-space-2); text-decoration: none; }
 .fo-note { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); text-align: center; }
 
 /* ---------- Messages ---------- */
