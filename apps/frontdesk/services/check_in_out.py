@@ -9,6 +9,8 @@ Rules agreed by the team for Sprint 3:
 - Check-out any day after check_in_date. Leaving early does not change the price,
   and the nights left stay held: releasing them would edit the booking, which is
   out of scope (AGENTS.md) and would need a refund decision.
+- Check-out needs the bill closed first (a Receipt issued by apps.bookings.folio),
+  for every booking, also one already paid online.
 - Check-out marks every room of the booking Dirty.
 
 Ids sent by the client that are not in this booking or this property are 404,
@@ -21,6 +23,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from apps.bookings.folio import bill_is_closed
 from apps.bookings.models import Booking, BookingRoom, Guest
 from apps.bookings.services import booked_room_ids
 from apps.rooms.models import Room
@@ -28,6 +31,7 @@ from apps.rooms.models import Room
 from .daily_ops import property_today
 
 ROOM_TAKEN_MESSAGE = 'ห้องที่เลือกไม่ว่างในช่วงวันที่เข้าพักแล้ว กรุณาเลือกห้องอื่น'
+BILL_OPEN_MESSAGE = 'กรุณารับชำระและปิดบิลก่อนเช็คเอาต์'
 
 
 def check_in(property, booking_id, *, user, id_type, id_number, nationality='', room_changes=None,
@@ -87,7 +91,7 @@ def check_out(property, booking_id, *, today=None):
     """
     Check out a CHECKED_IN booking of `property` and mark its rooms Dirty.
 
-    Raises ValidationError keyed by 'status' or 'check_out_date'.
+    Raises ValidationError keyed by 'status', 'balance' or 'check_out_date'.
     """
     with transaction.atomic():
         booking = _lock_booking(property, booking_id)
@@ -95,6 +99,9 @@ def check_out(property, booking_id, *, today=None):
             raise ValidationError({
                 'status': f'เช็คเอาต์ไม่ได้ เพราะการจองมีสถานะ "{booking.get_status_display()}"',
             })
+        # close_bill() locks this booking too, so a bill cannot close halfway through this check
+        if not bill_is_closed(property, booking):
+            raise ValidationError({'balance': BILL_OPEN_MESSAGE})
         today = today or property_today(property)
         if today <= booking.check_in_date:
             raise ValidationError({'check_out_date': 'เช็คเอาต์ได้ตั้งแต่วันถัดจากวันเช็คอิน'})

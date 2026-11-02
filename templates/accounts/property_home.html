@@ -1,8 +1,83 @@
 {% extends 'base.html' %}
+{% load static frontdesk_nav %}
 
 {% block title %}{{ request.property.name }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'accounts/accounts.css' %}">{% endblock %}
 
 {% block content %}
-<h1>{{ request.property.name }}</h1>
-<p>ตำแหน่งของคุณ: {{ request.membership.get_role_display }}</p>
+{% with hotel=request.property membership=request.membership %}
+<main class="ac-page">
+  <header class="ac-banner ac-banner--hotel">
+    <span class="ac-banner__logo" aria-hidden="true">
+      {% if hotel.logo %}<img src="{{ hotel.logo.url }}" alt="">{% else %}
+      <svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M8 8h2M14 8h2M8 12h2M14 12h2"/></svg>
+      {% endif %}
+    </span>
+    <div class="ac-banner__text">
+      <p class="ac-banner__eyebrow">{% now "l j F Y" %}</p>
+      <h1>{{ hotel.name }}</h1>
+      <p>คุณเข้าใช้งานในตำแหน่ง <span class="ac-role ac-role--light">{{ membership.get_role_display }}</span></p>
+    </div>
+    <dl class="ac-banner__facts">
+      <div><dt>เช็คอิน</dt><dd>{{ hotel.check_in_time|time:"H:i" }}</dd></div>
+      <div><dt>เช็คเอาต์</dt><dd>{{ hotel.check_out_time|time:"H:i" }}</dd></div>
+    </dl>
+  </header>
+
+  <section aria-labelledby="ac-menu-title">
+    <div class="ac-section-head">
+      <h2 id="ac-menu-title">วันนี้จะทำอะไรดี</h2>
+      <p>เมนูที่ตำแหน่งของคุณเปิดได้</p>
+    </div>
+    <ul class="ac-tiles">
+      {% if membership|can_view_page:'daily_ops' %}
+      <li><a class="ac-tile" href="{% url 'daily_ops:index' property_slug=hotel.slug %}">
+        <span class="ac-tile__icon ac-tile__icon--green" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/></svg></span>
+        <strong>รายการวันนี้</strong>
+        <span class="ac-tile__desc">แขกเข้า แขกออก และแขกที่พักอยู่ เช็คอิน / เช็คเอาต์</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+      {% endif %}
+      {% if membership|can_view_page:'tape_chart' %}
+      <li><a class="ac-tile" href="{% url 'tape_chart:index' property_slug=hotel.slug %}">
+        <span class="ac-tile__icon ac-tile__icon--blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/><path d="M7 3v4M13 10v4M10 17v4" /></svg></span>
+        <strong>ตารางการจอง</strong>
+        <span class="ac-tile__desc">ดูห้องรายวันและลากย้ายห้องให้แขก</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+      {% endif %}
+      {% if membership|can_view_page:'room_status' %}
+      <li><a class="ac-tile" href="{% url 'room_status:index' property_slug=hotel.slug %}">
+        <span class="ac-tile__icon ac-tile__icon--amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11h18v6H3zM5 17v3M19 17v3M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/></svg></span>
+        <strong>สถานะห้อง</strong>
+        <span class="ac-tile__desc">ห้องสะอาด / รอทำความสะอาด</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+      {% endif %}
+      {% if membership|can_view_page:'dashboard' %}
+      <li><a class="ac-tile" href="{% url 'dashboard:hotel' property_slug=hotel.slug %}">
+        <span class="ac-tile__icon ac-tile__icon--purple" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+        <strong>แดชบอร์ด</strong>
+        <span class="ac-tile__desc">Occupancy, ADR และ RevPAR</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+      {% endif %}
+      {% if membership.role != 'HOUSEKEEPING' %}
+      <li><a class="ac-tile" href="{% url 'rooms:rooms-list' property_slug=hotel.slug %}">
+        <span class="ac-tile__icon ac-tile__icon--teal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M10 21v-4h4v4"/></svg></span>
+        <strong>ห้องพักและราคา</strong>
+        <span class="ac-tile__desc">ประเภทห้อง ห้องพัก และปฏิทินราคา</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+      {% endif %}
+      <li><a class="ac-tile" href="{% url 'bookings:search' property_slug=hotel.slug %}" target="_blank" rel="noopener">
+        <span class="ac-tile__icon ac-tile__icon--gray" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></span>
+        <strong>หน้าจองของลูกค้า ↗</strong>
+        <span class="ac-tile__desc">เปิดหน้าที่ลูกค้าใช้ค้นหาและจองห้อง</span>
+        <span class="ac-tile__go" aria-hidden="true">เปิด →</span>
+      </a></li>
+    </ul>
+  </section>
+</main>
+{% endwith %}
 {% endblock %}

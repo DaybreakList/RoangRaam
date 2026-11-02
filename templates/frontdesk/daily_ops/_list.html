@@ -18,7 +18,7 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td class="do-code">{{ row.booking.code }}</td>
+          <td class="do-code"><a href="{% url 'folio:detail' property_slug=request.property.slug booking_id=row.booking.pk %}" title="เปิด Folio">{{ row.booking.code }}</a></td>
           <td>{{ row.booking.guest }}</td>
           <td>{{ row.room_numbers|join:", "|default:"—" }}</td>
           <td>{{ row.room_type_names|join:", "|default:"—" }}</td>
