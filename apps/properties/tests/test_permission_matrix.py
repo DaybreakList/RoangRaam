@@ -55,6 +55,10 @@ MATRIX = {
     'check_in_out:check_out': ((POST,), FRONT_DESK),
     'room_status:index': ((GET,), ALL),
     'room_status:mark_clean': ((POST,), CLEANING),
+    # Folio (C)
+    'folio:detail': ((GET,), FRONT_DESK),
+    'folio:pay': ((POST,), FRONT_DESK),
+    'folio:close': ((POST,), FRONT_DESK),
 }
 
 
@@ -74,6 +78,9 @@ def url_for(hotel_a):
         'check_in_out:check_out': {'booking_id': booking.pk},
         'room_status:mark_clean': {'room_id': room.pk},
         'tape_chart:move': {'booking_room_id': booking_room.pk},
+        'folio:detail': {'booking_id': booking.pk},
+        'folio:pay': {'booking_id': booking.pk},
+        'folio:close': {'booking_id': booking.pk},
     }
     for action in ('detail', 'edit', 'delete'):
         kwargs[f'rooms:room-types-{action}'] = {'pk': room_type.pk}
