@@ -47,6 +47,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `folio:pay` | `frontdesk/folio/<uuid>/pay/` | POST | ✓ | ✓ | ✓ | | C |
 | `folio:close` | `frontdesk/folio/<uuid>/close/` | POST | ✓ | ✓ | ✓ | | C |
 | `folio:receipt` | `frontdesk/folio/<uuid>/receipt.pdf` | GET | ✓ | ✓ | ✓ | | C |
+| `hotel_settings:edit` | `settings/` | GET, POST | ✓ | ✓ | | | C |
 
 `<kind>` คือ `room-types`, `rooms` และ `amenities` (route ละ 5 แบบ)
 

@@ -62,6 +62,8 @@ MATRIX = {
     'folio:pay': ((POST,), FRONT_DESK),
     'folio:close': ((POST,), FRONT_DESK),
     'folio:receipt': ((GET,), FRONT_DESK),
+    # Hotel settings (C)
+    'hotel_settings:edit': WRITE_PAGE,
 }
 
 
