@@ -42,7 +42,12 @@ docker compose exec web python manage.py makemigrations
 docker compose exec web python manage.py migrate
 docker compose exec web pytest                         # รันเทส
 docker compose exec web pytest --create-db             # รันเทสหลังแก้ migration
+docker compose exec web coverage run -m pytest         # รันเทสพร้อมวัด coverage
+docker compose exec web coverage report                # สรุป coverage (ต่ำกว่า 80% ไม่ผ่าน เหมือน CI)
+docker compose exec web coverage html                  # รายงานแบบเว็บ เปิด htmlcov/index.html
 ```
+
+ถ้า container บอกว่าไม่มีคำสั่ง `coverage` ให้ build ใหม่ด้วย `docker compose up -d --build`
 
 ## venv บนเครื่อง (ไม่บังคับ ใช้ให้ editor รู้จัก package)
 

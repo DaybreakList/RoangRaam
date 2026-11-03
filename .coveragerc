@@ -1,0 +1,18 @@
+# Test coverage (coverage.py): `coverage run -m pytest`, then `coverage report`.
+# CI runs the same two commands, so the gate below applies there too.
+
+[run]
+branch = True
+source =
+    apps
+    config
+omit =
+    */migrations/*
+    */tests/*
+
+[report]
+# Lists the lines no test runs; files at 100% are left out to keep the report short
+show_missing = True
+skip_covered = True
+# The course's quality gate: the report fails below 80%
+fail_under = 80
