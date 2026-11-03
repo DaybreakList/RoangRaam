@@ -34,7 +34,7 @@
         </div>
         <div class="tc-track">
           {% for bar in row.bars %}<{% if bar.can_move %}button type="button" disabled{% else %}div tabindex="0"{% endif %} class="tc-bar tc-{{ bar.status|lower }}{% if bar.can_move %} tc-movable{% endif %}" data-booking-id="{{ bar.booking_id }}" data-booking-room-id="{{ bar.booking_room_id }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start_label }} ถึง {{ bar.end_label }} (วันเช็คเอาต์)"{% if bar.can_move %} aria-label="ย้ายห้องสำหรับการจอง {{ bar.code }}"{% endif %}>
-            <strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span class="tc-guest">{{ bar.guest_name }}</span><span>{{ bar.label }}</span>
+            {% if bar.can_move %}<span class="tc-drag-handle" title="ลากเพื่อย้ายห้อง" aria-hidden="true">↕ ย้ายห้อง</span>{% endif %}<strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span class="tc-guest">{{ bar.guest_name }}</span><span>{{ bar.label }}</span>
           </{% if bar.can_move %}button{% else %}div{% endif %}>{% empty %}<span class="tc-empty">ไม่มีการจองในช่วงนี้</span>{% endfor %}
         </div>
       </section>
