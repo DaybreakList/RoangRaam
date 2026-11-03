@@ -504,3 +504,89 @@ for (const rowHeight of [112, 144]) {
         assert.equal(view.grid.querySelectorAll('[data-spacer="bottom"]')[0].style.height, '0px');
     });
 }
+
+
+// #117: only the drag handle starts a drag; the rest of the bar is left to the browser (touch panning).
+function pointerEvent(target, extra = {}) {
+    const event = {...pointer(10, 10), target, prevented: 0, preventDefault() { this.prevented++; }, ...extra};
+    return event;
+}
+function firstBar(view, id = '99') {
+    return view.grid.querySelector(`[data-booking-room-id="${id}"]`);
+}
+
+test('bookingBar adds one aria-hidden Thai handle to movable bars only, and still escapes the guest name', () => {
+    const context = setup(), view = virtualMount(context);
+    view.data.stays['99'].display.guest = '<img src=x onerror=alert(1)>';
+    view.data.stays['100'].canMove = false;
+    view.reload();
+    const movable = firstBar(view, '99'), fixed = firstBar(view, '100');
+    assert.equal(movable.tagName, 'button');
+    const handles = movable.querySelectorAll('.tc-drag-handle');
+    assert.equal(handles.length, 1);
+    assert.equal(handles[0].tagName, 'span');
+    assert.equal(handles[0].textContent, '↕ ย้ายห้อง');
+    assert.equal(handles[0].attributes.title, 'ลากเพื่อย้ายห้อง');
+    assert.equal(handles[0].attributes['aria-hidden'], 'true');
+    assert.equal(movable.children[0], handles[0]);
+    assert.equal(movable.querySelector('.tc-guest').textContent, '<img src=x onerror=alert(1)>');
+    assert.equal(handles[0].querySelectorAll('.tc-guest').length, 0);
+    assert.equal(fixed.tagName, 'div');
+    assert.equal(fixed.querySelectorAll('.tc-drag-handle').length, 0);
+});
+
+test('pointerdown on the handle starts a drag, prevents default and focuses the bar', () => {
+    const context = setup(), view = virtualMount(context), {app} = context;
+    app.selected = null;
+    const bar = firstBar(view), handle = bar.querySelector('.tc-drag-handle');
+    const event = pointerEvent(handle);
+    app.handlePointer(event);
+    assert.equal(event.prevented, 1);
+    assert.equal(app.dragging, true);
+    assert.equal(app.pointerId, 7);
+    assert.equal(app.selected, '99');
+    assert.equal(view.doc.activeElement, bar);
+});
+
+test('pointerdown anywhere else on a movable bar neither drags nor prevents default', () => {
+    const context = setup(), view = virtualMount(context), {app} = context;
+    app.selected = null;
+    const bar = firstBar(view);
+    const code = bar.children.find(child => child.tagName === 'strong');
+    assert.ok(code);
+    for (const target of [bar, code, bar.querySelector('.tc-guest')]) {
+        const event = pointerEvent(target);
+        app.handlePointer(event);
+        assert.equal(event.prevented, 0);
+        assert.equal(app.dragging, false);
+        assert.equal(app.selected, null);
+    }
+    assert.notEqual(view.doc.activeElement, bar);
+});
+
+test('pointerdown on a disabled bar handle does not drag, and a fixed bar has no handle to drag', () => {
+    const context = setup(), view = virtualMount(context), {app} = context;
+    app.selected = null;
+    const bar = firstBar(view);
+    bar.disabled = true;
+    const event = pointerEvent(bar.querySelector('.tc-drag-handle'));
+    app.handlePointer(event);
+    assert.equal(event.prevented, 0);
+    assert.equal(app.dragging, false);
+    assert.equal(app.selected, null);
+    const fixed = pointerEvent(firstBar(view, '100'));
+    app.handlePointer(fixed);
+    assert.equal(fixed.prevented, 0);
+    assert.equal(app.dragging, false);
+});
+
+test('Enter/Space click (detail 0) on the bar still selects; a mouse click on the handle does not', () => {
+    const context = setup(), view = virtualMount(context), {app} = context;
+    app.selected = null;
+    const bar = firstBar(view), handle = bar.querySelector('.tc-drag-handle');
+    assert.equal(bar.tagName, 'button');
+    app.handleClick({detail: 1, target: handle});
+    assert.equal(app.selected, null);
+    app.handleClick({detail: 0, target: bar});
+    assert.equal(app.selected, '99');
+});
