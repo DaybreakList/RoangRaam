@@ -88,3 +88,8 @@
   .ci-dialog { padding: var(--rr-space-4); }
   .ci-dialog__buttons .ci-btn { flex: 1 1 100%; }
 }
+
+/* Tablet (641-1024px): dvh follows the visible area (Safari toolbar, on-screen keyboard); where unsupported the 100vh above applies */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .ci-dialog { max-height: calc(100dvh - 2 * var(--rr-space-4)); }
+}

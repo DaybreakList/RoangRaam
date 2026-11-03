@@ -1,6 +1,7 @@
 .do-page {
   box-sizing: border-box;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--rr-space-5);
   max-width: 1200px;
   margin: 0 auto;
@@ -15,4 +16,29 @@
 .rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 @media (max-width: 600px) {
   .do-page { padding: var(--rr-space-4) var(--rr-space-3); }
+}
+
+/* Tablet (641-1024px): the table scrolls inside .rr-table-scroll and the action column
+   stays pinned on the right so check-in / check-out never scroll out of reach. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .do-code a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* Solid background plus inset lines: with border-collapse the real borders do not follow a sticky cell */
+  .do-section .rr-table th:last-child,
+  .do-section .rr-table td:last-child:not(.rr-table__empty) {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--rr-color-surface);
+    box-shadow: inset 1px 0 0 var(--rr-color-border), inset 0 -1px 0 var(--rr-color-border), -6px 0 8px -6px rgba(23, 43, 53, 0.18);
+  }
+  .do-section .rr-table th:last-child {
+    background: #f5f8f8;
+  }
+  .do-section .rr-table tbody tr:hover td:last-child:not(.rr-table__empty) {
+    background: #f9fbfb;
+  }
 }
