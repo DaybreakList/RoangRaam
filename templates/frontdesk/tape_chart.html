@@ -4,6 +4,7 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/tape_chart.css' %}"><script src="{% static 'frontdesk/tape_chart.js' %}"></script>{% endblock %}
 {% block content %}
 <main class="tc-page" x-data="tapeChart" :aria-busy="busy"
+      @pointerdown="handlePointer($event)" @click="handleClick($event)" @keydown="handleKey($event)" @resize.window="queueWindow()"
       @pointermove.window="dragOver($event)" @pointerup.window="drop($event)"
       @pointercancel.window="cancel()" @keydown.escape.window="cancel()" @blur.window="cancel()">
   <p class="tc-move-message" role="status" aria-live="polite" x-text="message"></p>

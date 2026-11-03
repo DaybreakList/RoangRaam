@@ -1,14 +1,14 @@
 .tc-page { padding: 24px; max-width: 1600px; margin: auto; color: #172b42; }
 .tc-page h1 { margin-bottom: 8px; }
 .tc-scroll { overflow: auto; max-height: 70vh; border: 1px solid #cbd5e1; border-radius: 10px; }
-.tc-grid { min-width: 1600px; }
+.tc-grid { min-width: calc(200px + var(--tc-days, 14) * 100px); }
 .tc-header, .tc-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
 .tc-header { position: sticky; top: 0; z-index: 3; background: #eaf0f6; font-weight: 600; }
 .tc-row { border-top: 1px solid #cbd5e1; min-height: 76px; }
 .tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: #f8fafc; border-right: 1px solid #cbd5e1; overflow-wrap: anywhere; }
-.tc-days, .tc-track { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); }
+.tc-days, .tc-track { display: grid; grid-template-columns: repeat(var(--tc-days, 14), minmax(0, 1fr)); }
 .tc-days > div { text-align: center; padding: 12px 4px; border-right: 1px solid #cbd5e1; }
-.tc-track { align-items: center; background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / 14 - 1px), #e2e8f0 calc(100% / 14 - 1px), #e2e8f0 calc(100% / 14)); }
+.tc-track { align-items: center; background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--tc-days, 14) - 1px), #e2e8f0 calc(100% / var(--tc-days, 14) - 1px), #e2e8f0 calc(100% / var(--tc-days, 14))); }
 .tc-bar { grid-row: 1; margin: 6px 2px; padding: 7px; min-width: 0; border-radius: 6px; border: 1px solid #8ca5be; background: #e5eef8; }
 .tc-bar strong, .tc-bar span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-bar span { font-size: 12px; }
@@ -34,14 +34,31 @@
 .tc-housekeeping--dirty { color: #674508; background: #fff2cf; border-color: #b08224; }
 
 .tc-page [x-cloak] { display: none !important; }
-.tc-drag-handle, .tc-target { padding: 6px 10px; min-height: 36px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
-.tc-drag-handle { touch-action: none; cursor: grab; user-select: none; font: inherit; font-size: 12px; }
-.tc-drag-handle:active { cursor: grabbing; }
-.tc-drag-handle:disabled, .tc-target:disabled { opacity: .55; cursor: not-allowed; }
-.tc-target { margin-top: 6px; font-size: 12px; }
+.tc-target { padding: 6px 10px; min-height: 36px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
+.tc-movable { touch-action: none; cursor: grab; user-select: none; font: inherit; text-align: left; }
+.tc-movable::before { content: "↕ ย้ายห้อง"; display: block; font-size: 12px; }
+.tc-movable:active { cursor: grabbing; }
+.tc-movable:disabled, .tc-target:disabled { cursor: not-allowed; }
+.tc-target:disabled { opacity: .55; }
+/* Reserve target space so selecting a stay does not relayout every booking row. */
+.tc-target[hidden] { display: block; visibility: hidden; }
+.tc-target { display: block; margin-top: 6px; font-size: 12px; }
 .tc-drop-valid { outline: 3px solid #167348; outline-offset: -3px; }
 .tc-drop-invalid { outline: 3px solid #b42318; outline-offset: -3px; }
 .tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: 6px; background: #172b42; color: #fff; }
 .tc-move-message { min-height: 24px; white-space: pre-line; }
 .tc-move-help { font-size: 14px; }
 .tc-page[aria-busy="true"] .tc-filters, .tc-page[aria-busy="true"] .tc-navigation { opacity: .6; pointer-events: none; }
+
+/* Fixed geometry keeps row recycling, keyboard navigation and drop hit-tests aligned. */
+.tc-row { height: var(--tc-row-height, 144px); min-height: 0; box-sizing: border-box; }
+.tc-header { height: var(--tc-header-height, 64px); box-sizing: border-box; }
+.tc-row .tc-room { height: 100%; box-sizing: border-box; overflow: hidden; }
+.tc-room-title { display: flex; align-items: center; gap: 4px; }
+.tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-room-title .tc-housekeeping { flex: none; margin-left: 0; }
+.tc-room-details, .tc-row .tc-closed { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-spacer { pointer-events: none; }
+.tc-row:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
+
+.tc-scroll { overflow-anchor: none; }
