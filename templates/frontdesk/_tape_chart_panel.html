@@ -1,4 +1,6 @@
-<section id="tc-panel" aria-label="ตัวกรองและตารางการจอง">
+<section x-init="loadPanel($el)" id="tc-panel" aria-label="ตัวกรองและตารางการจอง">
+  {% csrf_token %}
+  {% if chart %}{{ chart.move_data|json_script:"tc-move-data" }}{% endif %}
   <form method="get" action="{{ request.path }}" class="tc-filters" hx-get="{{ request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
     {% for field in form %}<div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
     <button type="submit" class="rr-btn rr-btn--primary">แสดงผล</button>
@@ -14,16 +16,29 @@
   </nav>
   <p>{{ request.property.name }} · {{ chart.start|date:"j M Y" }} – {{ chart.last_day|date:"j M Y" }}</p>
   <p id="tc-help">แสดง 14 วันตามเขตเวลาของโรงแรม ไม่นับคืนวันเช็คเอาต์ · เลื่อนแนวนอนเพื่อดูวันถัดไป</p>
+  <p x-cloak class="tc-move-help">ลากปุ่ม “ย้ายห้อง” ไปแถวห้องปลายทาง หรือกดปุ่มแล้วเลือกห้อง · วันพักและราคาเดิม
+    <button type="button" x-show="selected" @click="cancel()" :disabled="busy">ยกเลิกการย้าย</button>
+  </p>
   {% if chart.rows %}
   <div class="tc-scroll" tabindex="0" role="region" aria-label="ตารางห้องและการจอง" aria-describedby="tc-help">
     <div class="tc-grid">
       <div class="tc-header"><div class="tc-room">ห้อง / ชั้น / ประเภท</div><div class="tc-days">{% for day in chart.days %}<div>{{ day|date:"D" }}<br>{{ day|date:"j M" }}</div>{% endfor %}</div></div>
       {% for row in chart.rows %}
-      <section class="tc-row" aria-label="ห้อง {{ row.room.number }}">
+      <section class="tc-row" data-room-id="{{ row.room.pk }}"
+               :class="{'tc-drop-valid': selected &amp;&amp; hoverRoom === $el.dataset.roomId &amp;&amp; !reason($el.dataset.roomId), 'tc-drop-invalid': selected &amp;&amp; hoverRoom === $el.dataset.roomId &amp;&amp; reason($el.dataset.roomId)}"
+               aria-label="ห้อง {{ row.room.number }}">
         <div class="tc-room"><strong>{{ row.room.number }}</strong>
-          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span><br>ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}{% if not row.room.is_active %}<br><span class="tc-closed">ปิดใช้งาน</span>{% endif %}</div>
+          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span><br>ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}{% if not row.room.is_active %}<br><span class="tc-closed">ปิดใช้งาน</span>{% endif %}
+          <button type="button" class="tc-target" x-cloak x-show="selected" :disabled="busy || !!reason($el.closest('[data-room-id]').dataset.roomId)"
+                  :title="reason($el.closest('[data-room-id]').dataset.roomId)" @click="submitMove($el.closest('[data-room-id]').dataset.roomId)">ย้ายมาห้อง {{ row.room.number }}</button>
+        </div>
         <div class="tc-track">
-          {% for bar in row.bars %}<div class="tc-bar tc-{{ bar.status|lower }}" data-booking-id="{{ bar.booking_id }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" tabindex="0" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start|date:'j M Y' }} ถึง {{ bar.end|date:'j M Y' }} (วันเช็คเอาต์)" aria-label="{{ bar.code }} {{ bar.guest_name }} {{ bar.label }} เข้าพัก {{ bar.start|date:'j M Y' }} เช็คเอาต์ {{ bar.end|date:'j M Y' }}">
+          {% for bar in row.bars %}<div class="tc-bar tc-{{ bar.status|lower }}" data-booking-id="{{ bar.booking_id }}" data-booking-room-id="{{ bar.booking_room_id }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" tabindex="0" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start|date:'j M Y' }} ถึง {{ bar.end|date:'j M Y' }} (วันเช็คเอาต์)" aria-label="{{ bar.code }} {{ bar.guest_name }} {{ bar.label }} เข้าพัก {{ bar.start|date:'j M Y' }} เช็คเอาต์ {{ bar.end|date:'j M Y' }}">
+            {% if bar.can_move %}<button type="button" class="tc-drag-handle" x-cloak
+              :disabled="busy || !canMove($el.closest('[data-booking-room-id]').dataset.bookingRoomId)"
+              @pointerdown.prevent="beginDrag($event, $el.closest('[data-booking-room-id]').dataset.bookingRoomId)"
+              @click="if ($event.detail === 0) select($el.closest('[data-booking-room-id]').dataset.bookingRoomId)"
+              aria-label="ย้ายห้องสำหรับการจอง {{ bar.code }}">ย้ายห้อง</button>{% endif %}
             <strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span class="tc-guest">{{ bar.guest_name }}</span><span>{{ bar.label }}</span>
           </div>{% empty %}<span class="tc-empty">ไม่มีการจองในช่วงนี้</span>{% endfor %}
         </div>

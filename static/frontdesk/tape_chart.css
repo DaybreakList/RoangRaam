@@ -32,3 +32,16 @@
 .tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 2px 7px; border: 1px solid; border-radius: 999px; font-size: 12px; line-height: 1.5; vertical-align: middle; }
 .tc-housekeeping--clean { color: #125336; background: #d7f3e6; border-color: #448b6c; }
 .tc-housekeeping--dirty { color: #674508; background: #fff2cf; border-color: #b08224; }
+
+.tc-page [x-cloak] { display: none !important; }
+.tc-drag-handle, .tc-target { padding: 6px 10px; min-height: 36px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
+.tc-drag-handle { touch-action: none; cursor: grab; user-select: none; font: inherit; font-size: 12px; }
+.tc-drag-handle:active { cursor: grabbing; }
+.tc-drag-handle:disabled, .tc-target:disabled { opacity: .55; cursor: not-allowed; }
+.tc-target { margin-top: 6px; font-size: 12px; }
+.tc-drop-valid { outline: 3px solid #167348; outline-offset: -3px; }
+.tc-drop-invalid { outline: 3px solid #b42318; outline-offset: -3px; }
+.tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: 6px; background: #172b42; color: #fff; }
+.tc-move-message { min-height: 24px; white-space: pre-line; }
+.tc-move-help { font-size: 14px; }
+.tc-page[aria-busy="true"] .tc-filters, .tc-page[aria-busy="true"] .tc-navigation { opacity: .6; pointer-events: none; }

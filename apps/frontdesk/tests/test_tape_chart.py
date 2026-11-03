@@ -150,7 +150,7 @@ def test_query_count_is_constant(hotel_a):
         stay(hotel_a)
     with CaptureQueriesContext(connection) as large:
         build_tape_chart(hotel_a)
-    assert len(small) == len(large) == 2
+    assert len(small) == len(large) == 3
 
 
 def test_property_timezone(hotel_a):
