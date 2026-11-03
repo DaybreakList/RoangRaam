@@ -433,3 +433,56 @@ table.rr-table td {
     margin-right: 0;
   }
 }
+
+/* Tablet (641-1024px): two rows. Row 1 = brand + property switcher + logout, row 2 = menu.
+   Every link and button is at least 44px tall; the property name is cut with an ellipsis. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .rr-navbar {
+    flex-wrap: wrap;
+    row-gap: var(--rr-space-2);
+    padding: var(--rr-space-3) var(--rr-space-4);
+  }
+  .rr-navbar__brand {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+  .rr-navbar__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rr-navbar__nav {
+    order: 3;
+    flex: 1 0 100%;
+    gap: var(--rr-space-1);
+    margin-right: 0;
+  }
+  .rr-navbar__link {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--rr-space-3);
+    white-space: nowrap;
+  }
+  .rr-navbar__actions {
+    flex: 0 0 auto;
+  }
+  .rr-navbar__logout .rr-btn {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .property-switcher > button {
+    min-height: 44px;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .property-switcher li a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
