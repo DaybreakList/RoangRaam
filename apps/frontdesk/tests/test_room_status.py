@@ -116,15 +116,13 @@ def test_every_role_sees_the_board(client, hotel_a, rooms, login_member, role):
     assert [room.number for room in response.context['board'].rooms] == ['102', '201', '101']
 
 
-@pytest.mark.parametrize('role, sees_button', [
-    (Role.HOUSEKEEPING, True), (Role.MANAGER, True), (Role.OWNER, True), (Role.FRONT_DESK, False),
-])
-def test_only_cleaning_roles_see_the_button(client, hotel_a, rooms, login_member, role, sees_button):
+@pytest.mark.parametrize('role', [Role.HOUSEKEEPING, Role.MANAGER, Role.OWNER, Role.FRONT_DESK])
+def test_every_role_sees_the_button_on_dirty_rooms_only(client, hotel_a, rooms, login_member, role):
     login_member(hotel_a, role=role)
 
     content = client.get(board_url(hotel_a)).content.decode()
 
-    assert (clean_url(rooms['102']) in content) is sees_button
+    assert clean_url(rooms['102']) in content
     assert clean_url(rooms['101']) not in content  # already Clean
 
 
@@ -186,12 +184,12 @@ def test_cleaning_roles_mark_a_room_clean(client, hotel_a, rooms, login_member, 
     assert 'ห้อง 102 ทำความสะอาดแล้ว' in follow.content.decode()
 
 
-def test_the_front_desk_cannot_mark_clean(client, hotel_a, rooms, login_member):
+def test_the_front_desk_can_mark_clean_so_a_check_in_is_not_stuck(client, hotel_a, rooms, login_member):
     login_member(hotel_a, role=Role.FRONT_DESK)
 
-    assert client.post(clean_url(rooms['102'])).status_code == 403
+    assert client.post(clean_url(rooms['102'])).status_code == 302
     rooms['102'].refresh_from_db()
-    assert rooms['102'].hk_status == DIRTY
+    assert rooms['102'].hk_status == CLEAN
 
 
 def test_the_filters_are_kept_after_marking_clean(client, hotel_a, rooms, login_member):
