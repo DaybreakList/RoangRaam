@@ -109,6 +109,9 @@ def test_the_image_starts_gunicorn_through_the_start_script():
     assert b'migrate --noinput' in script
     assert b'exec gunicorn config.wsgi:application' in script
     assert b'${PORT:-8000}' in script
+    # Rebuilding the demo data for today is opt-in, never the default
+    assert b'"${SEED_RESET_ON_START:-false}"' in script
+    assert b'seed_demo --reset' in script
 
 
 @pytest.mark.parametrize('name', ['.gitignore', '.dockerignore'])

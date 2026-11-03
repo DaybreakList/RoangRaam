@@ -11,7 +11,7 @@ from django.db.models import Min
 from django.utils import timezone
 
 from apps.bookings.cancellation import cancel_booking
-from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest, Payment
+from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest, Payment, Receipt
 from apps.bookings.tests.factories import BookingRoomFactory
 from apps.dashboard import seed
 from apps.properties.models import Membership, Property
@@ -178,6 +178,22 @@ def test_reset_recreates_demo_data_and_leaves_other_hotels_alone(
     assert Payment.objects.filter(property__slug__in=seed.SEED_SLUGS).count() == demo_payments
     assert Property.objects.filter(pk=other.pk).exists()
     assert BookingRoom.objects.filter(pk=other_booking_room.pk).exists()
+
+
+def test_reset_works_after_a_bill_was_closed_on_the_demo_data(small_windows, scoped_thing_table):
+    run_seed()
+    booking = Booking.objects.filter(
+        property__slug__in=seed.SEED_SLUGS, status=Booking.Status.CHECKED_IN,
+    ).first()
+    Receipt.objects.create(
+        property=booking.property, booking=booking, number=1,
+        total=booking.total_amount, tax_rate=Decimal('7.00'), tax_amount=Decimal('0.00'),
+    )
+
+    run_seed('--reset')
+
+    assert not Receipt.objects.exists()
+    assert Property.objects.filter(slug__in=seed.SEED_SLUGS).count() == 2
 
 
 def test_reset_keeps_demo_users_who_also_belong_to_another_hotel(

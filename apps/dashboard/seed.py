@@ -33,7 +33,7 @@ from django.utils import timezone
 from psycopg.types.range import DateRange
 
 from apps.bookings.cancellation import cancel_booking
-from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest, Payment
+from apps.bookings.models import Booking, BookingNightRate, BookingRoom, Guest, Payment, Receipt
 from apps.bookings.services import create_booking
 from apps.properties.models import Membership, Property
 from apps.rooms.models import Amenity, DailyRate, Room, RoomType, RoomTypeAmenity
@@ -203,8 +203,10 @@ def reset_demo_data():
 
 def _delete_hotel(property):
     # PROTECT foreign keys force this order: children before the rows they point to.
-    # Payment.delete() is blocked (append-only) but a queryset delete is not, and
-    # the demo hotels are removed whole, so their money rows go with them.
+    # Payment.delete() and Receipt.delete() are blocked (append-only) but a queryset
+    # delete is not, and the demo hotels are removed whole, so their money rows go too.
+    # Receipts exist once someone closes a bill on the demo data.
+    Receipt.scoped.for_property(property).delete()
     Payment.scoped.for_property(property).delete()
     BookingNightRate.scoped.for_property(property).delete()
     BookingRoom.scoped.for_property(property).delete()
