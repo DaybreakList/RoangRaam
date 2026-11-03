@@ -1,0 +1,13 @@
+{% comment %}
+Django messages as .rr-alert boxes. Usage: {% include 'partials/messages.html' %}
+Success and warning are announced politely (role="status"), errors at once (role="alert").
+Reading the messages marks them as used, so include it once per page.
+Needs css/tokens.css and css/components.css.
+{% endcomment %}
+{% if messages %}
+<div class="rr-alerts">
+  {% for message in messages %}
+  <div class="rr-alert rr-alert--{{ message.level_tag }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}

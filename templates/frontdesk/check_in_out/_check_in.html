@@ -1,0 +1,39 @@
+{% comment %}
+Check-in for one CONFIRMED booking, rendered by {% check_in_form row %} (check_in_out_ui.py).
+A button opens a <dialog> holding the form. When a room is not ready the button is disabled
+and the reasons are shown instead; no form is rendered then.
+The guest's saved ID is never filled in: the desk types it again from the document in hand.
+{% endcomment %}
+<div class="ci-actions" x-data="{ busy: false, idType: '{{ id_card_value|escapejs }}', idCard: '{{ id_card_value|escapejs }}' }">
+  {% if problems %}
+  <button type="button" class="rr-btn ci-btn" disabled aria-describedby="{{ dom_id }}-blocked">เช็คอิน</button>
+  <div class="ci-note ci-note--blocked" id="{{ dom_id }}-blocked">
+    <p>เช็คอินไม่ได้ เพราะ:</p>
+    <ul>{% for problem in problems %}<li>{{ problem }}</li>{% endfor %}</ul>
+    <a class="ci-link" href="{{ room_status_url }}">ไปหน้าสถานะห้อง</a>
+  </div>
+  {% else %}
+  <button type="button" class="rr-btn ci-btn" aria-haspopup="dialog" x-on:click="$refs.dialog.showModal()">เช็คอิน</button>
+  <dialog class="ci-dialog" x-ref="dialog" aria-labelledby="{{ dom_id }}-title">
+    <form method="post" action="{{ action_url }}"
+          x-on:submit="busy ? $event.preventDefault() : busy = true"
+          x-on:pageshow.window="busy = false">
+      {% csrf_token %}
+      <h3 class="ci-dialog__title" id="{{ dom_id }}-title">เช็คอินการจอง {{ booking.code }}</h3>
+      <p class="ci-dialog__guest">{{ booking.guest }}</p>
+      <ul class="ci-rooms" aria-label="ห้องที่ได้รับ">
+        {% for room in rooms %}
+        <li><strong>ห้อง {{ room.number }}</strong> <span class="ci-room-type">{{ room.type_name }}</span> <span class="rr-badge{% if not room.is_clean %} rr-badge--warning{% endif %}">{{ room.status_label }}</span></li>
+        {% endfor %}
+      </ul>
+      {% include 'partials/form_field.html' with field=form.id_type %}
+      {% include 'partials/form_field.html' with field=form.id_number %}
+      {% include 'partials/form_field.html' with field=form.nationality %}
+      <div class="ci-dialog__buttons">
+        <button type="button" class="rr-btn rr-btn--secondary ci-btn" x-on:click="$refs.dialog.close()">ยกเลิก</button>
+        <button type="submit" class="rr-btn ci-btn" x-bind:disabled="busy">ยืนยันเช็คอิน</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+</div>
