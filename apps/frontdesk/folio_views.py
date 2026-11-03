@@ -14,6 +14,7 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.bookings.folio import close_bill, get_folio, record_desk_payment
 from apps.bookings.models import Booking
 from apps.bookings.receipt_pdf import receipt_data, render_receipt_pdf
+from apps.frontdesk.services.daily_ops import property_today
 from apps.properties.permissions import Role, role_required
 
 # Same access as check-in / check-out
@@ -46,6 +47,9 @@ def folio_view(request, booking_id):
         'folio': folio,
         'can_pay': is_checked_in and not folio.is_closed and folio.balance > 0,
         'can_close': is_checked_in and not folio.is_closed and folio.balance == 0,
+        'can_check_out': is_checked_in and folio.is_closed,
+        # The hotel's own date: the check-out button is disabled on the check-in day
+        'today': property_today(request.property),
         # New key on every render: a double submit of this form is recorded once
         'payment_key': uuid.uuid4(),
     })
