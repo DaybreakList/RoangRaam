@@ -3,6 +3,7 @@ from django import forms
 from apps.bookings.models import Guest
 
 ROOM_FIELD_PREFIX = 'room_'
+THAI_ID_LENGTH = 13
 
 
 class CheckInForm(forms.Form):
@@ -17,6 +18,14 @@ class CheckInForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        if cleaned.get('id_type') == Guest.IdType.ID_CARD and cleaned.get('id_number'):
+            # Staff often type it as 1-2345-67890-12-3; the checksum is not checked,
+            # so made-up test numbers still work
+            digits = cleaned['id_number'].replace('-', '').replace(' ', '')
+            if not (digits.isdigit() and len(digits) == THAI_ID_LENGTH):
+                self.add_error('id_number', f'เลขบัตรประชาชนต้องเป็นตัวเลข {THAI_ID_LENGTH} หลัก')
+            else:
+                cleaned['id_number'] = digits
         room_changes = {}
         for key, value in self.data.items():
             if not key.startswith(ROOM_FIELD_PREFIX) or value == '':
