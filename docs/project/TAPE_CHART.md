@@ -154,3 +154,74 @@ Verification against the merged code:
 
 No endpoint changes or new migrations were needed for compatibility. Test databases
 were used; the demo database was not reset or migrated by these verification commands.
+
+## Sprint 3: drag-to-move UI (D, #106)
+
+Built on main `fab90a5`, using the merged #107 endpoint. Alpine pointer controls
+move a BookingRoom between rows; keyboard users select the handle and a destination
+button. Escape/pointer cancellation aborts selection. Only CONFIRMED and unexpired
+PENDING_PAYMENT stays have handles. Destination checks cover active rooms of the
+same type and whole-stay occupancy, including clipped dates outside the 14-day view.
+Dirty destinations are allowed. The server still validates every POST.
+
+The chart service adds one batched occupancy query when movable stays are visible
+(three chart queries instead of two, with no per-room query). JSON metadata uses
+Django json_script escaping and property-scoped queries. Each request sends only
+`target_room_id` with CSRF to the BookingRoom-specific URL. Dates and financial
+snapshots are not editable. No route, permission, model, migration or library changes.
+
+Bars remain in their original position until the authoritative panel is reloaded.
+Duplicate submissions and filter requests during saving are blocked. Server errors
+are shown in Thai; uncertain network results trigger a refresh, and failed refreshes
+disable further moves until reload. Filters remain in the URL across refreshes.
+
+Files changed for review:
+- `apps/frontdesk/services/tape_chart.py`
+- `apps/frontdesk/tests/test_tape_chart.py`
+- `apps/frontdesk/tests/test_tape_chart_drag.py`
+- `apps/frontdesk/tests/tape_chart_drag.test.cjs`
+- `static/frontdesk/tape_chart.js`
+- `static/frontdesk/tape_chart.css`
+- `templates/frontdesk/tape_chart.html`
+- `templates/frontdesk/_tape_chart_panel.html`
+- `docs/project/TAPE_CHART.md`
+
+Validation (2026-11-01):
+- `docker compose exec -T web pytest apps/frontdesk/tests apps/properties/tests/test_permission_matrix.py apps/accounts/tests/test_isolation_sweep.py -q`: **446 passed**, 115.35s.
+- `node --test apps/frontdesk/tests/tape_chart_drag.test.cjs`: **11 passed**. Uses Node built-ins, no added dependencies.
+- `.venv/Scripts/ruff.exe check apps/frontdesk/services/tape_chart.py apps/frontdesk/tests/test_tape_chart.py apps/frontdesk/tests/test_tape_chart_drag.py`: passed.
+- `docker compose exec -T web python manage.py check`: no issues.
+- `git diff --check`: passed.
+- Logged-in local browser with a dedicated synthetic property: pointer drag from
+  101 to Dirty 102 persisted, blocked occupied 103, keyboard move back succeeded,
+  and a second move after an HTMX floor filter preserved the filter and reinitialized
+  controls. Database verification confirmed the destination and unchanged Dirty state.
+  The dedicated QA data was removed afterward. No physical touch-device test was run.
+
+Performance acceptance for 90 rooms x 60 days remains #108; this PR retains 14 days.
+
+### Updated to main after Sprint 3 integrations (2026-11-03)
+
+Fast-forwarded `codex/tape-chart-drag-drop` from `fab90a5` to main `b7cceaf`
+and restored all nine uncommitted #106 files. The chart query-count change merged
+cleanly with main's `close_bill()` import/call before check-out in the Clean/Dirty
+test. The endpoint and UI behavior needed no further implementation changes.
+
+Rebuilt the real development image and recreated the web container:
+- `docker compose build web`: passed.
+- `docker compose up -d web`: passed; existing PostgreSQL volume retained.
+- Container imports confirmed `fpdf2 2.8.9` and `uharfbuzz 0.56.4` from the rebuilt
+  image, without the temporary dependency path used during the earlier main review.
+- HTTP smoke checks: `/accounts/login/` and `/static/frontdesk/tape_chart.js` returned 200.
+
+Validation against main `b7cceaf` plus the uncommitted #106 diff:
+- `docker compose exec -T web pytest apps/frontdesk/tests apps/accounts/tests apps/properties/tests/test_permission_matrix.py apps/bookings/tests/test_receipt_pdf.py -q`: **562 passed**, 94.42s.
+- `node --test apps/frontdesk/tests/tape_chart_drag.test.cjs`: **11 passed**.
+- `.venv/Scripts/ruff.exe check apps/frontdesk/services/tape_chart.py apps/frontdesk/tests/test_tape_chart.py apps/frontdesk/tests/test_tape_chart_drag.py`: passed.
+- `docker compose exec -T web python manage.py check`: no issues.
+- `docker compose exec -T web python manage.py makemigrations --check --dry-run`: no changes.
+- `git diff --check`: passed.
+
+No new migrations. Browser drag acceptance remains the 2026-11-01 run described
+above; this update ran automated regression and HTTP smoke checks. Changes remain
+uncommitted for the user's diff review.
