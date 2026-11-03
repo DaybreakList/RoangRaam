@@ -16,7 +16,7 @@ No dependency, permission, model, endpoint, or migration was added.
 - The JSON payload contains all scoped rooms, bookings, collision ranges and display data.
   Initial HTML includes only eight rows. The client mounts visible rows plus three rows of
   overscan at either end, reuses retained nodes, and removes rows outside that range.
-  Top/bottom spacers preserve the full scroll height. Rows are 144 px; the sticky header is
+  Top/bottom spacers preserve the full scroll height. Rows are 112 px; the sticky header is
   64 px. Long room/type labels truncate visually and retain their title text.
 - The selected booking and status message live outside the recycled DOM. Destination
   eligibility is cached on selection/refresh/expiry across all rooms, including offscreen
@@ -37,7 +37,7 @@ No dependency, permission, model, endpoint, or migration was added.
 - Without JavaScript, only the initial eight rows are shown, with a Thai instruction to
   enable JavaScript for the complete scrollable chart. Physical touch/tablet QA is pending.
 
-## Controlled comparison
+## Original #177 controlled comparison (144 px rows)
 
 The original baseline is `88af0da` plus only 14/60-day selector/correctness changes. It was
 captured before query, markup and JavaScript optimizations. Comparing unmodified 14-day
@@ -63,7 +63,7 @@ assets. Five warm reloads for each dense version. Ready is alpine:initialized pl
 animation frames. With only five samples, nearest-rank p95 equals the maximum; median and
 maximum are reported without treating them as a production tail-latency guarantee.
 
-## Results after virtualization
+## Original #177 results after virtualization (144 px rows)
 
 Times in milliseconds; each cell is median / p95 across 20 requests.
 
@@ -130,7 +130,7 @@ before stopping the container. Ctrl+C tears down its dedicated DB. Compare snaps
 the same image, idle machine, browser and viewport; use distinct ports. No wall-clock
 performance threshold is asserted in CI.
 
-## Verification
+## Original #177 verification
 
 - `docker compose exec -T web pytest -q`: **1,408 passed** in 177.94 s.
 - `node --test apps/frontdesk/tests/tape_chart_drag.test.cjs`: **28 passed**; Node v24.22.1
@@ -151,7 +151,7 @@ performance threshold is asserted in CI.
   console errors/warnings were reported. Synthetic moves were restored to their original room.
 - Physical touch/tablet and production-load tests were not run.
 
-## Files in this diff
+## Original #177 files
 
 | File | Change |
 | --- | --- |
@@ -168,3 +168,80 @@ performance threshold is asserted in CI.
 | `scripts/benchmark_tape_chart.py` | Isolated, repeatable backend/HTML measurements |
 | `scripts/tape_chart_metrics.js` | Fixture-only browser instrumentation |
 | `docs/project/TAPE_CHART_PERFORMANCE.md` | Procedure, evidence and limitations |
+
+## Compact rows follow-up — D, Sprint 4 (2026-11-03)
+
+Base: main `bb2edd4c898c5768fef76e481e856723bba0370f` (#177 merged).
+Branch: `codex/tape-chart-compact-rows`. The earlier results above describe #177 at
+144 px, not the compact layout measured here.
+
+Rows are now a fixed 112 px (22.2% shorter) in server metadata, SSR CSS variables,
+CSS fallback and JS fallback. The header stays 64 px and overscan stays three rows.
+Room closure shares the floor/type line, preserving the full type in its title.
+Hidden destination buttons take no layout space; when selected they are 44 px high.
+Selecting/cancelling never changes the row height. Both SSR and recycled room rows
+use the same compact structure. Touch gesture/drag-handle changes belong to B's
+separate tablet work; they are not included in this follow-up.
+
+### Repeat comparison and measurements
+
+The same existing benchmark script, Docker image, PostgreSQL instance, synthetic
+90-room/60-day fixture and DEBUG=False settings were used. Main was extracted from
+`git archive origin/main` inside a separate container, rather than switching the
+working checkout. The main archive SHA256 was
+`56260A5A670EEC34F340B2E97B487812C93067A3C48948390746B2B1576395DE`.
+Each container used its own disposable database (`test_tape_benchmark_8012` / `8013`)
+and loopback port. No demo reset was performed.
+
+Backend: 20 warm repetitions per version, run sequentially after pytest finished.
+Browser: five reloads per version in the same in-app browser with a requested
+1265 x 712 viewport (actual reported CSS viewport 1266 x 712). No tests or backend
+benchmark loops ran during browser timing. These are local samples, not a production
+SLA or statistical proof of equal speed.
+
+| Dense, 5,400 bars | Main, 144 px | Compact, 112 px |
+| --- | ---: | ---: |
+| Full room rows fitting below the sticky header | 2 | 3 |
+| Initially mounted rows / bars | 6 / 360 | 7 / 420 |
+| Live DOM nodes | 1,693 | 1,948 |
+| Browser ready median / max, ms | 679.4 / 760.6 | 775.8 / 793.4 |
+| Service median / p95, ms | 284.41 / 318.33 | 226.92 / 248.72 |
+| Full GET median / p95, ms | 263.56 / 286.91 | 329.42 / 356.09 |
+| Initial HTML bytes | 2,803,491 | 2,803,746 |
+| Payload rooms / stays | 90 / 5,400 | 90 / 5,400 |
+| Chart queries / full GET queries | 3 / 10 | 3 / 10 |
+
+Browser ready samples, ms:
+- Main: 760.6, 679.4, 721.1, 551.4, 644.5.
+- Compact: 677.9, 775.8, 644.0, 780.6, 793.4.
+
+More visible rows require more mounted bars: ready median in this sample increased
+14.2%, while all reloads remained below the existing 1.5 s local target. The backend
+service/GET split varied despite identical query counts and returned row counts.
+To investigate the slower GET sample, a second loop made 20 loopback HTTP GETs per
+version, alternating main/compact order each pair, after warmup with no other test
+workload. HTTP median / p95 was **294.26 / 350.01 ms** for main and
+**298.62 / 351.60 ms** for compact. This includes the fixture HTTP transport and is
+a separate measurement from Django test-client GET. Both remained below the existing
+500 ms local GET p95 target; no backend speedup is claimed.
+
+### Functional verification
+
+- `node --test apps/frontdesk/tests/tape_chart_drag.test.cjs`: 30 passed. Regression
+  coverage includes both 112/144 px metadata, total spacer height, keyboard page size,
+  selection/cancel, row 90, bounded DOM, edge scrolling and final-release hit-tests.
+- `docker compose run --rm --no-deps web pytest -q apps/frontdesk/tests/test_tape_chart.py apps/frontdesk/tests/test_tape_chart_moves.py apps/frontdesk/tests/test_tape_chart_performance.py apps/properties/tests/test_permission_matrix.py`:
+  248 passed in 45.13 s, including role and cross-property read/write checks.
+- `docker compose run --rm --no-deps web pytest -q apps/frontdesk/tests/test_tape_chart_drag.py`:
+  18 passed in 4.62 s.
+- Browser: measured every mounted row at 112 px and destination controls at 44 px;
+  selecting/cancelling did not change geometry. Keyboard selection in room 003,
+  scrolling until the source unmounted, moving to room 090 and moving back succeeded;
+  HTMX restored focus to the moved booking. Native drag to a different type was
+  rejected in Thai. Home/End reached the first/last rows and bottom spacer reached zero.
+- Browser at 768 x 1024 and 1024 x 768: long synthetic Thai guest/type/room labels and
+  an inactive room retained their status, truncated type title and destination control
+  without vertical overflow. Console had no errors/warnings. Additional QA labels were
+  applied only to the disposable typical fixture after timing, not to demo data.
+- Actual iPad/Android touch hardware remains untested. No FPS claim is made.
+- No dependency, permission, model or migration changes are needed.

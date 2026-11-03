@@ -29,7 +29,7 @@
       <section class="tc-row" data-room-id="{{ row.room.pk }}"
                tabindex="-1" aria-label="ห้อง {{ row.room.number }}">
         <div class="tc-room"><div class="tc-room-title"><strong title="{{ row.room.number }}">{{ row.room.number }}</strong>
-          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span></div><span class="tc-room-details" title="ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}">ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}</span>{% if not row.room.is_active %}<span class="tc-closed">ปิดใช้งาน</span>{% endif %}
+          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span></div><div class="tc-room-meta"><span class="tc-room-details" title="ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}">ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}</span>{% if not row.room.is_active %}<span class="tc-closed">ปิดใช้งาน</span>{% endif %}</div>
           <button type="button" class="tc-target" data-target-room="{{ row.room.pk }}" hidden disabled>ย้ายมาห้อง {{ row.room.number }}</button>
         </div>
         <div class="tc-track">

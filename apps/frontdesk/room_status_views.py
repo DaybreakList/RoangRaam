@@ -11,9 +11,10 @@ from apps.properties.permissions import Role, RoleRequiredMixin, role_required
 from .room_status_forms import RoomStatusFilterForm
 from .services.room_status import mark_room_clean, room_status_board
 
-# Agreed for US-12: everyone at the hotel sees the board, the front desk only reads it
+# Everyone at the hotel sees the board. The front desk may mark rooms Clean too, so
+# a check-in is not stuck waiting for housekeeping (agreed after US-12, see PERMISSIONS.md)
 VIEW_ROLES = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK, Role.HOUSEKEEPING)
-CLEAN_ROLES = (Role.OWNER, Role.MANAGER, Role.HOUSEKEEPING)
+CLEAN_ROLES = VIEW_ROLES
 
 
 class RoomStatusView(RoleRequiredMixin, TemplateView):
