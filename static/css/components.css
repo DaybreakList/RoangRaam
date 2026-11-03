@@ -209,6 +209,42 @@ select.rr-select--error {
   color: #7a4d0a;
 }
 
+/* ---------- Alert (Django messages, markup in partials/messages.html) ---------- */
+.rr-alerts {
+  display: grid;
+  gap: var(--rr-space-3);
+}
+.rr-alert {
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--rr-space-3) var(--rr-space-4);
+  border: 1px solid var(--rr-color-border);
+  border-left-width: 4px;
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  line-height: 1.5;
+}
+.rr-alert--success {
+  border-color: #c9ded8;
+  border-left-color: var(--rr-color-primary);
+  background: #e7f2ed;
+  color: var(--rr-color-primary-hover);
+}
+.rr-alert--error {
+  border-color: #edb8bd;
+  border-left-color: var(--rr-color-danger);
+  background: #fff0f0;
+  color: #84212a;
+}
+.rr-alert--warning {
+  border-color: #ecd3a5;
+  border-left-color: var(--rr-color-focus);
+  background: #fff6e3;
+  color: #7a4d0a;
+}
+
 /* ---------- Table ---------- */
 .rr-table-scroll {
   overflow-x: auto;

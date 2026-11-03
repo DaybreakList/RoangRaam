@@ -1,0 +1,19 @@
+{% comment %}
+Check-out for one CHECKED_IN booking, rendered by {% check_out_button row lists.today section_id %}.
+Disabled on the check-in day. The confirm text is built in the tag and escaped with escapejs
+because it holds the guest's name.
+{% endcomment %}
+<div class="ci-actions" x-data="{ busy: false }">
+  {% if too_early %}
+  <button type="button" class="rr-btn ci-btn" disabled aria-describedby="{{ dom_id }}-note">เช็คเอาต์</button>
+  <p class="ci-note" id="{{ dom_id }}-note">เช็คเอาต์ได้ตั้งแต่วันถัดไป</p>
+  {% else %}
+  <form method="post" action="{{ action_url }}"
+        x-on:submit="if (busy || !confirm('{{ confirm_text|escapejs }}')) { $event.preventDefault() } else { busy = true }"
+        x-on:pageshow.window="busy = false">
+    {% csrf_token %}
+    <button type="submit" class="rr-btn ci-btn" x-bind:disabled="busy">เช็คเอาต์</button>
+  </form>
+  {% endif %}
+  <a class="ci-link" href="{{ folio_url }}">รับชำระ / ปิดบิล</a>
+</div>
