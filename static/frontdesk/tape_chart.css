@@ -35,9 +35,16 @@
 
 .tc-page [x-cloak] { display: none !important; }
 .tc-target { padding: 6px 10px; min-height: 44px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
-.tc-movable { touch-action: none; cursor: grab; user-select: none; font: inherit; text-align: left; }
-.tc-movable::before { content: "↕ ย้ายห้อง"; display: block; font-size: 12px; }
-.tc-movable:active { cursor: grabbing; }
+/* Only the handle starts a drag and blocks touch panning; the rest of the bar scrolls the chart. */
+.tc-movable { font: inherit; text-align: left; }
+/* Full-bleed band: negative margins cancel the bar's top/side padding. Bar height is
+   1 + 32 + 52 (text) + 7 + 1 = 93px, inside the 99px the 112px row allows. */
+.tc-bar .tc-drag-handle { box-sizing: border-box; height: 32px; margin: -7px -7px 0; border-radius: 5px 5px 0 0;
+    border-bottom: 1px solid rgba(23, 43, 66, .35); background: rgba(23, 43, 66, .14); color: inherit;
+    font-size: 12px; font-weight: 600; line-height: 31px; text-align: center;
+    touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.tc-bar .tc-drag-handle:active { cursor: grabbing; }
+.tc-movable:disabled .tc-drag-handle { touch-action: auto; cursor: not-allowed; opacity: .55; }
 .tc-movable:disabled, .tc-target:disabled { cursor: not-allowed; }
 .tc-target:disabled { opacity: .55; }
 /* Row height stays fixed even when target controls are absent. */
@@ -61,7 +68,7 @@
 .tc-room-details { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-room-meta .tc-closed { flex: none; white-space: nowrap; }
 .tc-bar strong { line-height: 20px; }
-.tc-bar span, .tc-movable::before { line-height: 16px; }
+.tc-bar span { line-height: 16px; }
 .tc-spacer { pointer-events: none; }
 .tc-row:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
 

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static check_in_out_ui %}
 {% block title %}Folio {{ booking.code }} · {{ request.property.name }}{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/folio.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/folio.css' %}">
+<link rel="stylesheet" href="{% static 'frontdesk/check_in_out.css' %}">{% endblock %}
 {% block content %}
 <main class="fo-page">
   <a class="fo-back" href="{% url 'daily_ops:index' property_slug=request.property.slug %}">← กลับไปรายการวันนี้</a>
@@ -96,6 +97,7 @@
       <a class="rr-btn fo-btn fo-receipt" href="{% url 'folio:receipt' property_slug=request.property.slug booking_id=booking.pk %}" target="_blank" rel="noopener">
         <span aria-hidden="true">⤓</span> ดาวน์โหลดใบเสร็จ (PDF)
       </a>
+      {% if can_check_out %}{% check_out_button booking today "folio" show_folio_link=False bill_closed=True %}{% endif %}
       {% else %}
       <div class="fo-balance{% if folio.balance > 0 %} fo-balance--due{% else %} fo-balance--clear{% endif %}">
         <span class="fo-balance__label">ยอดคงเหลือ</span>

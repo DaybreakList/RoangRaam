@@ -1,12 +1,19 @@
 {% comment %}
-Check-out for one CHECKED_IN booking, rendered by {% check_out_button row lists.today section_id %}.
-Disabled on the check-in day. The confirm text is built in the tag and escaped with escapejs
-because it holds the guest's name.
+Check-out for one CHECKED_IN booking, rendered by
+{% check_out_button booking today section_id show_folio_link=True bill_closed=None %} (check_in_out_ui.py).
+In the Today lists: {% check_out_button row.booking lists.today section_id %}
+On the Folio page:  {% check_out_button booking today "folio" show_folio_link=False bill_closed=True %}
+Disabled (and no form is rendered) on the check-in day, or when bill_closed is False.
+The check-in day is shown first. The confirm text is built in the tag and escaped with escapejs
+because it holds the guest's name. The "pay / close bill" link is left out when show_folio_link is False.
 {% endcomment %}
 <div class="ci-actions" x-data="{ busy: false }">
   {% if too_early %}
   <button type="button" class="rr-btn ci-btn" disabled aria-describedby="{{ dom_id }}-note">เช็คเอาต์</button>
   <p class="ci-note" id="{{ dom_id }}-note">เช็คเอาต์ได้ตั้งแต่วันถัดไป</p>
+  {% elif blocked_by_bill %}
+  <button type="button" class="rr-btn ci-btn" disabled aria-describedby="{{ dom_id }}-bill">เช็คเอาต์</button>
+  <div class="ci-note ci-note--blocked" id="{{ dom_id }}-bill"><p>ต้องรับชำระและปิดบิลก่อน</p></div>
   {% else %}
   <form method="post" action="{{ action_url }}"
         x-on:submit="if (busy || !confirm('{{ confirm_text|escapejs }}')) { $event.preventDefault() } else { busy = true }"
@@ -15,5 +22,5 @@ because it holds the guest's name.
     <button type="submit" class="rr-btn ci-btn" x-bind:disabled="busy">เช็คเอาต์</button>
   </form>
   {% endif %}
-  <a class="ci-link" href="{{ folio_url }}">รับชำระ / ปิดบิล</a>
+  {% if show_folio_link %}<a class="ci-link" href="{{ folio_url }}">รับชำระ / ปิดบิล</a>{% endif %}
 </div>

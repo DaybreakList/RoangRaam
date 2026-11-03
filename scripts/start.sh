@@ -9,8 +9,18 @@ python manage.py migrate --noinput
 
 case "${SEED_ON_START:-false}" in
     true|True|TRUE|1)
-        # seed_demo does nothing when the demo hotels already exist
-        python manage.py seed_demo || echo "seed_demo failed: starting without demo data"
+        # seed_demo does nothing when the demo hotels already exist. The demo dates are
+        # relative to the seed day, so SEED_RESET_ON_START=true rebuilds them for today;
+        # turn it off again after one deploy, or every restart wipes the demo hotels.
+        case "${SEED_RESET_ON_START:-false}" in
+            true|True|TRUE|1)
+                echo "SEED_RESET_ON_START is on: rebuilding the demo hotels"
+                python manage.py seed_demo --reset || echo "seed_demo --reset failed"
+                ;;
+            *)
+                python manage.py seed_demo || echo "seed_demo failed: starting without demo data"
+                ;;
+        esac
         ;;
 esac
 
