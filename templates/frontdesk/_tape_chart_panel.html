@@ -1,34 +1,45 @@
-<section id="tc-panel" aria-label="ตัวกรองและตารางการจอง">
+<section x-init="loadPanel($el)" id="tc-panel" aria-label="ตัวกรองและตารางการจอง">
+  {% csrf_token %}
+  {% if chart %}{{ chart.move_data|json_script:"tc-move-data" }}{% endif %}
   <form method="get" action="{{ request.path }}" class="tc-filters" hx-get="{{ request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
     {% for field in form %}<div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
     <button type="submit" class="rr-btn rr-btn--primary">แสดงผล</button>
-    <a href="{{ request.path }}" hx-get="{{ request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true">ล้างตัวกรอง</a>
+    <a href="{{ clear_url|default:request.path }}" hx-get="{{ clear_url|default:request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true">ล้างตัวกรอง</a>
   </form>
   <p id="tc-loading" class="htmx-indicator" role="status">กำลังโหลดตาราง…</p>
   {% if form.errors %}<p role="alert">กรุณาตรวจสอบตัวกรองด้านบน</p>{% endif %}
   {% if chart %}
   <nav class="tc-navigation" aria-label="เลือกช่วงวันที่" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
-    {% if previous_url %}<a href="{{ previous_url }}" hx-get="{{ previous_url }}">ก่อนหน้า 14 วัน</a>{% else %}<span aria-disabled="true">ก่อนหน้า 14 วัน</span>{% endif %}
+    {% if previous_url %}<a href="{{ previous_url }}" hx-get="{{ previous_url }}">ก่อนหน้า {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ก่อนหน้า {{ chart.window_days }} วัน</span>{% endif %}
     <a href="{{ today_url }}" hx-get="{{ today_url }}">วันนี้</a>
-    {% if next_url %}<a href="{{ next_url }}" hx-get="{{ next_url }}">ถัดไป 14 วัน</a>{% else %}<span aria-disabled="true">ถัดไป 14 วัน</span>{% endif %}
+    {% if next_url %}<a href="{{ next_url }}" hx-get="{{ next_url }}">ถัดไป {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ถัดไป {{ chart.window_days }} วัน</span>{% endif %}
   </nav>
   <p>{{ request.property.name }} · {{ chart.start|date:"j M Y" }} – {{ chart.last_day|date:"j M Y" }}</p>
-  <p id="tc-help">แสดง 14 วันตามเขตเวลาของโรงแรม ไม่นับคืนวันเช็คเอาต์ · เลื่อนแนวนอนเพื่อดูวันถัดไป</p>
+  <noscript><p>กรุณาเปิด JavaScript เพื่อเลื่อนดูห้องทั้งหมดและย้ายห้อง</p></noscript>
+  <p id="tc-help">แสดง {{ chart.window_days }} วันตามเขตเวลาของโรงแรม ไม่นับคืนวันเช็คเอาต์ · เลื่อนแนวนอนเพื่อดูวันถัดไป · ใช้ลูกศรขึ้น/ลง หรือ Home/End เพื่อเลือกแถวห้อง</p>
+  <p x-cloak class="tc-move-help">ลากแถบการจองไปแถวห้องปลายทาง หรือกด Enter / Space บนแถบแล้วเลือกห้อง · วันพักและราคาเดิม
+    <button type="button" x-show="selected" @click="cancel()" :disabled="busy">ยกเลิกการย้าย</button>
+  </p>
   {% if chart.rows %}
-  <div class="tc-scroll" tabindex="0" role="region" aria-label="ตารางห้องและการจอง" aria-describedby="tc-help">
-    <div class="tc-grid">
+  <div x-ignore class="tc-scroll" tabindex="0" role="region" aria-label="ตารางห้องและการจอง" aria-describedby="tc-help">
+    <div class="tc-grid" data-virtual-rows="true" style="--tc-days: {{ chart.window_days }}; --tc-row-height: {{ chart.row_height }}px; --tc-header-height: {{ chart.header_height }}px">
       <div class="tc-header"><div class="tc-room">ห้อง / ชั้น / ประเภท</div><div class="tc-days">{% for day in chart.days %}<div>{{ day|date:"D" }}<br>{{ day|date:"j M" }}</div>{% endfor %}</div></div>
-      {% for row in chart.rows %}
-      <section class="tc-row" aria-label="ห้อง {{ row.room.number }}">
-        <div class="tc-room"><strong>{{ row.room.number }}</strong>
-          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span><br>ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}{% if not row.room.is_active %}<br><span class="tc-closed">ปิดใช้งาน</span>{% endif %}</div>
+      <div class="tc-spacer" data-spacer="top" aria-hidden="true" style="height: 0px"></div>
+      {% for row in chart.initial_rows %}
+      <section class="tc-row" data-room-id="{{ row.room.pk }}"
+               tabindex="-1" aria-label="ห้อง {{ row.room.number }}">
+        <div class="tc-room"><div class="tc-room-title"><strong title="{{ row.room.number }}">{{ row.room.number }}</strong>
+          <span class="tc-housekeeping tc-housekeeping--{{ row.room.hk_status|lower }}">{{ row.room.get_hk_status_display }}</span></div><span class="tc-room-details" title="ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}">ชั้น {{ row.room.floor }} · {{ row.room.room_type.name }}</span>{% if not row.room.is_active %}<span class="tc-closed">ปิดใช้งาน</span>{% endif %}
+          <button type="button" class="tc-target" data-target-room="{{ row.room.pk }}" hidden disabled>ย้ายมาห้อง {{ row.room.number }}</button>
+        </div>
         <div class="tc-track">
-          {% for bar in row.bars %}<div class="tc-bar tc-{{ bar.status|lower }}" data-booking-id="{{ bar.booking_id }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" tabindex="0" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start|date:'j M Y' }} ถึง {{ bar.end|date:'j M Y' }} (วันเช็คเอาต์)" aria-label="{{ bar.code }} {{ bar.guest_name }} {{ bar.label }} เข้าพัก {{ bar.start|date:'j M Y' }} เช็คเอาต์ {{ bar.end|date:'j M Y' }}">
+          {% for bar in row.bars %}<{% if bar.can_move %}button type="button" disabled{% else %}div tabindex="0"{% endif %} class="tc-bar tc-{{ bar.status|lower }}{% if bar.can_move %} tc-movable{% endif %}" data-booking-id="{{ bar.booking_id }}" data-booking-room-id="{{ bar.booking_room_id }}" style="grid-column: {{ bar.column }} / span {{ bar.span }}" title="{{ bar.code }} · {{ bar.guest_name }} · {{ bar.label }} · {{ bar.start_label }} ถึง {{ bar.end_label }} (วันเช็คเอาต์)"{% if bar.can_move %} aria-label="ย้ายห้องสำหรับการจอง {{ bar.code }}"{% endif %}>
             <strong>{% if bar.continues_before %}← {% endif %}{{ bar.code }}{% if bar.continues_after %} →{% endif %}</strong><span class="tc-guest">{{ bar.guest_name }}</span><span>{{ bar.label }}</span>
-          </div>{% empty %}<span class="tc-empty">ไม่มีการจองในช่วงนี้</span>{% endfor %}
+          </{% if bar.can_move %}button{% else %}div{% endif %}>{% empty %}<span class="tc-empty">ไม่มีการจองในช่วงนี้</span>{% endfor %}
         </div>
       </section>
       {% endfor %}
+      <div class="tc-spacer" data-spacer="bottom" aria-hidden="true" style="height: {{ chart.remaining_height }}px"></div>
     </div>
   </div>
   {% else %}<p class="tc-no-rooms">ยังไม่มีห้องที่ตรงกับเงื่อนไขในช่วงนี้</p>{% endif %}

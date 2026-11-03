@@ -12,7 +12,7 @@ from django.views.generic import TemplateView
 from apps.properties.permissions import Role, RoleRequiredMixin
 from .services.tape_chart import WINDOW_DAYS, build_tape_chart
 from .services.tape_chart_moves import move_booking_room
-from .tape_chart_forms import LAST_START, TapeChartFilterForm, TapeChartMoveForm
+from .tape_chart_forms import TapeChartFilterForm, TapeChartMoveForm
 
 
 class TapeChartView(RoleRequiredMixin, TemplateView):
@@ -25,14 +25,22 @@ class TapeChartView(RoleRequiredMixin, TemplateView):
         data = request.GET.copy()
         if 'start' not in data:
             data['start'] = today.isoformat()
+        if 'days' not in data:
+            data['days'] = WINDOW_DAYS
         form = TapeChartFilterForm(data, property=request.property)
-        context = self.get_context_data(form=form, chart=None)
-        if form.is_valid():
+        valid = form.is_valid()
+        context = self.get_context_data(
+            form=form, chart=None,
+            clear_url=request.path + '?' + urlencode({'days': form.cleaned_data.get('days', WINDOW_DAYS)}),
+        )
+        if valid:
             values = form.cleaned_data
             context['chart'] = build_tape_chart(request.property, **values)
 
             def link(day):
                 params = {'start': day.isoformat()}
+                if values['days'] != WINDOW_DAYS:
+                    params['days'] = values['days']
                 if values['floor'] is not None:
                     params['floor'] = values['floor']
                 if values['room_type'] is not None:
@@ -40,10 +48,11 @@ class TapeChartView(RoleRequiredMixin, TemplateView):
                 return request.path + '?' + urlencode(params)
 
             start = values['start']
-            step = timedelta(days=WINDOW_DAYS)
+            step = timedelta(days=values['days'])
+            last_start = date.max - step
             context.update(
                 previous_url=link(start - step) if start >= date.min + step else None,
-                next_url=link(start + step) if start <= LAST_START - step else None,
+                next_url=link(start + step) if start <= last_start - step else None,
                 today_url=link(today),
             )
         partial = request.headers.get('HX-Request') == 'true' and request.headers.get('HX-History-Restore-Request') != 'true'

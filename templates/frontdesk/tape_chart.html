@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}ตารางการจอง · {{ request.property.name }}{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/tape_chart.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/tape_chart.css' %}"><script src="{% static 'frontdesk/tape_chart.js' %}"></script>{% endblock %}
 {% block content %}
-<main class="tc-page">
+<main class="tc-page" x-data="tapeChart" :aria-busy="busy"
+      @pointerdown="handlePointer($event)" @click="handleClick($event)" @keydown="handleKey($event)" @resize.window="queueWindow()"
+      @pointermove.window="dragOver($event)" @pointerup.window="drop($event)"
+      @pointercancel.window="cancel()" @keydown.escape.window="cancel()" @blur.window="cancel()">
+  <p class="tc-move-message" role="status" aria-live="polite" x-text="message"></p>
+  <p class="tc-drag-ghost" x-cloak x-show="dragging" :style="{left: pointerX + 12 + 'px', top: pointerY + 12 + 'px'}">ย้ายห้อง · วันพักเดิม</p>
   <h1>ตารางการจอง</h1>
   {% include "frontdesk/_tape_chart_panel.html" %}
 </main>
