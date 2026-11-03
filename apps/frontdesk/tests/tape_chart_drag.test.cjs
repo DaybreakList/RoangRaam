@@ -301,7 +301,7 @@ test('saving disables native move controls, and failed refresh keeps them disabl
 
 
 // Small DOM double for row lifecycle/focus tests. No browser library is required.
-function virtualMount(context) {
+function virtualMount(context, rowHeight = 112) {
     const {app, env} = context, doc = env.document;
     class Element {
         constructor(tag) {
@@ -349,7 +349,7 @@ function virtualMount(context) {
     const csrf = element('input', {name: 'csrfmiddlewaretoken'}); csrf.value = 'csrf-test';
     root.append(panel); panel.append(script, csrf, scroll); scroll.append(grid);
     const sample = app.data.stays['99'];
-    const data = {serverNow: '2026-11-01T00:00:00Z', viewport: {rowHeight: 144, headerHeight: 64, overscan: 3},
+    const data = {serverNow: '2026-11-01T00:00:00Z', viewport: {rowHeight, headerHeight: 64, overscan: 3},
         labels: {CONFIRMED: 'ยืนยันแล้ว'}, dates: {'2026-11-01': '1 พ.ย. 2026', '2026-12-01': '1 ธ.ค. 2026'}, order: [], rooms: {}, stays: {}};
     for (let i = 0; i < 90; i++) {
         const id = String(i + 1), stayId = String(i + 99);
@@ -365,14 +365,14 @@ function virtualMount(context) {
     };
     app.$root = root; reload();
     doc.elementFromPoint = (_, y) => grid.querySelectorAll('[data-room-id]').find(row =>
-        row.dataset.roomId === data.order[Math.floor((y + scroll.scrollTop - 64) / 144)]) || null;
+        row.dataset.roomId === data.order[Math.floor((y + scroll.scrollTop - data.viewport.headerHeight) / data.viewport.rowHeight)]) || null;
     return {data, grid, scroll, panel, reload, doc, rows: () => grid.querySelectorAll('[data-room-id]')};
 }
 
 test('virtual range bounds include overscan and clamp first/last/empty viewports', () => {
     const {app} = setup();
     assert.equal(JSON.stringify(app.windowRange(0, 500, 90)), JSON.stringify({start: 0, end: 7}));
-    assert.equal(JSON.stringify(app.windowRange(144 * 40, 500, 90)), JSON.stringify({start: 37, end: 47}));
+    assert.equal(JSON.stringify(app.windowRange(112 * 40, 500, 90)), JSON.stringify({start: 37, end: 47}));
     assert.equal(app.windowRange(999999, 500, 90).end, 90);
     assert.equal(app.windowRange(0, 500, 0).end, 0);
 });
@@ -383,9 +383,9 @@ test('virtual DOM stays bounded, preserves all model data, and inserts guest tex
     assert.equal(Object.keys(app.data.rooms).length, 90);
     view.data.stays['187'].display.guest = '<img src=x onerror=alert(1)>'; view.reload();
     app.focusRoom(88);
-    assert.ok(view.rows().length <= 10);
+    assert.ok(view.rows().length <= Math.ceil((view.scroll.clientHeight - 64) / 112) + 1 + 6);
     assert.equal(view.grid.querySelectorAll('.tc-guest').at(-1).textContent, '<img src=x onerror=alert(1)>');
-    assert.equal(view.grid.querySelectorAll('[data-spacer="top"]')[0].style.height, 82 * 144 + 'px');
+    assert.equal(view.grid.querySelectorAll('[data-spacer="top"]')[0].style.height, 82 * 112 + 'px');
 });
 
 test('End/Home/PageDown and Tab/Shift-Tab move focus across recycled rows', () => {
@@ -405,7 +405,7 @@ test('End/Home/PageDown and Tab/Shift-Tab move focus across recycled rows', () =
 test('scrolling away from a focused recycled row moves focus to chart without losing keyboard navigation', () => {
     const context = setup(), view = virtualMount(context), {app, tick} = context;
     app.focusRoom(0);
-    view.scroll.scrollTop = 144 * 40;
+    view.scroll.scrollTop = 112 * 40;
     view.scroll.listeners.get('scroll')(); tick();
     assert.equal(view.doc.activeElement, view.scroll);
     app.handleKey({key: 'ArrowDown', target: view.scroll, preventDefault() {}});
@@ -415,7 +415,7 @@ test('scrolling away from a focused recycled row moves focus to chart without lo
 test('release mounts the destination at final scroll position before hit-test, even with pending drag frame', async () => {
     const context = setup(), view = virtualMount(context), {app, frames} = context;
     app.beginDrag(pointer(10, 100), '99');
-    view.scroll.scrollTop = 90 * 144 - 436;
+    view.scroll.scrollTop = 90 * 112 - 436;
     app.dragOver(pointer(100, 480));
     let target; app.submitMove = async id => { target = id; };
     await app.drop(pointer(100, 480));
@@ -426,12 +426,12 @@ test('release mounts the destination at final scroll position before hit-test, e
 
 test('edge auto-scroll recycles rows and cancellation clears pending pointer work', () => {
     const context = setup(), view = virtualMount(context), {app, tick, frames} = context;
-    view.scroll.scrollTop = 144 * 20; app.renderWindow();
+    view.scroll.scrollTop = 112 * 20; app.renderWindow();
     const first = view.rows()[0].dataset.roomId;
     app.beginDrag(pointer(100, 100), '99'); app.dragOver(pointer(100, 490));
     for (let i = 0; i < 12; i++) tick();
     assert.notEqual(view.rows()[0].dataset.roomId, first);
-    assert.ok(view.rows().length <= 10);
+    assert.ok(view.rows().length <= Math.ceil((view.scroll.clientHeight - 64) / 112) + 1 + 6);
     app.cancel(); assert.equal(frames.size, 0);
 });
 
@@ -474,10 +474,33 @@ test('resize coalesces window work and changes mounted row count without resetti
     view.scroll.clientHeight = 1200;
     for (let i = 0; i < 10; i++) app.queueWindow();
     assert.equal(frames.size, 1); tick();
-    assert.equal(view.rows().length, 11);
+    assert.equal(view.rows().length, 14);
     assert.equal(app.selected, '99'); assert.equal(view.doc.activeElement, focused);
     view.scroll.clientHeight = 400; app.queueWindow(); tick();
     assert.equal(view.rows().length, 6);
     assert.equal(app.selected, '99');
     app.destroy();
 });
+
+for (const rowHeight of [112, 144]) {
+    test(`row geometry ${rowHeight}px keeps spacers, keyboard and targets aligned through selection`, () => {
+        const context = setup(), view = virtualMount(context, rowHeight), {app} = context;
+        view.scroll.clientHeight = 512;
+        app.focusRoom(40);
+        const before = view.scroll.scrollTop;
+        app.select('99');
+        app.renderWindow();
+        assert.equal(view.scroll.scrollTop, before);
+        assert.ok(view.grid.querySelectorAll('[data-target-room]').every(target => !target.hidden));
+        const top = Number.parseInt(view.grid.querySelectorAll('[data-spacer="top"]')[0].style.height);
+        const bottom = Number.parseInt(view.grid.querySelectorAll('[data-spacer="bottom"]')[0].style.height);
+        assert.equal(top + view.rows().length * rowHeight + bottom, 90 * rowHeight);
+        app.handleKey({key: 'PageDown', target: view.doc.activeElement, preventDefault() {}});
+        assert.equal(view.doc.activeElement.closest('[data-room-id]').dataset.roomId, rowHeight === 112 ? '45' : '44');
+        app.cancel();
+        assert.ok(view.grid.querySelectorAll('[data-target-room]').every(target => target.hidden));
+        app.focusRoom(89);
+        assert.equal(view.rows().at(-1).dataset.roomId, '90');
+        assert.equal(view.grid.querySelectorAll('[data-spacer="bottom"]')[0].style.height, '0px');
+    });
+}

@@ -36,8 +36,10 @@
             title.append(node('strong', {title: room.number}, room.number),
                 node('span', {class: 'tc-housekeeping tc-housekeeping--' + room.hkStatus.toLowerCase()}, room.hkLabel));
             const details = 'ชั้น ' + room.floor + ' · ' + room.typeName;
-            info.append(title, node('span', {class: 'tc-room-details', title: details}, details));
-            if (!room.active) info.append(node('span', {class: 'tc-closed'}, 'ปิดใช้งาน'));
+            const meta = node('div', {class: 'tc-room-meta'});
+            meta.append(node('span', {class: 'tc-room-details', title: details}, details));
+            if (!room.active) meta.append(node('span', {class: 'tc-closed'}, 'ปิดใช้งาน'));
+            info.append(title, meta);
             const target = node('button', {class: 'tc-target', 'data-target-room': id, type: 'button'}, 'ย้ายมาห้อง ' + room.number);
             target.hidden = target.disabled = true;
             info.append(target);
@@ -103,7 +105,7 @@
                 this.version++;
             },
             isVirtual() { return !!state.data.order && state.grid?.dataset?.virtualRows === 'true'; },
-            windowRange(top, height, total, rowHeight = 144, headerHeight = 64, overscan = 3) {
+            windowRange(top, height, total, rowHeight = 112, headerHeight = 64, overscan = 3) {
                 const first = Math.max(0, Math.min(total, Math.floor(top / rowHeight)));
                 const last = Math.max(first, Math.min(total, Math.ceil((top + Math.max(0, height - headerHeight)) / rowHeight)));
                 return {start: Math.max(0, first - overscan), end: Math.min(total, last + overscan)};
