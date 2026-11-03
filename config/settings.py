@@ -45,7 +45,14 @@ if HTTPS_ENABLED:
     # One hour while HTTPS is new; raise it once everything is known to work
     SECURE_HSTS_SECONDS = 3600
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # Keeps `check --deploy` quiet; it has no real effect, since a *.onrender.com host
+    # cannot join the browsers' preload list
     SECURE_HSTS_PRELOAD = True
+
+# Serve uploaded files (hotel logos, room photos) from Django when DEBUG is off. Render
+# has no web server in front for /media/. Only public files may live in MEDIA_ROOT
+# (AGENTS.md rule 12): receipts and other guest data are sent by checked views instead.
+SERVE_MEDIA = os.getenv('DJANGO_SERVE_MEDIA', 'False') == 'True'
 
 
 # Application definition

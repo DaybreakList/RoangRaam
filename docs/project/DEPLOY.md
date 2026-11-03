@@ -52,6 +52,7 @@ New > Web Service > เลือก repo `DaybreakList/RoangRaam`
 | `DJANGO_ALLOWED_HOSTS` | เว้นว่างได้ ระบบเพิ่มชื่อโฮสต์ของ Render จาก `RENDER_EXTERNAL_HOSTNAME` ให้เอง |
 | `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | จากหน้า Internal ของฐานข้อมูลในขั้น 1 |
 | `WEB_CONCURRENCY` | `2` (แพ็กเกจฟรีมี RAM 512 MB) |
+| `DJANGO_SERVE_MEDIA` | `True` (ให้ Django เสิร์ฟโลโก้และรูปห้องที่ `/media/` เพราะ Render ไม่มี web server ด้านหน้า) |
 | `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` (อีเมลแสดงใน Logs เพราะแพ็กเกจฟรีบล็อก SMTP) |
 | `DEFAULT_FROM_EMAIL` | `noreply@roangraam.onrender.com` |
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | คีย์โหมดทดสอบเท่านั้น จากเจ้าของบัญชี Stripe |
@@ -74,7 +75,7 @@ Stripe webhook ให้ชี้มาที่ `https://<host>/stripe/webhook/
 | ข้อจำกัด | ผล | สิ่งที่ทำ |
 | --- | --- | --- |
 | พักเครื่องหลังไม่มีคนเข้า 15 นาที ตื่นใช้ราว 1 นาที | หน้าแรกช้า | เปิดเว็บไว้ก่อนเริ่มนำเสนออย่างน้อย 2 นาที |
-| ไฟล์ในเครื่องหายเมื่อ restart หรือ deploy ใหม่ | โลโก้และรูปห้องที่อัปโหลดหาย (ข้อมูลเดโมไม่มีรูป) | อัปโหลดใหม่ก่อนเดโม และไม่ deploy ระหว่างนั้น |
+| ไฟล์ในเครื่องหายเมื่อ restart, deploy ใหม่ หรือเครื่องพัก | โลโก้และรูปห้องที่อัปโหลดหาย หน้าเว็บจะขึ้นเป็นรูปเสีย (ข้อมูลเดโมไม่มีรูป) | ตั้ง `DJANGO_SERVE_MEDIA=True` อัปโหลดใหม่ก่อนเดโม และไม่ deploy ระหว่างนั้น |
 | บล็อก SMTP (port 25, 465, 587) | ส่งอีเมลจริงไม่ได้ | ดูอีเมลยืนยันในแท็บ Logs |
 | PostgreSQL ฟรีหมดอายุ 30 วันหลังสร้าง | ฐานข้อมูลใช้ไม่ได้ | สร้างใหม่ถ้าต้องใช้หลังตรวจงาน |
 | ไม่มี Shell และไม่มี Cron Job | รัน `seed_demo --reset` และ `release_expired_bookings` เองไม่ได้ | การค้นหาไม่นับ hold ที่หมดเวลาอยู่แล้ว |

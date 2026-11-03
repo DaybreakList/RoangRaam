@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import subprocess
@@ -7,6 +8,9 @@ import pytest
 from django.conf import settings as django_settings
 from django.core.management import call_command
 from django.test import Client
+from django.urls import clear_url_caches
+
+import config.urls
 
 REPO = django_settings.BASE_DIR
 
@@ -109,6 +113,61 @@ def test_the_image_starts_gunicorn_through_the_start_script():
     assert b'migrate --noinput' in script
     assert b'exec gunicorn config.wsgi:application' in script
     assert b'${PORT:-8000}' in script
+
+
+@pytest.fixture
+def media_urls(settings, tmp_path):
+    """
+    Rebuild config.urls with DEBUG off and SERVE_MEDIA set by the test, over a temporary
+    MEDIA_ROOT holding one logo. The original URLs are rebuilt afterwards.
+    """
+    original = (settings.DEBUG, settings.SERVE_MEDIA, settings.MEDIA_ROOT)
+    settings.MEDIA_ROOT = tmp_path / 'media'
+    logo = settings.MEDIA_ROOT / 'properties' / 'demo' / 'logo.png'
+    logo.parent.mkdir(parents=True)
+    logo.write_bytes(b'\x89PNG fake logo')
+    (tmp_path / 'outside.txt').write_text('not public')
+
+    def build(serve_media):
+        settings.DEBUG, settings.SERVE_MEDIA = False, serve_media
+        importlib.reload(config.urls)
+        clear_url_caches()
+
+    yield build
+    settings.DEBUG, settings.SERVE_MEDIA, settings.MEDIA_ROOT = original
+    importlib.reload(config.urls)
+    clear_url_caches()
+
+
+@pytest.mark.django_db
+def test_uploaded_logos_are_served_when_asked_with_debug_off(client, media_urls):
+    media_urls(serve_media=True)
+
+    response = client.get('/media/properties/demo/logo.png')
+
+    assert response.status_code == 200
+    assert b''.join(response.streaming_content) == b'\x89PNG fake logo'
+    assert response['X-Content-Type-Options'] == 'nosniff'
+
+
+@pytest.mark.django_db
+def test_media_is_not_served_by_default_with_debug_off(client, media_urls):
+    media_urls(serve_media=False)
+
+    assert client.get('/media/properties/demo/logo.png').status_code == 404
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('path', ['/media/../outside.txt', '/media/%2E%2E/outside.txt', '/media/properties/'])
+def test_media_never_leaves_media_root_or_lists_folders(client, media_urls, path):
+    media_urls(serve_media=True)
+    # Answer like the real server: a path outside MEDIA_ROOT is a 400, not an exception
+    client.raise_request_exception = False
+
+    response = client.get(path)
+
+    assert response.status_code in (400, 404)
+    assert b'not public' not in response.content
 
 
 @pytest.mark.parametrize('name', ['.gitignore', '.dockerignore'])
