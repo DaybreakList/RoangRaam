@@ -29,7 +29,6 @@ Role = Membership.Role
 ALL = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK, Role.HOUSEKEEPING)
 FRONT_DESK = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK)
 MANAGEMENT = (Role.OWNER, Role.MANAGER)
-CLEANING = (Role.OWNER, Role.MANAGER, Role.HOUSEKEEPING)
 
 GET, POST = 'get', 'post'
 READ_PAGE = ((GET,), FRONT_DESK)
@@ -56,7 +55,7 @@ MATRIX = {
     'check_in_out:check_in': ((POST,), FRONT_DESK),
     'check_in_out:check_out': ((POST,), FRONT_DESK),
     'room_status:index': ((GET,), ALL),
-    'room_status:mark_clean': ((POST,), CLEANING),
+    'room_status:mark_clean': ((POST,), ALL),
     # Folio (C)
     'folio:detail': ((GET,), FRONT_DESK),
     'folio:pay': ((POST,), FRONT_DESK),

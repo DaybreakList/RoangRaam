@@ -42,7 +42,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 | `check_in_out:check_in` | `frontdesk/bookings/<uuid>/check-in/` | POST | ✓ | ✓ | ✓ | | A |
 | `check_in_out:check_out` | `frontdesk/bookings/<uuid>/check-out/` | POST | ✓ | ✓ | ✓ | | A |
 | `room_status:index` | `frontdesk/rooms/` | GET | ✓ | ✓ | ✓ | ✓ | A |
-| `room_status:mark_clean` | `frontdesk/rooms/<id>/clean/` | POST | ✓ | ✓ | | ✓ | A |
+| `room_status:mark_clean` | `frontdesk/rooms/<id>/clean/` | POST | ✓ | ✓ | ✓ | ✓ | A |
 | `folio:detail` | `frontdesk/folio/<uuid>/` | GET | ✓ | ✓ | ✓ | | C |
 | `folio:pay` | `frontdesk/folio/<uuid>/pay/` | POST | ✓ | ✓ | ✓ | | C |
 | `folio:close` | `frontdesk/folio/<uuid>/close/` | POST | ✓ | ✓ | ✓ | | C |

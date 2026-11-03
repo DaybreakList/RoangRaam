@@ -54,6 +54,18 @@ def test_front_desk_roles_check_in_and_go_back_to_today(client, hotel_a, login_m
     assert booking.status == Booking.Status.CHECKED_IN
 
 
+def test_a_thai_id_typed_with_dashes_is_saved_as_13_digits(client, hotel_a, login_member):
+    booking = arriving_today(hotel_a)
+    login_member(hotel_a)
+
+    client.post(url('check_in', booking), {'id_type': 'ID_CARD', 'id_number': '1-2345-67890-12-3'})
+
+    booking.refresh_from_db()
+    booking.guest.refresh_from_db()
+    assert booking.status == Booking.Status.CHECKED_IN
+    assert booking.guest.id_number == '1234567890123'
+
+
 def test_check_in_with_a_room_change(client, hotel_a, login_member):
     booking = arriving_today(hotel_a)
     booking_room = booking.booking_rooms.get()
@@ -156,6 +168,9 @@ def test_anonymous_visitors_are_sent_to_login(client, hotel_a):
     {'id_type': 'PASSPORT'},
     {'id_type': 'DRIVING_LICENCE', 'id_number': 'X1'},
     {**ID, 'room_abc': '1'},
+    {'id_type': 'ID_CARD', 'id_number': '123456789012'},  # 12 digits
+    {'id_type': 'ID_CARD', 'id_number': '12345678901234'},  # 14 digits
+    {'id_type': 'ID_CARD', 'id_number': '12345678901AB'},
 ])
 def test_bad_form_data_is_rejected_with_a_message(client, hotel_a, login_member, data):
     booking = arriving_today(hotel_a)
@@ -177,6 +192,6 @@ def test_a_second_check_in_post_changes_nothing(client, hotel_a, login_member):
 
     response = client.post(url('check_in', booking), ID)
 
-    # The Today page does not show messages yet, so the first success message is still queued
+    # The test never opens the Today page, so the first success message is still queued
     assert texts(response)[-1] == 'เช็คอินไม่ได้ เพราะการจองมีสถานะ "เช็คอินแล้ว"'
     assert booking.booking_rooms.get().checked_in_at == first_time
