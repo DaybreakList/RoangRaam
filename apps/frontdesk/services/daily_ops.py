@@ -5,7 +5,8 @@ Today's front desk lists (TASK-40): arrivals, departures and guests in house.
 PENDING_PAYMENT bookings are left out: they only hold rooms for the payment window
 (60 minutes) and the front desk cannot check them in. Cancelled bookings and
 released rooms (BookingRoom.is_active=False) are never shown. Each row carries the
-booking's payment status, worked out by apps.bookings.payment_status.
+booking's payment status, worked out by apps.bookings.payment_status, and whether its
+bill is closed (bill_closed), so the check-out button can be disabled before the click.
 """
 
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ from zoneinfo import ZoneInfo
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 
-from apps.bookings.models import Booking, BookingRoom
+from apps.bookings.models import Booking, BookingRoom, Receipt
 from apps.bookings.payment_status import PaymentStatus, payment_statuses
 
 # Arrivals keep guests who already checked in today, so the desk sees who is still to come
@@ -28,6 +29,7 @@ class DailyRow:
     room_numbers: list
     room_type_names: list
     payment_status: PaymentStatus
+    bill_closed: bool
 
     @property
     def sort_key(self):
@@ -42,9 +44,10 @@ def daily_lists(property, today=None):
     """
     Arrivals, departures and in-house bookings of `property` for its own today.
 
-    Runs three queries however many bookings there are: one for the bookings with
-    their guests, one for their active rooms, one for their payments (none when
-    nothing is listed).
+    Runs four queries however many bookings there are: one for the bookings with
+    their guests, one for their active rooms, one for their payments and one for
+    their receipts. When nothing is listed only the first runs: payments and
+    receipts are not queried.
     """
     today = today or property_today(property)
     bookings = (
@@ -67,7 +70,11 @@ def daily_lists(property, today=None):
     )
     bookings = list(bookings)
     statuses = payment_statuses(property, bookings)
-    rows = sorted((_row(booking, statuses[booking.pk]) for booking in bookings), key=lambda row: row.sort_key)
+    closed_ids = _closed_bill_ids(property, bookings)
+    rows = sorted(
+        (_row(booking, statuses[booking.pk], booking.pk in closed_ids) for booking in bookings),
+        key=lambda row: row.sort_key,
+    )
     return {
         'today': today,
         'arrivals': [
@@ -82,7 +89,23 @@ def daily_lists(property, today=None):
     }
 
 
-def _row(booking, payment_status):
+def _closed_bill_ids(property, bookings):
+    """
+    The pks of `bookings` whose bill is closed, from one query on their receipts only.
+
+    Same rule as bill_is_closed() in apps/bookings/folio.py, for many bookings at once:
+    a booking with a Receipt has its bill closed. Keep the two in step.
+    """
+    if not bookings:
+        return set()
+    return set(
+        Receipt.scoped.for_property(property)
+        .filter(booking__in=bookings)
+        .values_list('booking_id', flat=True)
+    )
+
+
+def _row(booking, payment_status, bill_closed):
     rooms = booking.active_rooms
     type_names = []
     for booking_room in rooms:
@@ -93,4 +116,5 @@ def _row(booking, payment_status):
         room_numbers=[booking_room.room.number for booking_room in rooms],
         room_type_names=type_names,
         payment_status=payment_status,
+        bill_closed=bill_closed,
     )
