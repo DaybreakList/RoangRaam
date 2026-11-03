@@ -166,6 +166,8 @@ def test_ninety_rooms_queries_and_mixed_status_markup(client, hotel_a, login_mem
     assert len(data['order']) == 90 and len(data['stays']) == 90
     assert data['order'][-1] not in {str(row['room'].pk) for row in chart['initial_rows']}
     assert chart['remaining_height'] == 82 * chart['row_height']
+    assert data['viewport']['rowHeight'] == chart['row_height'] == 112
+    assert '--tc-row-height: 112px' in response.content.decode()
     for tag, attrs in parsed.bars:
         can_move = chart['move_data']['stays'][attrs['data-booking-room-id']]['canMove']
         assert tag == ('button' if can_move else 'div')

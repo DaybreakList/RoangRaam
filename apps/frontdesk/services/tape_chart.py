@@ -13,7 +13,7 @@ from apps.rooms.models import Room
 WINDOW_DAYS = 14
 ALLOWED_WINDOW_DAYS = (14, 60)
 INITIAL_ROWS = 8
-ROW_HEIGHT = 144
+ROW_HEIGHT = 112
 HEADER_HEIGHT = 64
 
 

@@ -34,15 +34,15 @@
 .tc-housekeeping--dirty { color: #674508; background: #fff2cf; border-color: #b08224; }
 
 .tc-page [x-cloak] { display: none !important; }
-.tc-target { padding: 6px 10px; min-height: 36px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
+.tc-target { padding: 6px 10px; min-height: 44px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
 .tc-movable { touch-action: none; cursor: grab; user-select: none; font: inherit; text-align: left; }
 .tc-movable::before { content: "↕ ย้ายห้อง"; display: block; font-size: 12px; }
 .tc-movable:active { cursor: grabbing; }
 .tc-movable:disabled, .tc-target:disabled { cursor: not-allowed; }
 .tc-target:disabled { opacity: .55; }
-/* Reserve target space so selecting a stay does not relayout every booking row. */
-.tc-target[hidden] { display: block; visibility: hidden; }
-.tc-target { display: block; margin-top: 6px; font-size: 12px; }
+/* Row height stays fixed even when target controls are absent. */
+.tc-target[hidden] { display: none; }
+.tc-target { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-size: 12px; }
 .tc-drop-valid { outline: 3px solid #167348; outline-offset: -3px; }
 .tc-drop-invalid { outline: 3px solid #b42318; outline-offset: -3px; }
 .tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: 6px; background: #172b42; color: #fff; }
@@ -51,13 +51,17 @@
 .tc-page[aria-busy="true"] .tc-filters, .tc-page[aria-busy="true"] .tc-navigation { opacity: .6; pointer-events: none; }
 
 /* Fixed geometry keeps row recycling, keyboard navigation and drop hit-tests aligned. */
-.tc-row { height: var(--tc-row-height, 144px); min-height: 0; box-sizing: border-box; }
+.tc-row { height: var(--tc-row-height, 112px); min-height: 0; box-sizing: border-box; }
 .tc-header { height: var(--tc-header-height, 64px); box-sizing: border-box; }
-.tc-row .tc-room { height: 100%; box-sizing: border-box; overflow: hidden; }
-.tc-room-title { display: flex; align-items: center; gap: 4px; }
+.tc-row .tc-room { height: 100%; box-sizing: border-box; overflow: hidden; padding: 6px 8px; }
+.tc-room-title { display: flex; align-items: center; gap: 4px; min-height: 26px; }
 .tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tc-room-title .tc-housekeeping { flex: none; margin-left: 0; }
-.tc-room-details, .tc-row .tc-closed { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-room-title .tc-housekeeping { flex: none; margin: 0; }
+.tc-room-meta { display: flex; align-items: center; gap: 6px; height: 20px; line-height: 20px; }
+.tc-room-details { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-room-meta .tc-closed { flex: none; white-space: nowrap; }
+.tc-bar strong { line-height: 20px; }
+.tc-bar span, .tc-movable::before { line-height: 16px; }
 .tc-spacer { pointer-events: none; }
 .tc-row:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
 
