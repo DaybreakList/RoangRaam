@@ -4,6 +4,7 @@ The POST endpoints themselves are tested in test_check_in_out_views.py.
 """
 
 import re
+import uuid
 from datetime import date, datetime, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
@@ -17,7 +18,7 @@ from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from apps.bookings.folio import close_bill
+from apps.bookings.folio import close_bill, record_desk_payment
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory, GuestFactory
 from apps.frontdesk.services.daily_ops import property_today
@@ -75,6 +76,14 @@ def form_for(page, url):
 
 def forms_to(page, url):
     return page.count(f'action="{url}"')
+
+
+def close_the_bill(booking):
+    """Close the bill of a CHECKED_IN `booking` for real, so the Today page shows its check-out form."""
+    hotel = booking.property
+    if booking.total_amount > 0:
+        record_desk_payment(hotel, booking.pk, user=None, idempotency_key=uuid.uuid4())
+    close_bill(hotel, booking.pk, user=None)
 
 
 # ---------- Check-in form ----------
@@ -185,6 +194,9 @@ def test_check_out_button_is_on_checked_in_rows_of_both_sections(client, hotel_a
     staying = book(hotel_a, -1, 2, Status.CHECKED_IN)
     left = book(hotel_a, -2, 0, Status.CHECKED_OUT)
     confirmed = book(hotel_a, 0, 2)
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(leaving)
+    close_the_bill(staying)
     login_member(hotel_a)
 
     page = get_page(client, hotel_a)
@@ -207,8 +219,48 @@ def test_check_out_is_disabled_on_the_check_in_day(client, hotel_a, login_member
     assert TOO_EARLY_NOTE in page
 
 
+def test_an_open_bill_disables_check_out_on_the_page_but_keeps_the_folio_link(client, hotel_a, login_member):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+    login_member(hotel_a)
+
+    page = get_page(client, hotel_a)
+
+    assert forms_to(page, action_url('check_out', booking)) == 0
+    assert BILL_NOTE in page
+    assert TOO_EARLY_NOTE not in page
+    assert re.search(r'<button type="button" class="rr-btn ci-btn" disabled', page)
+    assert 'รับชำระ / ปิดบิล' in page
+    assert page.count(f'href="{folio_link(hotel_a, booking)}"') >= 2  # the code link and the "pay / close bill" link
+
+
+def test_a_closed_bill_gives_the_check_out_form_and_only_its_own_row(client, hotel_a, login_member):
+    closed = book(hotel_a, -1, 2, Status.CHECKED_IN)
+    open_bill = book(hotel_a, -1, 3, Status.CHECKED_IN)
+    close_the_bill(closed)
+    login_member(hotel_a)
+
+    page = get_page(client, hotel_a)
+
+    assert forms_to(page, action_url('check_out', closed)) == 1
+    assert forms_to(page, action_url('check_out', open_bill)) == 0
+    assert page.count(BILL_NOTE) == 1
+
+
+def test_the_check_in_day_note_wins_over_an_open_bill_on_the_page(client, hotel_a, login_member):
+    booking = book(hotel_a, 0, 2, Status.CHECKED_IN)
+    login_member(hotel_a)
+
+    page = get_page(client, hotel_a)
+
+    assert forms_to(page, action_url('check_out', booking)) == 0
+    assert TOO_EARLY_NOTE in page
+    assert BILL_NOTE not in page
+
+
 def test_leaving_early_asks_first_and_says_the_rest_is_not_refunded(client, hotel_a, login_member):
     booking = book(hotel_a, -1, 3, Status.CHECKED_IN)
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(booking)
     login_member(hotel_a)
 
     form = form_for(get_page(client, hotel_a), action_url('check_out', booking))
@@ -222,6 +274,8 @@ def test_leaving_early_asks_first_and_says_the_rest_is_not_refunded(client, hote
 @pytest.mark.parametrize('check_in, check_out', [(-2, 0), (-3, -1)], ids=['leaves-today', 'overdue'])
 def test_no_early_warning_on_or_after_the_check_out_date(client, hotel_a, login_member, check_in, check_out):
     booking = book(hotel_a, check_in, check_out, Status.CHECKED_IN)
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(booking)
     login_member(hotel_a)
 
     page = get_page(client, hotel_a)
@@ -234,6 +288,8 @@ def test_no_early_warning_on_or_after_the_check_out_date(client, hotel_a, login_
 def test_guest_names_are_escaped_inside_the_confirm_text(client, hotel_a, login_member):
     guest = GuestFactory(property=hotel_a, first_name='''O'Brien "x"''', last_name='</script>')
     booking = book(hotel_a, -1, 3, Status.CHECKED_IN, guest=guest)
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(booking)
     login_member(hotel_a)
 
     page = get_page(client, hotel_a)
@@ -260,6 +316,8 @@ def test_today_comes_from_the_hotel_timezone_not_the_server_clock(client, login_
     )
     for booking in (checked_in_today, checked_in_yesterday):
         BookingRoomFactory(booking=booking, room=RoomFactory(property=bangkok, hk_status=CLEAN))
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(checked_in_yesterday)
 
     with patch('django.utils.timezone.now', return_value=moment):
         page = get_page(client, bangkok)
@@ -488,6 +546,8 @@ def test_nothing_of_another_hotel_is_in_the_html(client, hotel_a, hotel_b, login
 def test_front_desk_roles_get_the_controls(client, hotel_a, login_member, role):
     arriving = book(hotel_a, 0, 2)
     staying = book(hotel_a, -1, 2, Status.CHECKED_IN)
+    # bill must be closed for the check-out form (bill_closed)
+    close_the_bill(staying)
     login_member(hotel_a, role=role)
 
     page = get_page(client, hotel_a)

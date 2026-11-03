@@ -8,7 +8,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from apps.bookings.models import Booking, Payment
+from apps.bookings.models import Booking, Payment, Receipt
 from apps.bookings.payment_status import PaymentStatus
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.daily_ops import daily_lists, property_today
@@ -37,6 +37,15 @@ class PaymentFactory(factory.django.DjangoModelFactory):
     amount = Decimal('3000.00')
     provider_ref = factory.Sequence(lambda n: f'pi_daily_{n}')
     idempotency_key = factory.Sequence(lambda n: f'evt_daily_{n}')
+
+
+def issue_receipt(booking, prop=None):
+    """A Receipt (a closed bill) for `booking`, issued by `prop` (the booking's own hotel by default)."""
+    prop = prop or booking.property
+    return Receipt.objects.create(
+        property=prop, booking=booking, number=Receipt.objects.filter(property=prop).count() + 1,
+        total=Decimal('0.00'), tax_rate=Decimal('7.00'), tax_amount=Decimal('0.00'),
+    )
 
 
 def book(prop, numbers, start, end, status=Status.CONFIRMED, active=True, **extra):
@@ -129,8 +138,15 @@ def test_query_count_does_not_grow_with_bookings(hotel_a, today_bookings, django
     for number in range(201, 211):
         book(hotel_a, [str(number)], 0, 2)
 
-    with django_assert_num_queries(3):
+    with django_assert_num_queries(4):
         daily_lists(hotel_a)
+
+
+def test_an_empty_day_runs_one_query_and_skips_payments_and_receipts(hotel_a, django_assert_num_queries):
+    with django_assert_num_queries(1):
+        lists = daily_lists(hotel_a)
+
+    assert lists['arrivals'] == lists['departures'] == lists['in_house'] == []
 
 
 def test_each_row_carries_the_payment_status_of_its_booking(hotel_a):
@@ -146,6 +162,38 @@ def test_each_row_carries_the_payment_status_of_its_booking(hotel_a):
         at_hotel.code: PaymentStatus.PAY_AT_HOTEL,
         unpaid.code: PaymentStatus.AWAITING,
     }
+
+
+def test_a_booking_with_a_receipt_has_its_bill_closed(hotel_a):
+    closed = book(hotel_a, ['101'], -1, 2, Status.CHECKED_IN)
+    issue_receipt(closed)
+    open_bill = book(hotel_a, ['102'], -1, 2, Status.CHECKED_IN)
+
+    rows = daily_lists(hotel_a)['in_house']
+
+    assert {row.booking.code: row.bill_closed for row in rows} == {
+        closed.code: True,
+        open_bill.code: False,
+    }
+
+
+def test_receipts_of_other_bookings_do_not_close_the_bill(hotel_a, hotel_b):
+    booking = book(hotel_a, ['101'], -1, 2, Status.CHECKED_IN)
+    issue_receipt(book(hotel_a, ['102'], -1, 2, Status.CHECKED_IN))  # same hotel, another booking
+    issue_receipt(book(hotel_b, ['101'], -1, 2, Status.CHECKED_IN))  # another hotel
+
+    row = next(row for row in daily_lists(hotel_a)['in_house'] if row.booking == booking)
+
+    assert row.bill_closed is False
+
+
+def test_a_receipt_issued_by_another_hotel_does_not_close_the_bill(hotel_a, hotel_b):
+    booking = book(hotel_a, ['101'], -1, 2, Status.CHECKED_IN)
+    issue_receipt(booking, prop=hotel_b)
+
+    row = daily_lists(hotel_a)['in_house'][0]
+
+    assert row.bill_closed is False
 
 
 def test_a_pay_at_hotel_guest_who_checked_out_still_shows_pay_at_hotel(hotel_a):
