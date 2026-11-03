@@ -31,7 +31,7 @@
           {% with status=row.payment_status.value %}
           <td><span class="rr-badge{% if status == 'AWAITING' %} rr-badge--warning{% elif status == 'REFUND_PENDING' %} rr-badge--danger{% elif status == 'PAY_AT_HOTEL' or status == 'REFUNDED' or status == 'NONE' %} rr-badge--muted{% endif %}">{{ row.payment_status.label }}</span></td>
           {% endwith %}
-          <td>{% if row.booking.status == 'CONFIRMED' and section_id == 'arrivals' %}{% check_in_form row %}{% elif row.booking.status == 'CHECKED_IN' and section_id != 'arrivals' %}{% check_out_button row.booking lists.today section_id %}{% else %}—{% endif %}</td>
+          <td>{% if row.booking.status == 'CONFIRMED' and section_id == 'arrivals' %}{% check_in_form row %}{% elif row.booking.status == 'CHECKED_IN' and section_id != 'arrivals' %}{% check_out_button row.booking lists.today section_id bill_closed=row.bill_closed %}{% else %}—{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td class="rr-table__empty" colspan="10">{{ empty }}</td></tr>
