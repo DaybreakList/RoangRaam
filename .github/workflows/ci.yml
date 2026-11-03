@@ -73,8 +73,13 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
 
       # --create-db: CI always starts from an empty database, so this also proves
-      # every migration runs on a blank DB
-      - run: python -m pytest --create-db
+      # every migration runs on a blank DB. Coverage settings are in .coveragerc.
+      - run: coverage run -m pytest --create-db
+
+      # Fails below fail_under in .coveragerc; the table also goes on the run's Summary page
+      - run: |
+          coverage report
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
 
   # Setup and operations: docs/project/STAGING.md
   deploy:
