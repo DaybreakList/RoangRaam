@@ -225,3 +225,48 @@ Validation against main `b7cceaf` plus the uncommitted #106 diff:
 No new migrations. Browser drag acceptance remains the 2026-11-01 run described
 above; this update ran automated regression and HTTP smoke checks. Changes remain
 uncommitted for the user's diff review.
+
+
+## Sprint 3 follow-up: touch drag handle (B for D, #117)
+
+Branch `feat/tape-chart-touch-handle`, built on main `5d43d4a`. Only the handle starts a
+drag now. Before, the whole movable bar set `touch-action: none` and `pointerdown` anywhere
+on it called `preventDefault()` + `beginDrag()`, so on a busy chart a finger could not pan
+the grid. The "↕ ย้ายห้อง" label was a CSS `::before`; it is now a real element.
+
+- Handle: `<span class="tc-drag-handle" title="ลากเพื่อย้ายห้อง" aria-hidden="true">↕ ย้ายห้อง</span>`,
+  the first child of every movable bar. It is built in both places, which must stay in sync:
+  `_tape_chart_panel.html` (first 8 rows, SSR) and `bookingBar()` in `tape_chart.js`
+  (virtualized rows, `createElement` + `textContent` only). Bars that cannot move have none.
+- `touch-action: none`, `cursor: grab` and `user-select: none` are on the handle only. The
+  rest of the bar keeps the default `touch-action`, so the browser pans both axes. A disabled
+  bar's handle goes back to `touch-action: auto`.
+- `handlePointer()` starts a drag only when the target is inside `.tc-drag-handle` of an
+  enabled `.tc-movable`. Elsewhere on the bar it neither calls `preventDefault()` nor
+  `beginDrag()`. On desktop the mouse therefore also drags only from the handle.
+- The bar is still a focusable `<button>` with its `aria-label`; Enter/Space still selects
+  (`handleClick` with `event.detail === 0`), and the "ย้ายมาห้อง…" buttons and
+  Arrow/Home/End/PageUp/PageDown/Tab are unchanged. The handle is not focusable.
+- Geometry is unchanged: `ROW_HEIGHT` stays 112 px. The handle is a full-bleed 32 px band
+  (negative margins cancel the bar padding). By CSS arithmetic the bar is
+  1 + 32 + 52 (text) + 7 + 1 = 93 px of the 99 px a 112 px row allows. This was calculated
+  from the stylesheet, not measured in a browser.
+- No endpoint, payload, service, model, migration or dependency changed.
+
+Tests: five cases added to `tape_chart_drag.test.cjs` (handle starts a drag; other parts of
+the bar and disabled bars do not and do not `preventDefault()`; `bookingBar()` creates the
+handle and still escapes guest names; Enter/Space still selects). `test_tape_chart_performance.py`
+now checks that every movable bar has exactly one handle and fixed bars have none. No
+existing assertion was changed.
+
+Not verified: no physical touch device and no browser run were done for this change, so
+panning, 14/60-day layout and the 93 px measurement still need a manual DevTools (iPad,
+touch) or real-tablet check by the reviewer.
+
+Validation (2026-11-03):
+- `docker run --rm -v "${PWD}:/app" -w /app node:22 node --test apps/frontdesk/tests/tape_chart_drag.test.cjs`: **35 passed** (30 existing + 5 new).
+- `docker compose exec -T web pytest apps/frontdesk -q`: **358 passed**.
+- `docker compose exec -T web pytest -q`: **1442 passed** in 189.35s.
+- `docker compose exec -T web python manage.py check`: no issues.
+- `ruff check .` (ruff 0.17.1, installed temporarily in the container): all checks passed.
+- No browser run, no seed/reset of data, no migration.

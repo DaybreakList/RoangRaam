@@ -150,6 +150,8 @@ def test_ninety_rooms_queries_and_mixed_status_markup(client, hotel_a, login_mem
 
     class Elements(HTMLParser):
         bars = []
+        handles = {}
+        current = None
         rows = 0
 
         def handle_starttag(self, tag, attrs):
@@ -158,6 +160,14 @@ def test_ninety_rooms_queries_and_mixed_status_markup(client, hotel_a, login_mem
                 self.rows += 1
             if 'data-booking-room-id' in attrs:
                 self.bars.append((tag, attrs))
+                self.current = attrs['data-booking-room-id']
+                self.handles[self.current] = []
+            elif 'tc-drag-handle' in (attrs.get('class') or '').split():
+                self.handles[self.current].append((tag, attrs))
+
+        def handle_endtag(self, tag):
+            if tag in ('button', 'div'):
+                self.current = None
 
     parsed = Elements()
     parsed.feed(response.content.decode())
@@ -173,6 +183,15 @@ def test_ninety_rooms_queries_and_mixed_status_markup(client, hotel_a, login_mem
         assert tag == ('button' if can_move else 'div')
         assert not any(key.startswith(('@', ':', 'x-')) for key in attrs)
     assert len([bar for tag, bar in parsed.bars if tag == 'button']) > 0
+    # Only movable bars carry the touch drag handle (#117); fixed bars must stay plain and pannable.
+    assert {tag for tag, _ in parsed.bars} == {'button', 'div'}
+    for tag, attrs in parsed.bars:
+        handles = parsed.handles[attrs['data-booking-room-id']]
+        if tag == 'button':
+            assert [(handle_tag, handle['title'], handle['aria-hidden']) for handle_tag, handle in handles] == [
+                ('span', 'ลากเพื่อย้ายห้อง', 'true')]
+        else:
+            assert handles == []
 
 
 def test_non_displayed_hold_still_blocks_even_when_occupancy_is_reused(hotel_a, hotel_b):

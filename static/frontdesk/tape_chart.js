@@ -25,6 +25,8 @@
                 bar.setAttribute('aria-label', 'ย้ายห้องสำหรับการจอง ' + display.code);
             } else bar.tabIndex = 0;
             bar.style.gridColumn = display.column + ' / span ' + display.span;
+            // Only this handle starts a drag; it mirrors the SSR markup in _tape_chart_panel.html.
+            if (stay.canMove) bar.append(node('span', {class: 'tc-drag-handle', title: 'ลากเพื่อย้ายห้อง', 'aria-hidden': 'true'}, '↕ ย้ายห้อง'));
             bar.append(node('strong', {}, (display.before ? '← ' : '') + display.code + (display.after ? ' →' : '')),
                 node('span', {class: 'tc-guest'}, display.guest), node('span', {}, label));
             return bar;
@@ -254,7 +256,8 @@
                 return '';
             },
             handlePointer(event) {
-                const bar = event.target.closest('.tc-movable');
+                // Anywhere else on the bar is left to the browser so touch can pan the chart.
+                const bar = event.target.closest('.tc-drag-handle')?.closest('.tc-movable');
                 if (bar && this.$root.contains(bar) && !bar.disabled) {
                     event.preventDefault();
                     bar.focus({preventScroll: true});
