@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import timedelta
 from decimal import Decimal
@@ -9,6 +10,7 @@ from django.urls import reverse
 from apps.bookings.folio import close_bill, record_desk_payment
 from apps.bookings.models import Booking, Payment, Receipt
 from apps.bookings.tests.factories import BookingFactory, BookingNightRateFactory, BookingRoomFactory
+from apps.frontdesk.services.daily_ops import property_today
 from apps.properties.models import Membership
 from apps.rooms.tests.factories import RoomFactory
 
@@ -18,8 +20,11 @@ Role = Membership.Role
 Status = Booking.Status
 
 
-def in_house(hotel, status=Status.CHECKED_IN, price='1070.00', nights=2):
-    booking = BookingFactory(property=hotel, status=status, payment_option=Booking.PaymentOption.PAY_AT_HOTEL)
+def in_house(hotel, status=Status.CHECKED_IN, price='1070.00', nights=2, check_in_date=None):
+    dates = {'check_in_date': check_in_date} if check_in_date else {}
+    booking = BookingFactory(
+        property=hotel, status=status, payment_option=Booking.PaymentOption.PAY_AT_HOTEL, **dates,
+    )
     booking.check_out_date = booking.check_in_date + timedelta(days=nights)
     booking.total_amount = Decimal(price) * nights
     booking.save()
@@ -204,3 +209,122 @@ def test_booking_of_another_hotel_is_404_and_nothing_changes(client, hotel_a, ho
     assert response.status_code == 404
     assert Payment.objects.filter(booking=other).count() == 1
     assert not Receipt.objects.exists()
+
+
+# --- check-out button -------------------------------------------------------
+
+def closed_in_house(hotel, check_in_date, nights=3):
+    booking = in_house(hotel, nights=nights, check_in_date=check_in_date)
+    record_desk_payment(hotel, booking.pk, user=None, idempotency_key=uuid.uuid4())
+    close_bill(hotel, booking.pk, user=None)
+    return booking
+
+
+def check_out_url(booking):
+    return reverse('check_in_out:check_out', kwargs={'property_slug': booking.property.slug, 'booking_id': booking.pk})
+
+
+def test_closed_bill_in_house_shows_the_check_out_form(client, hotel_a, login_member):
+    booking = closed_in_house(hotel_a, property_today(hotel_a) - timedelta(days=1))
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    html = response.content.decode()
+    assert response.context['can_check_out'] is True
+    assert check_out_url(booking) in html
+    assert f'<form method="post" action="{check_out_url(booking)}"' in html
+
+
+def test_check_out_button_has_no_folio_link(client, hotel_a, login_member):
+    booking = closed_in_house(hotel_a, property_today(hotel_a) - timedelta(days=1))
+    login_member(hotel_a)
+
+    html = client.get(url('detail', booking)).content.decode()
+
+    assert check_out_url(booking) in html
+    assert 'รับชำระ / ปิดบิล' not in html
+
+
+def test_open_bill_has_no_check_out_button(client, hotel_a, login_member):
+    booking = in_house(hotel_a, check_in_date=property_today(hotel_a) - timedelta(days=1))
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    assert response.context['can_check_out'] is False
+    assert check_out_url(booking) not in response.content.decode()
+
+
+def test_confirmed_booking_has_no_check_out_button(client, hotel_a, login_member):
+    booking = in_house(hotel_a, status=Status.CONFIRMED, check_in_date=property_today(hotel_a) - timedelta(days=1))
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    assert response.context['can_check_out'] is False
+    assert check_out_url(booking) not in response.content.decode()
+
+
+def test_checked_out_booking_has_no_check_out_button(client, hotel_a, login_member):
+    booking = closed_in_house(hotel_a, property_today(hotel_a) - timedelta(days=1))
+    Booking.objects.filter(pk=booking.pk).update(status=Status.CHECKED_OUT)
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    assert response.status_code == 200
+    assert response.context['can_check_out'] is False
+    assert check_out_url(booking) not in response.content.decode()
+
+
+def test_check_out_is_disabled_on_the_check_in_day(client, hotel_a, login_member):
+    booking = closed_in_house(hotel_a, property_today(hotel_a))
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    html = response.content.decode()
+    assert response.context['can_check_out'] is True
+    assert 'เช็คเอาต์ได้ตั้งแต่วันถัดไป' in html
+    assert re.search(r'<button type="button" class="rr-btn ci-btn" disabled[^>]*>เช็คเอาต์</button>', html)
+    assert f'action="{check_out_url(booking)}"' not in html
+
+
+def test_page_gets_the_hotels_own_date(client, hotel_a, login_member):
+    booking = in_house(hotel_a, check_in_date=property_today(hotel_a) - timedelta(days=1))
+    login_member(hotel_a)
+
+    response = client.get(url('detail', booking))
+
+    assert response.context['today'] == property_today(hotel_a)
+
+
+def test_closed_bill_page_runs_a_fixed_number_of_queries(
+    client, hotel_a, login_member, django_assert_max_num_queries,
+):
+    booking = closed_in_house(hotel_a, property_today(hotel_a) - timedelta(days=1), nights=5)
+    login_member(hotel_a)
+
+    with django_assert_max_num_queries(12):
+        client.get(url('detail', booking))
+
+
+def test_pay_close_and_check_out_from_the_folio(client, hotel_a, login_member):
+    booking = in_house(hotel_a, check_in_date=property_today(hotel_a) - timedelta(days=1), nights=3)
+    login_member(hotel_a)
+
+    client.post(url('pay', booking), {'idempotency_key': str(uuid.uuid4())})
+    assert check_out_url(booking) not in client.get(url('detail', booking)).content.decode()
+
+    client.post(url('close', booking))
+    assert check_out_url(booking) in client.get(url('detail', booking)).content.decode()
+
+    response = client.post(check_out_url(booking))
+    assert response.status_code == 302
+    booking.refresh_from_db()
+    assert booking.status == Status.CHECKED_OUT
+
+    after = client.get(url('detail', booking))
+    assert after.context['can_check_out'] is False
+    assert check_out_url(booking) not in after.content.decode()

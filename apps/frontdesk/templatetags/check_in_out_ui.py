@@ -1,5 +1,6 @@
 """
 Check-in form and check-out button for the rows of the "Today" lists (TASK-43, TASK-44 UI).
+check_out_button also works on the Folio page, which has a booking but no row.
 
 Both tags only read what daily_lists() already loaded (guest, active_rooms with room and
 room_type), so they add no query per row. The date comes from the caller (`lists.today`,
@@ -76,13 +77,23 @@ def check_in_form(context, row):
 
 
 @register.inclusion_tag('frontdesk/check_in_out/_check_out.html', takes_context=True)
-def check_out_button(context, row, today, section_id):
+def check_out_button(context, booking, today, section_id, show_folio_link=True, bill_closed=None):
     """
-    The check-out button for one CHECKED_IN row. `today` is lists.today (the hotel's date).
-    Disabled on the check-in day, like the service; asks first when leaving before check_out_date.
+    The check-out button for one CHECKED_IN booking.
+
+    today: the hotel's date, given by the caller (lists.today, property_today(request.property)).
+    section_id: makes the DOM ids unique when the button is on the page more than once.
+    show_folio_link: False hides the "pay / close bill" link (the Folio page links to itself).
+    bill_closed: None = unknown, the button works and the service answers if the bill is open;
+        False = the button is disabled until the bill is closed; True = the button works.
+
+    Disabled on the check-in day, like the service (that reason wins over an open bill);
+    asks first when leaving before check_out_date.
+
+    In the Today lists:  {% check_out_button row.booking lists.today section_id %}
+    On the Folio page:   {% check_out_button booking today "folio" show_folio_link=False bill_closed=True %}
     """
     request = context['request']
-    booking = row.booking
     leaves_early = booking.check_out_date > today
     confirm_text = f'ยืนยันเช็คเอาต์การจอง {booking.code} ({booking.guest})?'
     if leaves_early:
@@ -94,6 +105,8 @@ def check_out_button(context, row, today, section_id):
         'dom_id': f'co-{section_id}-{booking.pk.hex}',
         'booking': booking,
         'too_early': today <= booking.check_in_date,
+        'blocked_by_bill': bill_closed is False,
+        'show_folio_link': show_folio_link,
         'confirm_text': confirm_text,
         'action_url': _action_url(request, 'check_out', booking),
         'folio_url': reverse('folio:detail', kwargs={

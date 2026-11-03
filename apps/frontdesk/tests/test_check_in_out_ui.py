@@ -11,7 +11,9 @@ import pytest
 from django.contrib.messages import constants
 from django.contrib.messages.storage.base import Message
 from django.db import connection
+from django.template import Context, Template
 from django.template.loader import render_to_string
+from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -33,6 +35,7 @@ DIRTY = Room.HousekeepingStatus.DIRTY
 ID = {'id_type': 'PASSPORT', 'id_number': 'AA1234567', 'nationality': 'Japan'}
 EARLY_WARNING = 'ไม่คืนเงินสำหรับคืนที่เหลือ'
 TOO_EARLY_NOTE = 'เช็คเอาต์ได้ตั้งแต่วันถัดไป'
+BILL_NOTE = 'ต้องรับชำระและปิดบิลก่อน'
 
 
 def today_url(hotel):
@@ -263,6 +266,124 @@ def test_today_comes_from_the_hotel_timezone_not_the_server_clock(client, login_
 
     assert forms_to(page, action_url('check_out', checked_in_today)) == 0
     assert forms_to(page, action_url('check_out', checked_in_yesterday)) == 1
+
+
+# ---------- Check-out button rendered by itself (the Folio page has a booking, no row) ----------
+
+def render_check_out(hotel, booking, args='booking today "folio"'):
+    """The tag rendered straight from a Template, like the Folio page will call it."""
+    request = RequestFactory().get('/')
+    request.property = hotel
+    template = Template('{% load check_in_out_ui %}{% check_out_button ' + args + ' %}')
+    return template.render(Context({
+        'request': request,
+        'csrf_token': 'test-token',
+        'booking': booking,
+        'today': property_today(hotel),
+    }))
+
+
+def folio_link(hotel, booking):
+    return reverse('folio:detail', kwargs={'property_slug': hotel.slug, 'booking_id': booking.pk})
+
+
+def dom_ids(html):
+    return re.findall(r'\sid="([^"]+)"', html)
+
+
+def test_the_tag_renders_from_a_booking_without_a_row(hotel_a):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+
+    html = render_check_out(hotel_a, booking)
+
+    form = form_for(html, action_url('check_out', booking))
+    assert form is not None
+    assert 'csrfmiddlewaretoken' in form
+    assert 'confirm(' in form
+
+
+def test_the_folio_link_is_shown_by_default_and_hidden_on_request(hotel_a):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+    link = f'href="{folio_link(hotel_a, booking)}"'
+
+    assert link in render_check_out(hotel_a, booking)
+    assert link in render_check_out(hotel_a, booking, 'booking today "folio" show_folio_link=True')
+    hidden = render_check_out(hotel_a, booking, 'booking today "folio" show_folio_link=False')
+    assert folio_link(hotel_a, booking) not in hidden
+    assert 'รับชำระ / ปิดบิล' not in hidden
+    assert forms_to(hidden, action_url('check_out', booking)) == 1  # the button is unaffected
+
+
+def test_an_open_bill_disables_the_button_and_leaves_no_form_to_submit(hotel_a):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+
+    html = render_check_out(hotel_a, booking, 'booking today "folio" bill_closed=False')
+
+    # No <form> at all, so Enter cannot post it either
+    assert '<form' not in html
+    assert forms_to(html, action_url('check_out', booking)) == 0
+    assert re.search(r'<button type="button" class="rr-btn ci-btn" disabled', html)
+    assert 'type="submit"' not in html
+    assert BILL_NOTE in html
+
+
+def test_an_open_bill_links_to_the_folio_next_to_the_reason_when_asked(hotel_a):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+
+    shown = render_check_out(hotel_a, booking, 'booking today "x" bill_closed=False')
+    hidden = render_check_out(hotel_a, booking, 'booking today "x" bill_closed=False show_folio_link=False')
+
+    assert f'href="{folio_link(hotel_a, booking)}"' in shown
+    assert BILL_NOTE in shown
+    assert folio_link(hotel_a, booking) not in hidden
+    assert BILL_NOTE in hidden
+
+
+@pytest.mark.parametrize('arg', ['bill_closed=True', 'bill_closed=None', ''], ids=['closed', 'unknown', 'default'])
+def test_a_closed_or_unknown_bill_keeps_the_button_working(hotel_a, arg):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+
+    html = render_check_out(hotel_a, booking, f'booking today "folio" {arg}')
+
+    assert forms_to(html, action_url('check_out', booking)) == 1
+    assert BILL_NOTE not in html
+    assert 'disabled' not in html.replace('x-bind:disabled', '')
+
+
+def test_the_check_in_day_is_the_reason_shown_even_when_the_bill_is_open(hotel_a):
+    booking = book(hotel_a, 0, 2, Status.CHECKED_IN)
+
+    html = render_check_out(hotel_a, booking, 'booking today "folio" bill_closed=False')
+
+    assert TOO_EARLY_NOTE in html
+    assert BILL_NOTE not in html
+    assert '<form' not in html
+    assert re.search(r'<button type="button" class="rr-btn ci-btn" disabled', html)
+
+
+@pytest.mark.parametrize('start, bill_arg', [(0, 'bill_closed=None'), (-1, 'bill_closed=False')],
+                         ids=['too-early', 'open-bill'])
+def test_a_disabled_button_describes_itself_with_an_id_that_exists(hotel_a, start, bill_arg):
+    booking = book(hotel_a, start, 2, Status.CHECKED_IN)
+
+    html = render_check_out(hotel_a, booking, f'booking today "folio" {bill_arg}')
+
+    described_by = re.search(r'aria-describedby="([^"]+)"', html).group(1)
+    assert dom_ids(html).count(described_by) == 1
+
+
+def test_dom_ids_stay_unique_when_the_folio_section_joins_the_others(hotel_a):
+    booking = book(hotel_a, -1, 2, Status.CHECKED_IN)
+
+    html = ''.join(
+        render_check_out(hotel_a, booking, f'booking today "{section}" bill_closed=False')
+        for section in ('departures', 'inhouse', 'folio')
+    )
+
+    ids = dom_ids(html)
+    assert len(ids) == 3
+    assert len(ids) == len(set(ids))
+    assert any(found.startswith('co-folio-') for found in ids)
 
 
 # ---------- Messages after a POST ----------
