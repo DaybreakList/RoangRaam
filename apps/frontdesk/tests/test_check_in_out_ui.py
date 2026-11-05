@@ -186,6 +186,44 @@ def test_one_room_that_is_not_ready_blocks_the_whole_booking(client, hotel_a, lo
     assert 'ห้อง 501 ยังไม่ได้ทำความสะอาด' not in page
 
 
+def test_a_room_with_a_guest_still_in_it_disables_the_button_and_says_why(client, hotel_a, login_member):
+    departing = book(hotel_a, -2, 0, status=Status.CHECKED_IN, rooms=({'number': '601'},))
+    arriving = BookingFactory(
+        property=hotel_a, check_in_date=departing.check_out_date,
+        check_out_date=departing.check_out_date + timedelta(days=2),
+    )
+    BookingRoomFactory(booking=arriving, room=departing.booking_rooms.get().room)
+    login_member(hotel_a)
+
+    page = get_page(client, hotel_a)
+
+    assert forms_to(page, action_url('check_in', arriving)) == 0
+    assert 'ห้อง 601 ยังมีแขกเดิมที่ยังไม่เช็คเอาต์' in page
+
+
+def test_a_guest_still_in_the_room_is_the_reason_shown_even_when_it_is_dirty(client, hotel_a, login_member):
+    departing = book(hotel_a, -2, 0, status=Status.CHECKED_IN, rooms=({'number': '602', 'hk_status': DIRTY},))
+    arriving = BookingFactory(
+        property=hotel_a, check_in_date=departing.check_out_date,
+        check_out_date=departing.check_out_date + timedelta(days=2),
+    )
+    BookingRoomFactory(booking=arriving, room=departing.booking_rooms.get().room)
+    login_member(hotel_a)
+
+    page = get_page(client, hotel_a)
+
+    assert 'ห้อง 602 ยังมีแขกเดิมที่ยังไม่เช็คเอาต์' in page
+    assert 'ห้อง 602 ยังไม่ได้ทำความสะอาด' not in page
+
+
+def test_a_guest_in_another_room_leaves_the_check_in_form_available(client, hotel_a, login_member):
+    book(hotel_a, -2, 0, status=Status.CHECKED_IN, rooms=({'number': '603'},))
+    arriving = book(hotel_a, 0, 2, rooms=({'number': '604'},))
+    login_member(hotel_a)
+
+    assert forms_to(get_page(client, hotel_a), action_url('check_in', arriving)) == 1
+
+
 # ---------- Check-out button ----------
 
 def test_check_out_button_is_on_checked_in_rows_of_both_sections(client, hotel_a, login_member):

@@ -6,6 +6,9 @@ Rules agreed by the team for Sprint 3:
 - Every room must be active and Clean. A room may be swapped for another active,
   Clean room of the same type that is free for the whole stay; the price stays as
   booked. The exclusion constraint on BookingRoom stays the last line of defence.
+- No room may still hold a guest of another booking. A stay ends on its check_out_date
+  by the calendar, so the constraint allows the next guest in before the last one has
+  checked out; only this check stops two checked-in bookings sharing a room.
 - Check-out any day after check_in_date. Leaving early does not change the price,
   and the nights left stay held: releasing them would edit the booking, which is
   out of scope (AGENTS.md) and would need a refund decision.
@@ -31,6 +34,7 @@ from apps.rooms.models import Room
 from .daily_ops import property_today
 
 ROOM_TAKEN_MESSAGE = 'ห้องที่เลือกไม่ว่างในช่วงวันที่เข้าพักแล้ว กรุณาเลือกห้องอื่น'
+ROOM_OCCUPIED_MESSAGE = 'ห้อง {number} ยังมีแขกเดิมที่ยังไม่เช็คเอาต์'
 BILL_OPEN_MESSAGE = 'กรุณารับชำระและปิดบิลก่อนเช็คเอาต์'
 
 
@@ -71,6 +75,7 @@ def check_in(property, booking_id, *, user, id_type, id_number, nationality='', 
                 raise ValidationError({'rooms': f'เลือกห้อง {room.number} ซ้ำกันในการจองเดียว'})
             targets[booking_room.pk] = room.pk
 
+        _check_rooms_vacated(property, booking, rooms, targets.values())
         _move_rooms(property, booking, booking_rooms, rooms, targets)
 
         guest = booking.guest
@@ -161,6 +166,19 @@ def _check_room(booking_room, room):
         raise ValidationError({'rooms': f'ห้อง {room.number} ปิดใช้งานอยู่'})
     if room.hk_status != Room.HousekeepingStatus.CLEAN:
         raise ValidationError({'rooms': f'ห้อง {room.number} ยังไม่ได้ทำความสะอาด'})
+
+
+def _check_rooms_vacated(property, booking, rooms, room_ids):
+    """Runs with the rooms locked, so a check-out of the last guest has finished or not begun."""
+    occupied_id = (
+        BookingRoom.scoped.for_property(property)
+        .filter(room_id__in=room_ids, is_active=True, booking__status=Booking.Status.CHECKED_IN)
+        .exclude(booking=booking)
+        .values_list('room_id', flat=True)
+        .first()
+    )
+    if occupied_id is not None:
+        raise ValidationError({'rooms': ROOM_OCCUPIED_MESSAGE.format(number=rooms[occupied_id].number)})
 
 
 def _move_rooms(property, booking, booking_rooms, rooms, targets):

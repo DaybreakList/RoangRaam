@@ -8,6 +8,7 @@ from apps.bookings.folio import close_bill
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory
 from apps.frontdesk.services.check_in_out import check_in, check_out
+from apps.frontdesk.services.room_status import mark_room_clean
 from apps.properties.tests.factories import PropertyFactory, UserFactory
 from apps.rooms.models import Room
 from apps.rooms.tests.factories import RoomFactory, RoomTypeFactory
@@ -205,6 +206,92 @@ def test_cancelled_rooms_of_the_booking_are_not_checked_in(hotel, room_type, cle
 
     refresh(released)
     assert released.checked_in_at is None
+
+
+def guest_still_in(hotel, room, leaves=TODAY):
+    """A CHECKED_IN booking of `room` whose stay ends on `leaves`, so the calendar shows the room free."""
+    return make_booking(
+        hotel, [room], status=Booking.Status.CHECKED_IN, check_in_date=leaves - timedelta(days=2),
+    )
+
+
+def test_a_room_with_a_guest_who_has_not_checked_out_is_refused(hotel, room_type, clerk):
+    room = make_room(hotel, room_type)
+    guest_still_in(hotel, room)
+    booking = make_booking(hotel, [room])
+
+    with pytest.raises(ValidationError) as error:
+        do_check_in(hotel, booking, clerk)
+
+    assert error.value.message_dict['rooms'] == [f'ห้อง {room.number} ยังมีแขกเดิมที่ยังไม่เช็คเอาต์']
+    refresh(booking, booking.guest)
+    assert booking.status == Booking.Status.CONFIRMED
+    assert booking.guest.id_number == ''
+    assert booking.booking_rooms.get().checked_in_at is None
+
+
+def test_a_guest_who_overstayed_also_blocks_the_room(hotel, room_type, clerk):
+    room = make_room(hotel, room_type)
+    guest_still_in(hotel, room, leaves=TODAY - timedelta(days=1))
+    booking = make_booking(hotel, [room])
+
+    with pytest.raises(ValidationError) as error:
+        do_check_in(hotel, booking, clerk)
+
+    assert 'rooms' in error.value.message_dict
+
+
+def test_changing_to_a_room_with_a_guest_who_has_not_checked_out_is_refused(hotel, room_type, clerk):
+    booking = make_booking(hotel, [make_room(hotel, room_type)])
+    booking_room = booking.booking_rooms.get()
+    occupied = make_room(hotel, room_type)
+    guest_still_in(hotel, occupied)
+
+    with pytest.raises(ValidationError) as error:
+        do_check_in(hotel, booking, clerk, room_changes={booking_room.pk: occupied.pk})
+
+    assert error.value.message_dict['rooms'] == [f'ห้อง {occupied.number} ยังมีแขกเดิมที่ยังไม่เช็คเอาต์']
+    refresh(booking_room)
+    assert booking_room.room_id != occupied.pk
+
+
+def test_changing_away_from_an_occupied_room_lets_the_check_in_through(hotel, room_type, clerk):
+    occupied, free = make_room(hotel, room_type), make_room(hotel, room_type)
+    guest_still_in(hotel, occupied)
+    booking = make_booking(hotel, [occupied])
+    booking_room = booking.booking_rooms.get()
+
+    do_check_in(hotel, booking, clerk, room_changes={booking_room.pk: free.pk})
+
+    refresh(booking, booking_room)
+    assert booking.status == Booking.Status.CHECKED_IN
+    assert booking_room.room == free
+
+
+def test_the_room_is_free_once_the_last_guest_has_checked_out(hotel, room_type, clerk):
+    room = make_room(hotel, room_type)
+    last_guest = guest_still_in(hotel, room)
+    close_bill(hotel, last_guest.pk, user=clerk)
+    check_out(hotel, last_guest.pk, today=TODAY)
+    mark_room_clean(hotel, room.pk)
+    booking = make_booking(hotel, [room])
+
+    do_check_in(hotel, booking, clerk)
+
+    refresh(booking)
+    assert booking.status == Booking.Status.CHECKED_IN
+
+
+@pytest.mark.parametrize('status', [Booking.Status.CHECKED_OUT, Booking.Status.CANCELLED])
+def test_past_stays_do_not_block_the_room(hotel, room_type, clerk, status):
+    room = make_room(hotel, room_type)
+    make_booking(hotel, [room], status=status, check_in_date=TODAY - timedelta(days=2))
+    booking = make_booking(hotel, [room])
+
+    do_check_in(hotel, booking, clerk)
+
+    refresh(booking)
+    assert booking.status == Booking.Status.CHECKED_IN
 
 
 # ---------- Check-out ----------
