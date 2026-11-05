@@ -1,0 +1,27 @@
+{% comment %}
+Stands alone on purpose: Django renders this page without a request, and it must still show
+when the database or the static files are the problem. No base.html, no tags, inline styles.
+{% endcomment %}<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบขัดข้อง · RoangRaam</title>
+  <style>
+    body { margin: 0; background: #fff; color: #222; font-family: system-ui, sans-serif; line-height: 1.6; }
+    main { box-sizing: border-box; max-width: 560px; margin: 0 auto; padding: 64px 24px; }
+    h1 { margin: 0 0 12px; }
+    p { margin: 0; color: #555; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #181818; color: #eee; }
+      p { color: #aaa; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ระบบขัดข้องชั่วคราว</h1>
+    <p>ขออภัยในความไม่สะดวก กรุณาลองใหม่อีกครั้งในอีกสักครู่ หากยังใช้งานไม่ได้ กรุณาติดต่อเจ้าหน้าที่โรงแรม</p>
+  </main>
+</body>
+</html>
