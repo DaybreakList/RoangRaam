@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% comment %}
+Layout of the 403 and 404 pages. No navbar: PropertyMiddleware sets request.property before
+it checks the membership, so a navbar here would show the name and logo of a hotel the
+visitor is not a member of, and confirm that it exists.
+{% endcomment %}
+{% block title %}{% block error_title %}{% endblock %} · RoangRaam{% endblock %}
+{% block extra_head %}
+<style>
+  .err-page {
+    box-sizing: border-box;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: var(--rr-space-8) var(--rr-space-5);
+    color: var(--rr-color-text);
+  }
+  .err-page h1 { margin: 0 0 var(--rr-space-3); }
+  .err-page p { margin: 0 0 var(--rr-space-5); color: var(--rr-color-muted); }
+</style>
+{% endblock %}
+{% block navbar %}{% endblock %}
+{% block content %}
+<main class="err-page">
+  <h1>{% block error_heading %}{% endblock %}</h1>
+  <p>{% block error_text %}{% endblock %}</p>
+  {# The "as" form never raises: an error page must not crash into a second error #}
+  {% url 'accounts:home' as home_url %}
+  {% if user.is_authenticated and home_url %}<a class="rr-btn" href="{{ home_url }}">กลับไปหน้าเลือกโรงแรม</a>{% endif %}
+</main>
+{% endblock %}
