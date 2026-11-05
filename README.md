@@ -8,7 +8,10 @@
 
 ## ระบบจริง
 
-**https://roangraam.onrender.com** (Render แพ็กเกจฟรี เปิดครั้งแรกหลังไม่มีคนใช้อาจรอประมาณ 1 นาที)
+- **หน้าจองของแขก:** https://roangraam.onrender.com/p/demo-riverside/search/
+- **เข้าสู่ระบบพนักงาน:** https://roangraam.onrender.com/accounts/login/
+
+Render แพ็กเกจฟรี เปิดครั้งแรกหลังไม่มีคนใช้อาจรอประมาณ 1 นาที (หน้า `/` เปล่าได้ 404 เพราะทุกหน้าอยู่ใต้ `/p/<slug>/` หรือ `/accounts/`)
 
 ### บัญชีเดโม
 
@@ -104,7 +107,8 @@ docker compose exec web python manage.py createsuperuser
 ### ข้อมูลเดโม
 
 โรงแรม 2 แห่ง (`demo-riverside` 12 ห้อง, `demo-hilltop` 10 ห้อง) พร้อมห้อง ราคา พนักงาน และการจองย้อนหลัง
-วันที่ทั้งหมดนับจากวันที่สร้าง จึงมีแขกเข้าพัก ออก และพักอยู่ "วันนี้" เสมอ
+วันที่ทั้งหมดนับจากวันที่สร้าง ในวันที่สร้างจึงมีแขกเข้าพัก ออก และพักอยู่ "วันนี้" ครบ
+ถ้าสร้างไว้ตั้งแต่วันก่อน ให้รีเซ็ตข้อมูลก่อนเดโมหรือทดสอบ
 
 - ตั้ง `SEED_DEMO_PASSWORD` (รหัสผ่านของบัญชีเดโม) และ `SEED_ON_START=true` ใน `.env` แล้วรัน `docker compose up -d` อีกครั้ง
 - หรือรันเอง `docker compose exec web python manage.py seed_demo`
@@ -171,7 +175,7 @@ apps/bookings/     Booking, availability engine (A), payment (C)
 apps/frontdesk/    Tape Chart (D), check-in/out (A, B), รายการวันนี้ (E)
 apps/dashboard/    KPI queries + views, seed_demo                     (E)
 apps/accounts/     login, เลือกโรงแรม, ตั้งค่าโรงแรม
-templates/         base.html (โหลด HTMX / Alpine.js / Chart.js แล้ว)
+templates/         base.html (โหลด HTMX / Alpine.js แล้ว; Chart.js โหลดเฉพาะหน้า dashboard)
 static/            CSS / JS / รูป ที่ใช้ร่วมกัน
 docs/              สถาปัตยกรรม, ADR, เอกสารแต่ละส่วน
 scripts/start.sh   คำสั่งเริ่ม container บน Render
@@ -230,7 +234,7 @@ docker compose up -d --build
 
 | | รหัสนักศึกษา | ชื่อ | GitHub | รับผิดชอบหลัก |
 | --- | --- | --- | --- | --- |
-| A | 6710685030 | ปัณณวิชญ์ สุทธิโมกข์ | [@Gj-345](https://github.com/Gj-345) | Property / Membership และการแยกข้อมูล, ค้นหาและจองห้อง, service เช็คอิน / เช็คเอาต์, สถานะห้อง |
+| A | 6710685030 | ปัณณวิชญ์ สุทธิโมกข์ | [@Gj-345](https://github.com/Gj-345) | Property / Membership และการแยกข้อมูล, ค้นหาและจองห้อง, service เช็คอิน / เช็คเอาต์, สถานะห้อง, ตรวจสิทธิ์ทุก endpoint (permission matrix), สถานการณ์ UAT |
 | B | 6710615037 | กิตติกานต์ เมธีกุลสุเมธ | [@hansera1](https://github.com/hansera1) | design system และ template กลาง, หน้าจองของแขก, หน้าจอเช็คอิน / เช็คเอาต์, หน้าจอแท็บเล็ต |
 | C | 6710615227 | รวีโรจน์ มานะคิด | [@Rawirot-ux](https://github.com/Rawirot-ux) | ชำระเงิน Stripe และ webhook, อีเมลยืนยัน, Folio และใบเสร็จ PDF, ตั้งค่าโรงแรม |
 | D | 6710615078 | ณพัฐกรภ์ จิรานนท์อัครโชค | [@6710615078](https://github.com/6710615078) | ประเภทห้อง ห้อง และปฏิทินราคา, Tape Chart และการลากย้ายห้อง |
