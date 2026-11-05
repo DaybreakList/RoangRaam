@@ -30,6 +30,8 @@ class DailyRow:
     room_type_names: list
     payment_status: PaymentStatus
     bill_closed: bool
+    # Rooms of this booking still holding a guest of another booking, for the check-in form
+    occupied_room_numbers: list
 
     @property
     def sort_key(self):
@@ -71,8 +73,13 @@ def daily_lists(property, today=None):
     bookings = list(bookings)
     statuses = payment_statuses(property, bookings)
     closed_ids = _closed_bill_ids(property, bookings)
+    # Every CHECKED_IN booking is loaded above whatever its dates, so this set is complete
+    occupied_ids = {
+        booking_room.room_id for booking in bookings if booking.status == Booking.Status.CHECKED_IN
+        for booking_room in booking.active_rooms
+    }
     rows = sorted(
-        (_row(booking, statuses[booking.pk], booking.pk in closed_ids) for booking in bookings),
+        (_row(booking, statuses[booking.pk], booking.pk in closed_ids, occupied_ids) for booking in bookings),
         key=lambda row: row.sort_key,
     )
     return {
@@ -105,7 +112,7 @@ def _closed_bill_ids(property, bookings):
     )
 
 
-def _row(booking, payment_status, bill_closed):
+def _row(booking, payment_status, bill_closed, occupied_ids):
     rooms = booking.active_rooms
     type_names = []
     for booking_room in rooms:
@@ -117,4 +124,7 @@ def _row(booking, payment_status, bill_closed):
         room_type_names=type_names,
         payment_status=payment_status,
         bill_closed=bill_closed,
+        occupied_room_numbers=[] if booking.status == Booking.Status.CHECKED_IN else [
+            booking_room.room.number for booking_room in rooms if booking_room.room_id in occupied_ids
+        ],
     )

@@ -13,6 +13,7 @@ from django.utils.formats import date_format
 
 from apps.bookings.models import Guest
 from apps.frontdesk.check_in_out_forms import CheckInForm
+from apps.frontdesk.services.check_in_out import ROOM_OCCUPIED_MESSAGE
 from apps.rooms.models import Room
 
 register = template.Library()
@@ -25,7 +26,7 @@ def _action_url(request, name, booking):
     })
 
 
-def _room_problems(booking_rooms):
+def _room_problems(booking_rooms, occupied_room_numbers):
     """Why the service would refuse these rooms, in the service's own words."""
     if not booking_rooms:
         return ['การจองนี้ไม่มีห้องที่ใช้งานอยู่']
@@ -34,6 +35,9 @@ def _room_problems(booking_rooms):
         room = booking_room.room
         if not room.is_active:
             problems.append(f'ห้อง {room.number} ปิดใช้งานอยู่')
+        elif room.number in occupied_room_numbers:
+            # Comes first: cleaning the room would not help while the last guest is still in it
+            problems.append(ROOM_OCCUPIED_MESSAGE.format(number=room.number))
         elif room.hk_status != Room.HousekeepingStatus.CLEAN:
             problems.append(f'ห้อง {room.number} ยังไม่ได้ทำความสะอาด')
     return problems
@@ -69,7 +73,7 @@ def check_in_form(context, row):
             }
             for booking_room in booking_rooms
         ],
-        'problems': _room_problems(booking_rooms),
+        'problems': _room_problems(booking_rooms, row.occupied_room_numbers),
         'action_url': _action_url(request, 'check_in', booking),
         'room_status_url': reverse('room_status:index', kwargs={'property_slug': request.property.slug}),
         'csrf_token': context.get('csrf_token'),
