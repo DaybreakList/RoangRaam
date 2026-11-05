@@ -195,21 +195,29 @@
 
 ---
 
-## API ที่ยังไม่มี
+## ส่วนที่ทำเป็นหน้าเว็บ ไม่ใช่ JSON API
 
-เจ้าของงานเติมหัวข้อเหล่านี้เมื่อออกแบบ endpoint แล้ว
+เดิมรายการนี้คือ "API ที่ยังไม่มี" สุดท้ายทีมทำเป็นหน้า HTML ที่ส่งฟอร์มแบบ POST ธรรมดา (มี CSRF)
+แทน JSON API เพราะใช้แค่ในหน้าเว็บของระบบเอง ([ADR 0001](../adr/0001-modular-monolith.md))
+สิทธิ์ของแต่ละ URL อยู่ใน [PERMISSIONS.md](PERMISSIONS.md) ส่วนที่หน้าเว็บเรียกเป็น JSON มีแค่ย้ายห้องใน Tape Chart (หัวข้อถัดไป)
+ส่วน API ค้นหาห้องว่างและสร้างการจองด้านบนมีให้ใช้แยก หน้าเว็บของระบบไม่ได้เรียก
 
-| API | เจ้าของ | หมายเหตุ |
+| งาน | เจ้าของ | URL (ใต้ `/p/<property_slug>/` ยกเว้นที่ระบุ) |
 | --- | --- | --- |
-| ยกเลิกการจอง | — | service `cancel_booking()` มีแล้ว (#54) ยังไม่มี endpoint |
-| ชำระเงิน (PromptPay / Stripe test) | C | ต้องกำหนดการหมดเวลาของ `PENDING_PAYMENT` ด้วย |
-| Arrival / Departure / In-house | E | #83 (TASK-40) |
-| เช็คอิน / เช็คเอาต์ | A, B | ตาม `AGENTS.md` |
-| Tape Chart (แสดงผล + ลากย้ายห้อง) | D | ผลการลากต้อง validate ฝั่ง server |
-| Dashboard KPI | E | |
+| ยกเลิกการจอง (แขก) | A (service), B (หน้าเว็บ) | `my-booking/` (ใส่รหัสการจอง + อีเมล), `my-booking/cancel/` (POST) |
+| ชำระเงิน Stripe | C | `bookings/<uuid>/pay/` ส่งไปหน้า Stripe Checkout, webhook ที่ `/stripe/webhook/` (ไม่มี slug, ตรวจลายเซ็น) |
+| Arrival / Departure / In-house | E | `frontdesk/today/` |
+| เช็คอิน / เช็คเอาต์ | A, B | `frontdesk/bookings/<uuid>/check-in/`, `frontdesk/bookings/<uuid>/check-out/` (POST) |
+| Folio และใบเสร็จ | C | `frontdesk/folio/<uuid>/`, `.../pay/`, `.../close/` (POST), `.../receipt.pdf` |
+| สถานะห้อง | A | `frontdesk/rooms/`, `frontdesk/rooms/<id>/clean/` (POST) |
+| Tape Chart (แสดงผล) | D | `frontdesk/tape-chart/` |
+| Dashboard KPI | E | `dashboard/`, และ `/dashboard/compare/` (เทียบหลายโรงแรม) |
 
 
-## Tape Chart room move — D, Sprint 3 (#107)
+## Tape Chart room move — ใช้งานได้ (#107)
+
+เจ้าของ: D ข้อยกเว้นของ base path: endpoint นี้อยู่ใต้ `/p/<property_slug>/frontdesk/...` ไม่ใช่ `/api/p/...`
+เพราะเป็นส่วนหนึ่งของหน้า Tape Chart และตอบเป็น JSON
 
 `POST /p/<property_slug>/frontdesk/tape-chart/rooms/<booking_room_id>/move/`
 URL name: `tape_chart:move`. This identifies one **BookingRoom**, not a Booking UUID.
