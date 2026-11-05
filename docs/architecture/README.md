@@ -54,7 +54,8 @@ flowchart LR
     stripe["💳 Stripe API"]
     logs["📄 Render Logs<br/>(console email backend)"]
 
-    browser -- "HTTPS: หน้า HTML, form POST,<br/>JSON API /api/p/&lt;slug&gt;/..." --> web
+    browser -- "HTTPS: หน้า HTML, form POST, HTMX,<br/>JSON เฉพาะย้ายห้องใน Tape Chart" --> web
+    client["🔌 ระบบภายนอก (ถ้ามี)"] -. "JSON API /api/p/&lt;slug&gt;/...<br/>(หน้าเว็บไม่ได้ใช้)" .-> web
     web -- "HTTPS" --> stripe
     stripe -- "POST /stripe/webhook/" --> web
     web --> logs
@@ -108,4 +109,6 @@ flowchart TB
 | `dashboard` | E | `services.py` (`kpi_summary`, `daily_revenue`, `hotel_comparison`), `seed.py` |
 | `accounts` | C (ตั้งค่าโรงแรม) และทีม | หน้า login, หน้าเลือกโรงแรม, ตั้งค่าโรงแรม |
 
-JSON API มีเฉพาะส่วนที่หน้าเว็บเรียกด้วย JavaScript ดูรายละเอียดใน [API_CONTRACT.md](../project/API_CONTRACT.md)
+หน้าเว็บส่งข้อมูลด้วย form และ HTMX ไปที่ view ปกติ ส่วนที่เรียกเป็น JSON มีแค่การย้ายห้องใน Tape Chart
+JSON API ใต้ `/api/p/<slug>/...` (ค้นหาห้องว่าง, สร้างการจอง) มีให้แยกแต่หน้าเว็บไม่ได้ใช้
+รายละเอียดอยู่ใน [API_CONTRACT.md](../project/API_CONTRACT.md)

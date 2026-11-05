@@ -17,7 +17,10 @@
   ตรวจสิทธิ์ และเรียก service ทำให้เทสต์กฎทางธุรกิจได้โดยไม่ผ่าน HTTP
 - หน้าเว็บใช้ Django templates แสดงผลจาก server เสริมด้วย HTMX และ Alpine.js เฉพาะส่วนที่ต้องโต้ตอบ
   และ Chart.js สำหรับกราฟ ไม่ใช้ React หรือ Vue
-- JSON API ทำเฉพาะส่วนที่หน้าเว็บเรียกด้วย JavaScript (ค้นหาห้องว่าง, สร้างการจอง, ย้ายห้องใน Tape Chart)
+- หน้าเว็บส่งข้อมูลด้วย Django form และ HTMX ไปที่ view ปกติ ส่วนที่หน้าเว็บเรียกเป็น JSON ด้วย JavaScript
+  มีแค่การย้ายห้องใน Tape Chart
+- JSON API ใต้ `/api/p/<slug>/...` (ค้นหาห้องว่าง, สร้างการจอง) มีให้แยกตาม `docs/project/API_CONTRACT.md`
+  แต่หน้าเว็บของระบบไม่ได้ใช้
 - ไม่มี Celery หรือ Redis ส่งอีเมลแบบ synchronous
 
 ## ผลที่ตามมา
