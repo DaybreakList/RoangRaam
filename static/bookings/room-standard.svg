@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" width="1280" height="880">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef3ee"/><stop offset="1" stop-color="#cfddd6"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c79c6c"/><stop offset="1" stop-color="#a97c50"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb0a0"/><stop offset="0.7" stop-color="#f3c98b"/><stop offset="1" stop-color="#f8dca8"/></linearGradient>
+    <linearGradient id="duvet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16927f"/><stop offset="1" stop-color="#0b6f60"/></linearGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17705f"/><stop offset="1" stop-color="#0c4f45"/></linearGradient>
+    <linearGradient id="curtain" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f7f4ee"/><stop offset="0.5" stop-color="#d9d3c4"/><stop offset="1" stop-color="#f7f4ee"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ffdf9e" stop-opacity="0.85"/><stop offset="1" stop-color="#ffdf9e" stop-opacity="0"/></radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 -1.5 0.8"/></filter>
+  </defs>
+  <rect width="640" height="332" fill="url(#wall)"/>
+  <rect y="332" width="640" height="108" fill="url(#floor)"/>
+  <g stroke="#8d6540" stroke-opacity="0.35" stroke-width="2"><path d="M0 362H640M0 398H640"/><path d="M120 332L80 440M300 332L290 440M480 332L520 440"/></g>
+  <rect y="322" width="640" height="10" fill="#ffffff"/>
+
+  <rect x="52" y="44" width="172" height="230" fill="#ffffff"/>
+  <rect x="62" y="54" width="152" height="210" fill="url(#sky)"/>
+  <circle cx="160" cy="176" r="30" fill="#fff0cc"/>
+  <path d="M62 200H96V170H120V200H214V226H62Z" fill="#5f9184"/>
+  <rect x="62" y="222" width="152" height="42" fill="#12695d"/>
+  <path d="M136 236H196M148 248H186" stroke="#fbd48f" stroke-width="3" stroke-linecap="round"/>
+  <rect x="135" y="54" width="4" height="210" fill="#ffffff"/>
+  <rect x="40" y="30" width="196" height="8" rx="4" fill="#8a5a12"/>
+  <path d="M40 38H74C74 130 70 220 62 318H40Z" fill="url(#curtain)"/>
+  <path d="M236 38H204C204 130 208 220 216 318H236Z" fill="url(#curtain)"/>
+  <path d="M74 332H204L310 440H110Z" fill="#fff0cc" opacity="0.28"/>
+
+  <circle cx="600" cy="172" r="84" fill="url(#glow)"/>
+  <ellipse cx="440" cy="404" rx="210" ry="20" fill="#3d2a18" opacity="0.32" filter="url(#soft)"/>
+  <path d="M250 440L300 372H600L640 440Z" fill="#efe6d8"/>
+  <path d="M272 440L312 384H592L620 440" fill="none" stroke="#d7942c" stroke-width="3"/>
+
+  <rect x="282" y="128" width="312" height="150" rx="14" fill="url(#head)"/>
+  <path d="M344 128V278M406 128V278M470 128V278M532 128V278" stroke="#09483f" stroke-width="3"/>
+  <rect x="268" y="244" width="340" height="132" rx="20" fill="#ffffff"/>
+  <path d="M268 292C330 280 390 298 438 288S560 280 608 292V358Q608 376 590 376H286Q268 376 268 358Z" fill="url(#duvet)"/>
+  <path d="M310 300C318 330 312 350 318 376M436 296C430 330 442 350 436 376M550 294C558 330 548 352 556 376" fill="none" stroke="#09483f" stroke-opacity="0.35" stroke-width="3"/>
+  <path d="M268 340H608V358Q608 376 590 376H286Q268 376 268 358Z" fill="#efb765"/>
+  <rect x="290" y="208" width="130" height="62" rx="20" fill="#fbf9f4"/>
+  <rect x="456" y="208" width="130" height="62" rx="20" fill="#fbf9f4"/>
+  <path d="M302 256Q356 268 410 256M468 256Q522 268 576 256" fill="none" stroke="#d9d3c4" stroke-width="3"/>
+  <rect x="404" y="226" width="68" height="46" rx="14" fill="#d7942c"/>
+
+  <rect x="612" y="270" width="60" height="96" rx="4" fill="#8a5a12"/>
+  <path d="M628 160H668L680 214H616Z" fill="#fff0cc"/>
+  <rect x="642" y="214" width="8" height="56" fill="#6e460c"/>
+
+  <path d="M30 372Q14 300 30 270Q44 310 44 372Z" fill="#12695d"/><path d="M42 372Q54 292 80 270Q78 326 56 372Z" fill="#0d8a78"/><path d="M26 372Q2 332 2 306Q24 324 36 372Z" fill="#0c4a42"/>
+  <path d="M16 368H66L58 416H24Z" fill="#b85f35"/>
+  <rect width="640" height="440" filter="url(#grain)" opacity="0.16"/>
+</svg>

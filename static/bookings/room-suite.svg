@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" width="1280" height="880">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17524d"/><stop offset="1" stop-color="#0b3330"/></linearGradient>
+    <linearGradient id="room" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e6c9"/><stop offset="1" stop-color="#dfc69c"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d6642"/><stop offset="1" stop-color="#5f4229"/></linearGradient>
+    <linearGradient id="sofa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3a03c"/><stop offset="1" stop-color="#b77e26"/></linearGradient>
+    <linearGradient id="duvet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16927f"/><stop offset="1" stop-color="#0b6f60"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ffdf9e" stop-opacity="0.8"/><stop offset="1" stop-color="#ffdf9e" stop-opacity="0"/></radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 -1.5 0.8"/></filter>
+  </defs>
+  <rect width="640" height="332" fill="url(#wall)"/>
+  <rect y="332" width="640" height="108" fill="url(#floor)"/>
+  <g stroke="#3d2a18" stroke-opacity="0.4" stroke-width="2"><path d="M0 370H640M0 406H640"/><path d="M110 332L70 440M280 332L270 440M450 332L490 440"/></g>
+  <g stroke="#0b3330" stroke-width="3" opacity="0.7"><path d="M60 0V332M140 0V332M220 0V332M300 0V332"/></g>
+
+  <path d="M356 332V128Q356 34 452 34H640V332Z" fill="url(#room)"/>
+  <path d="M356 332V128Q356 34 452 34H640" fill="none" stroke="#d7942c" stroke-width="6"/>
+  <rect x="520" y="60" width="96" height="90" fill="#fbf9f4"/><rect x="528" y="68" width="80" height="74" fill="#f3c98b"/><circle cx="582" cy="108" r="14" fill="#fff0cc"/><rect x="528" y="122" width="80" height="20" fill="#12695d"/>
+  <rect x="470" y="168" width="170" height="86" rx="12" fill="#8a5a12"/>
+  <rect x="452" y="226" width="188" height="106" rx="16" fill="#ffffff"/>
+  <path d="M452 262C500 252 560 270 640 258V332H452Z" fill="url(#duvet)"/>
+  <rect x="476" y="196" width="86" height="46" rx="16" fill="#fbf9f4"/><rect x="576" y="196" width="64" height="46" rx="16" fill="#fbf9f4"/>
+
+  <circle cx="176" cy="96" r="104" fill="url(#glow)"/>
+  <rect x="173" y="0" width="5" height="62" fill="#d7942c"/>
+  <path d="M142 62H210L226 112H126Z" fill="#fff0cc"/>
+  <path d="M126 112H226" stroke="#d7942c" stroke-width="4"/>
+
+  <rect x="24" y="118" width="74" height="96" fill="#fbf9f4" stroke="#d7942c" stroke-width="4"/>
+  <path d="M30 196Q50 150 68 176T92 158V208H30Z" fill="#12695d"/>
+
+  <ellipse cx="190" cy="412" rx="190" ry="18" fill="#160c04" opacity="0.5" filter="url(#soft)"/>
+  <path d="M60 440L100 384H340L372 440Z" fill="#efe6d8"/>
+  <path d="M44 372V276Q44 244 76 244H302Q334 244 334 276V372Z" fill="url(#sofa)"/>
+  <rect x="26" y="290" width="44" height="86" rx="18" fill="#c98a2b"/><rect x="308" y="290" width="44" height="86" rx="18" fill="#c98a2b"/>
+  <rect x="64" y="318" width="124" height="52" rx="14" fill="#efb765"/><rect x="192" y="318" width="124" height="52" rx="14" fill="#efb765"/>
+  <rect x="78" y="268" width="64" height="58" rx="14" fill="#fbf9f4"/><rect x="236" y="268" width="64" height="58" rx="14" fill="#12695d"/>
+  <rect x="44" y="372" width="14" height="22" fill="#2c1c0e"/><rect x="320" y="372" width="14" height="22" fill="#2c1c0e"/>
+  <rect x="118" y="400" width="150" height="10" rx="5" fill="#172b35"/><rect x="134" y="410" width="8" height="26" fill="#172b35"/><rect x="244" y="410" width="8" height="26" fill="#172b35"/>
+  <circle cx="178" cy="392" r="9" fill="#d7942c"/>
+  <rect width="640" height="440" filter="url(#grain)" opacity="0.16"/>
+</svg>

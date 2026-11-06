@@ -32,4 +32,17 @@
   --rr-radius-md: 8px;
   --rr-radius-lg: 14px;
   --rr-radius-pill: 999px;
+
+  /* Poster style (static/css/search.css). New values only: nothing above changes. */
+  --rr-poster-ink: #09483f;
+  --rr-poster-paper: #fbf1dc;
+  --rr-poster-card: #fffaf0;
+  --rr-poster-accent: #d9603b;
+  --rr-poster-accent-text: #a33d22;
+  --rr-poster-gold: #efb765;
+  --rr-poster-blue: #23467e;
+  --rr-poster-muted: #475a63;
+  --rr-poster-rule: #c9bfa6;
+  --rr-poster-font-display: Chonburi, "Noto Serif Thai", Tahoma, serif;
+  --rr-poster-font-body: Sarabun, Tahoma, "Segoe UI", "Noto Sans Thai", sans-serif;
 }

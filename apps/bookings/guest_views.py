@@ -1,4 +1,5 @@
 import logging
+from decimal import ROUND_HALF_UP, Decimal
 
 import stripe
 from django.core.exceptions import ValidationError
@@ -24,9 +25,14 @@ def _search_results(property, form):
         property, data['check_in'], data['check_out'], guests=data['guests'],
     )
     results = list(with_room_type_details(room_types, property))
+    nights = (data['check_out'] - data['check_in']).days
     for room_type in results:
         # Caps the quantity box: never more than the free rooms or the per-booking limit
         room_type.max_bookable = min(room_type.available_count, MAX_ROOMS_PER_BOOKING)
+        # Shown as a guide only: the nightly prices can differ, the total is what the guest pays
+        room_type.average_night_price = (room_type.total_price / nights).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP,
+        )
     return results
 
 
@@ -39,9 +45,11 @@ def search(request):
     # no results and no errors.
     form = SearchForm(request.GET or None)
     room_types = None  # None = nothing to show; [] = searched, no availability
+    nights = None
     if form.is_valid():
         try:
             room_types = _search_results(request.property, form)
+            nights = (form.cleaned_data['check_out'] - form.cleaned_data['check_in']).days
         except ValidationError as error:
             # The service re-checks dates; surface its message instead of a 500
             form.add_error(None, error)
@@ -51,6 +59,7 @@ def search(request):
     context = {
         'form': form,
         'room_types': room_types,
+        'nights': nights,
         'is_htmx': is_htmx,
         'max_rooms_per_booking': MAX_ROOMS_PER_BOOKING,
     }
