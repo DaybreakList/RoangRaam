@@ -1,53 +1,191 @@
-* { box-sizing: border-box; }
-body { margin: 0; background: #f4f6f8; color: #172b35; font: 16px/1.65 Tahoma, sans-serif; }
-a { color: #12695d; text-underline-offset: .2em; }
-a:hover { color: #09483f; }
-.workspace { max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; }
-.masthead, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-h1, h2, h3, p { margin-top: 0; } h1 { font-size: 28px; margin-bottom: 22px; } h2 { font-size: 23px; } h3 { font-size: 19px; }
-.eyebrow, .muted { color: #586c76; } .eyebrow { margin-bottom: 4px; font-size: 14px; }
-.badge { border: 1px solid #c9ded8; border-radius: 24px; background: #e7f2ed; padding: 5px 14px; white-space: nowrap; font-size: 14px; }
-.tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 28px; border-bottom: 1px solid #d5dfe3; }
-.tabs a { text-decoration: none; padding: 12px 18px; border-bottom: 3px solid transparent; }
-.tabs a[aria-current] { border-color: #12695d; color: #09483f; font-weight: bold; }
-.panel { background: white; border: 1px solid #dce4e7; border-radius: 14px; padding: 28px; }
-.section-heading h2 { margin-bottom: 4px; } .section-heading { margin-bottom: 24px; }
-.section-heading p { margin: 0; }
-.button, button { display: inline-block; text-decoration: none; border: 1px solid #12695d; border-radius: 8px; padding: 10px 18px; background: #12695d; color: white; font: inherit; cursor: pointer; }
-.button:hover, button:hover { background: #09483f; color: white; }
-.secondary { color: #29434e; border-color: #c6d4da; background: white; }
-.table-scroll { overflow-x: auto; } table { border-collapse: collapse; width: 100%; text-align: left; } th { background: #f5f8f8; font-size: 14px; } th, td { padding: 16px; border-bottom: 1px solid #e2e9eb; } td:first-child { min-width: 130px; font-weight: bold; } td:last-child { white-space: nowrap; }
-.empty { text-align: center; padding: 48px 12px; color: #586c76; }
-.pagination { display: flex; justify-content: center; gap: 22px; padding-top: 24px; }
-.form-panel { max-width: 760px; } .back { display: inline-block; margin-bottom: 24px; font-size: 14px; }
-.field { margin: 22px 0; } label { display: block; font-weight: bold; margin-bottom: 8px; }
-input:not([type=checkbox]), select, textarea { width: 100%; border: 1px solid #aabbc3; border-radius: 7px; padding: 11px; font: inherit; background: white; color: #172b35; }
-input[type=checkbox] { width: 18px; height: 18px; accent-color: #12695d; } .field div label { font-weight: normal; }
-.required, .errorlist, .danger-link { color: #a52d35; } .errorlist { padding-left: 22px; }
-.notice { padding: 14px 18px; background: #e7f2ed; border-left: 4px solid #12695d; border-radius: 6px; }
-.error-summary { padding: 14px 18px; background: #fff0f0; color: #84212a; border: 1px solid #edb8bd; border-radius: 6px; }
-.actions { display: flex; align-items: center; gap: 14px; margin-top: 28px; } .danger { background: #a52d35; border-color: #a52d35; }
-.details { margin: 0; } .details div { padding: 16px 0; border-bottom: 1px solid #e2e9eb; display: grid; grid-template-columns: 180px 1fr; gap: 14px; } dt { color: #586c76; } dd { margin: 0; overflow-wrap: anywhere; }
-:focus-visible { outline: 3px solid #d7942c; outline-offset: 3px; }
-@media (max-width: 640px) { .workspace { padding: 24px 12px; } .panel { padding: 20px 16px; } .masthead, .section-heading { align-items: flex-start; flex-direction: column; gap: 10px; } .masthead { margin-bottom: 16px; } h1 { margin-bottom: 0; font-size: 24px; } .tabs a { padding: 10px 8px; } .details div { grid-template-columns: 1fr; gap: 4px; } }
+/*
+ * Room types, rooms, amenities and the rate calendar. Tokens from static/css/tokens.css
+ * only: no hex here.
+ *
+ * Every element selector is scoped under .workspace (the <main> in templates/rooms/base.html,
+ * which every page here extends) and the page background under body:has(.workspace). Before
+ * that, the bare `a`, `button`, `table`, `input` and `:focus-visible` rules also landed on
+ * the navbar on these pages and only lost to .rr-* by specificity.
+ *
+ * Staff rules: flat, dense, 2px ink borders, pill buttons. The display face is on the page
+ * h1 only (.rr-page-head__title in components.css); the tabs, the tables, the form and the
+ * calendar figures stay in the body face, with tabular figures on the prices.
+ */
+body:has(.workspace) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+.workspace, .workspace *, .workspace *::before, .workspace *::after { box-sizing: border-box; }
+.workspace {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-md);
+  line-height: var(--rr-line-height);
+}
+.workspace a { color: var(--rr-color-primary); text-underline-offset: .2em; }
+.workspace a:hover { color: var(--rr-color-primary-hover); }
+.workspace :focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 3px; }
 
-.price-filters { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid #dce4e7; }
+/* ---------- Masthead and tabs ---------- */
+.masthead, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.workspace h2, .workspace h3, .workspace p { margin-top: 0; }
+.workspace h2 { font-size: 23px; } .workspace h3 { font-size: 19px; }
+/* The tabs right below already draw a rule, so the header does not draw a second one */
+.masthead.rr-page-head { padding-bottom: 0; border-bottom: 0; }
+.masthead .rr-page-head__title { overflow-wrap: anywhere; }
+.eyebrow, .muted { color: var(--rr-color-muted); } .eyebrow { margin-bottom: 4px; font-size: var(--rr-font-size-sm); }
+.badge {
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
+  background: var(--rr-color-surface-sunken);
+  color: var(--rr-color-primary);
+  padding: 5px 14px;
+  white-space: nowrap;
+  font-size: var(--rr-font-size-sm);
+  font-weight: 600;
+}
+.tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 28px; border-bottom: 2px solid var(--rr-color-border); }
+.tabs a { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); text-decoration: none; padding: 12px 18px; border-bottom: 3px solid transparent; }
+/* Current tab: bold text plus the ink underline, never the colour on its own */
+.tabs a[aria-current] { border-color: var(--rr-color-primary); color: var(--rr-color-primary); font-weight: bold; }
+
+/* ---------- Panel ---------- */
+.panel {
+  background: var(--rr-color-surface);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-xl);
+  padding: 28px;
+}
+.section-heading h2 { margin-bottom: 4px; color: var(--rr-color-primary); } .section-heading { margin-bottom: 24px; }
+.section-heading p { margin: 0; }
+
+/* ---------- Buttons ---------- */
+.button, .workspace button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--rr-tap-target);
+  text-decoration: none;
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
+  padding: 10px 18px;
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.button:hover, .workspace button:hover { background: var(--rr-color-primary-hover); border-color: var(--rr-color-primary-hover); color: var(--rr-color-on-primary); }
+.secondary { color: var(--rr-color-primary); border-color: var(--rr-color-primary); background: var(--rr-color-surface); }
+.secondary:hover { background: var(--rr-color-bg); color: var(--rr-color-primary-hover); }
+
+/* ---------- Table ---------- */
+.table-scroll { overflow-x: auto; }
+.workspace table { border-collapse: collapse; width: 100%; text-align: left; }
+.workspace th { background: var(--rr-color-surface-sunken); color: var(--rr-color-primary); font-size: var(--rr-font-size-sm); border-bottom: 2px solid var(--rr-color-primary); }
+.workspace th, .workspace td { padding: 12px 16px; border-bottom: 1px solid var(--rr-color-border); }
+.workspace td:first-child { min-width: 130px; font-weight: bold; }
+.workspace td:last-child { white-space: nowrap; }
+.workspace tbody tr:hover td { background: var(--rr-color-surface-hover); }
+.empty { text-align: center; padding: 48px 12px; color: var(--rr-color-muted); }
+.empty h3 { color: var(--rr-color-text); }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 22px; padding-top: 24px; }
+.pagination a { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); font-weight: 600; }
+
+/* ---------- Form ---------- */
+.form-panel { max-width: 760px; }
+.back { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); margin-bottom: 16px; font-size: var(--rr-font-size-sm); font-weight: 600; }
+.field { margin: 22px 0; }
+.workspace label { display: block; font-weight: bold; margin-bottom: 8px; }
+.workspace input:not([type=checkbox]), .workspace select, .workspace textarea {
+  width: 100%;
+  min-height: var(--rr-tap-target);
+  border: 2px solid var(--rr-color-input-border);
+  border-radius: var(--rr-radius-lg);
+  padding: 11px;
+  font: inherit;
+  background: var(--rr-color-surface);
+  color: var(--rr-color-text);
+}
+.workspace input:not([type=checkbox]):hover, .workspace select:hover, .workspace textarea:hover { border-color: var(--rr-color-primary); }
+.workspace input[type=checkbox] { width: 20px; height: 20px; min-height: 0; accent-color: var(--rr-color-primary); }
+.field div label { font-weight: normal; }
+.required, .errorlist, .danger-link { color: var(--rr-color-danger); } .errorlist { padding-left: 22px; }
+.danger-link { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); font-weight: 600; }
+/* Messages: the text says what happened; the edge and the tint only repeat it.
+   Plain .notice is the neutral note on the bulk-price form; the variants are the Django
+   messages rendered by templates/rooms/base.html, keyed on the message level. */
+.notice {
+  padding: 14px 18px;
+  background: var(--rr-color-info-bg);
+  border: 2px solid var(--rr-color-info);
+  border-left-width: 6px;
+  border-radius: var(--rr-radius-lg);
+  color: var(--rr-color-info);
+}
+.notice--success {
+  background: var(--rr-color-success-bg);
+  border-color: var(--rr-color-success);
+  color: var(--rr-color-success);
+}
+.notice--warning {
+  background: var(--rr-color-warning-bg);
+  border-color: var(--rr-color-warning);
+  color: var(--rr-color-warning);
+}
+.notice--error {
+  background: var(--rr-color-danger-bg);
+  border-color: var(--rr-color-danger);
+  color: var(--rr-color-danger);
+}
+.error-summary {
+  padding: 14px 18px;
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
+  border: 2px solid var(--rr-color-danger);
+  border-left-width: 6px;
+  border-radius: var(--rr-radius-lg);
+}
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+.danger, .workspace button.danger { background: var(--rr-color-danger); border-color: var(--rr-color-danger); color: var(--rr-color-on-primary); }
+.danger:hover, .workspace button.danger:hover { background: var(--rr-color-danger-hover); border-color: var(--rr-color-danger-hover); }
+.details { margin: 0; }
+.details div { padding: 16px 0; border-bottom: 1px solid var(--rr-color-border); display: grid; grid-template-columns: 180px 1fr; gap: 14px; }
+.workspace dt { color: var(--rr-color-muted); } .workspace dd { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .workspace { padding: 24px 12px; }
+  .panel { padding: 20px 16px; }
+  .masthead, .section-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .masthead { margin-bottom: 16px; }
+  .tabs a { padding: 10px 8px; }
+  .details div { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ---------- Rate calendar ---------- */
+.price-filters { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 2px solid var(--rr-color-border); }
 .price-filters .field { margin: 0; flex: 1; min-width: 180px; }
 .month-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 24px 0 12px; flex-wrap: wrap; }
-.month-heading h3 { margin: 0; }
+.month-heading h3 { margin: 0; color: var(--rr-color-primary); }
+.month-heading a { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); font-weight: 600; }
 .calendar-scroll { overflow-x: auto; }
 .rate-calendar { table-layout: fixed; min-width: 640px; }
 .rate-calendar caption { text-align: left; margin-bottom: 12px; }
 .rate-calendar th { text-align: center; }
-.rate-calendar td { height: 108px; vertical-align: top; border: 1px solid #e2e9eb; padding: 12px; white-space: normal; font-weight: normal; }
+.rate-calendar td { height: 108px; vertical-align: top; border: 1px solid var(--rr-color-border); padding: 12px; white-space: normal; font-weight: normal; }
 .rate-calendar td:first-child { min-width: 0; }
-.day-number { color: #586c76; font-size: 14px; }
-.day-price { display: block; padding-top: 10px; }
-.rate-value { font-weight: bold; color: #12695d; overflow-wrap: anywhere; }
-.missing-rate { font-size: 13px; color: #697981; }
-.outside-month { background: #f5f8f8; }
-.price-note { margin: 20px 0 0; font-size: 14px; }
-@media (max-width: 640px) { .price-filters { flex-direction: column; align-items: stretch; } .month-heading { font-size: 14px; } }
+.rate-calendar tbody tr:hover td { background: transparent; }
+.day-number { color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); font-variant-numeric: tabular-nums; }
+/* The whole rest of the cell is the tap target for setting that day's price */
+.day-price { display: flex; align-items: flex-start; min-height: var(--rr-tap-target); padding-top: 10px; }
+.rate-value { font-weight: bold; color: var(--rr-color-primary); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.missing-rate { font-size: 13px; color: var(--rr-color-muted); }
+.outside-month { background: var(--rr-color-surface-sunken); }
+.price-note { margin: 20px 0 0; font-size: var(--rr-font-size-sm); }
+@media (max-width: 640px) { .price-filters { flex-direction: column; align-items: stretch; } .month-heading { font-size: var(--rr-font-size-sm); } }
 
 .mobile-calendar-hint { display: none; font-size: 13px; }
 @media (max-width: 640px) { .mobile-calendar-hint { display: block; } }

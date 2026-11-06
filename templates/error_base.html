@@ -7,14 +7,27 @@ visitor is not a member of, and confirm that it exists.
 {% block title %}{% block error_title %}{% endblock %} · RoangRaam{% endblock %}
 {% block extra_head %}
 <style>
+  /* Tokens only (base.html links css/tokens.css above this block), so no hex here.
+     Inline on purpose: one short page with no navbar does not need a stylesheet of its own. */
+  body:has(.err-page) { margin: 0; background: var(--rr-color-bg); }
   .err-page {
     box-sizing: border-box;
     max-width: 560px;
     margin: 0 auto;
     padding: var(--rr-space-8) var(--rr-space-5);
     color: var(--rr-color-text);
+    font-family: var(--rr-font-family);
+    line-height: var(--rr-line-height);
   }
-  .err-page h1 { margin: 0 0 var(--rr-space-3); }
+  /* The display face on the heading only, as on every other page */
+  .err-page h1 {
+    margin: 0 0 var(--rr-space-3);
+    color: var(--rr-color-primary);
+    font-family: var(--rr-font-family-display);
+    font-size: clamp(1.375rem, 3vw, 1.75rem);
+    font-weight: 400;
+    line-height: 1.3;
+  }
   .err-page p { margin: 0 0 var(--rr-space-5); color: var(--rr-color-muted); }
 </style>
 {% endblock %}

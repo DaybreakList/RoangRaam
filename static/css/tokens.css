@@ -1,8 +1,16 @@
 /*
  * Design tokens. Every colour and font in static/css/*.css and static/<app>/*.css
  * must come from here: no hex values outside this file.
- * (Exceptions agreed by the team: the decorative SVG scenes in
- * templates/bookings/_poster_scene.html and templates/bookings/_results.html.)
+ *
+ * Exceptions agreed by the team, all of which hold copies of the values below.
+ * WHEN A COLOUR HERE CHANGES, UPDATE EVERY ONE OF THEM IN THE SAME COMMIT:
+ *   - templates/bookings/email/confirmation.html  (an email client cannot load a
+ *     stylesheet, let alone a custom property)
+ *   - templates/500.html  (stands alone with inline styles: Django renders it with no
+ *     request and it must still show when the database or the static files are the
+ *     problem, so it may not link this file. A test asserts it holds no <link>.)
+ *   - the decorative SVG scenes in templates/bookings/_poster_scene.html and
+ *     templates/bookings/_results.html
  *
  * The palette is the poster style of the guest search page, applied to the whole site:
  * ink = main colour of text, rules and primary buttons; paper = page background;
