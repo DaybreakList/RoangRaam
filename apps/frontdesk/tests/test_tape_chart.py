@@ -5,6 +5,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils.formats import date_format
 from django.utils import timezone
 
 from apps.bookings.cancellation import cancel_booking
@@ -41,6 +42,21 @@ def test_allowed_roles(client, hotel_a, login_member, role):
     assert item.booking.code in response.content.decode()
     assert len(response.context['chart']['days']) == 14
     assert item.booking.guest.email not in response.content.decode()
+
+
+def test_today_column_is_marked_only_while_it_is_in_the_window(client, hotel_a, login_member):
+    """The header highlights the hotel's own today (context `today` from TapeChartView)."""
+    login_member(hotel_a)
+    RoomFactory(property=hotel_a)
+    today = timezone.localdate()
+
+    on_today = client.get(url(hotel_a)).content.decode()
+    elsewhere = client.get(url(hotel_a), {'start': (today + timedelta(days=30)).isoformat()}).content.decode()
+
+    assert on_today.count('tc-today') == 1
+    assert f'tc-today"><span class="tc-day__name">{date_format(today, "D")}</span>' in on_today
+    assert f'<span class="tc-day__number">{today.day}</span>' in on_today
+    assert 'tc-today' not in elsewhere
 
 
 def test_housekeeping_denied(client, hotel_a, login_member):

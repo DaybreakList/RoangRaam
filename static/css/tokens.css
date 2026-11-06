@@ -51,6 +51,15 @@
   --rr-color-info: #23467e;
   --rr-color-info-bg: #bfccdf;
 
+  /* Status tints, one step paler than the -bg shades above: the fill of a Tape Chart bar,
+     which has to carry three lines of ink text (8.13:1 or better on all three) while a 2px
+     border in the status colour does the telling apart. The three fills sit close together
+     in greyscale on purpose; the BORDER carries the lightness ladder (warning 1.11:1 from
+     success, success 1.43:1 from info) and the bar also spells its status out in words. */
+  --rr-color-warning-tint: #f8e9c4;
+  --rr-color-info-tint: #dde5f1;
+  --rr-color-success-tint: #d6e7dd;
+
   /* Disabled: warm grey, so it reads as "off" rather than as another status */
   --rr-color-disabled-bg: #efe6cf;
   --rr-color-disabled-border: #a8997a;

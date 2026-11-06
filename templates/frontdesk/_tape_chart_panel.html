@@ -1,20 +1,28 @@
 <section x-init="loadPanel($el)" id="tc-panel" aria-label="ตัวกรองและตารางการจอง">
   {% csrf_token %}
   {% if chart %}{{ chart.move_data|json_script:"tc-move-data" }}{% endif %}
-  <form method="get" action="{{ request.path }}" class="tc-filters" hx-get="{{ request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
-    {% for field in form %}<div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
-    <button type="submit" class="rr-btn rr-btn--primary">แสดงผล</button>
-    <a href="{{ clear_url|default:request.path }}" hx-get="{{ clear_url|default:request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true">ล้างตัวกรอง</a>
-  </form>
+  {% comment %}
+  One control card: the date navigation and the range it shows come first, the filters
+  second. Everything stays inside #tc-panel, which HTMX swaps whole (hx-swap="outerHTML").
+  {% endcomment %}
+  <div class="tc-controls">
+    {% if chart %}
+    <nav class="tc-navigation" aria-label="เลือกช่วงวันที่" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
+      {% if previous_url %}<a href="{{ previous_url }}" hx-get="{{ previous_url }}">ก่อนหน้า {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ก่อนหน้า {{ chart.window_days }} วัน</span>{% endif %}
+      <a href="{{ today_url }}" hx-get="{{ today_url }}">วันนี้</a>
+      {% if next_url %}<a href="{{ next_url }}" hx-get="{{ next_url }}">ถัดไป {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ถัดไป {{ chart.window_days }} วัน</span>{% endif %}
+    </nav>
+    <p class="tc-range">{{ request.property.name }} · <span class="tc-range__dates">{{ chart.start|date:"j M Y" }} – {{ chart.last_day|date:"j M Y" }}</span></p>
+    {% endif %}
+    <form method="get" action="{{ request.path }}" class="tc-filters" hx-get="{{ request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
+      {% for field in form %}<div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+      <button type="submit" class="rr-btn rr-btn--primary">แสดงผล</button>
+      <a href="{{ clear_url|default:request.path }}" hx-get="{{ clear_url|default:request.path }}" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true">ล้างตัวกรอง</a>
+    </form>
+  </div>
   <p id="tc-loading" class="htmx-indicator" role="status">กำลังโหลดตาราง…</p>
   {% if form.errors %}<p role="alert">กรุณาตรวจสอบตัวกรองด้านบน</p>{% endif %}
   {% if chart %}
-  <nav class="tc-navigation" aria-label="เลือกช่วงวันที่" hx-target="#tc-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tc-loading">
-    {% if previous_url %}<a href="{{ previous_url }}" hx-get="{{ previous_url }}">ก่อนหน้า {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ก่อนหน้า {{ chart.window_days }} วัน</span>{% endif %}
-    <a href="{{ today_url }}" hx-get="{{ today_url }}">วันนี้</a>
-    {% if next_url %}<a href="{{ next_url }}" hx-get="{{ next_url }}">ถัดไป {{ chart.window_days }} วัน</a>{% else %}<span aria-disabled="true">ถัดไป {{ chart.window_days }} วัน</span>{% endif %}
-  </nav>
-  <p>{{ request.property.name }} · {{ chart.start|date:"j M Y" }} – {{ chart.last_day|date:"j M Y" }}</p>
   <noscript><p>กรุณาเปิด JavaScript เพื่อเลื่อนดูห้องทั้งหมดและย้ายห้อง</p></noscript>
   <p id="tc-help">แสดง {{ chart.window_days }} วันตามเขตเวลาของโรงแรม ไม่นับคืนวันเช็คเอาต์ · เลื่อนแนวนอนเพื่อดูวันถัดไป · ใช้ลูกศรขึ้น/ลง หรือ Home/End เพื่อเลือกแถวห้อง</p>
   <p x-cloak class="tc-move-help">ลากแถบการจองไปแถวห้องปลายทาง หรือกด Enter / Space บนแถบแล้วเลือกห้อง · วันพักและราคาเดิม
@@ -23,7 +31,7 @@
   {% if chart.rows %}
   <div x-ignore class="tc-scroll" tabindex="0" role="region" aria-label="ตารางห้องและการจอง" aria-describedby="tc-help">
     <div class="tc-grid" data-virtual-rows="true" style="--tc-days: {{ chart.window_days }}; --tc-row-height: {{ chart.row_height }}px; --tc-header-height: {{ chart.header_height }}px">
-      <div class="tc-header"><div class="tc-room">ห้อง / ชั้น / ประเภท</div><div class="tc-days">{% for day in chart.days %}<div>{{ day|date:"D" }}<br>{{ day|date:"j M" }}</div>{% endfor %}</div></div>
+      <div class="tc-header"><div class="tc-room">ห้อง / ชั้น / ประเภท</div><div class="tc-days">{% for day in chart.days %}<div class="tc-day{% if day|date:"w" == "0" or day|date:"w" == "6" %} tc-weekend{% endif %}{% if today and day == today %} tc-today{% endif %}"><span class="tc-day__name">{{ day|date:"D" }}</span><span class="tc-day__number">{{ day|date:"j" }}</span><span class="tc-day__month">{{ day|date:"M" }}</span></div>{% endfor %}</div></div>
       <div class="tc-spacer" data-spacer="top" aria-hidden="true" style="height: 0px"></div>
       {% for row in chart.initial_rows %}
       <section class="tc-row" data-room-id="{{ row.room.pk }}"

@@ -1,15 +1,24 @@
 /*
  * Tape Chart. Tokens from static/css/tokens.css only: no hex here.
  *
- * Only colours, the type face, line colours and corner radii were restyled. Every size,
+ * Only colours, the type face, line colours and corner radii are restyled. Every size,
  * position and grid declaration below is load-bearing: the virtual row window, keyboard
  * navigation and the drop hit-tests in static/frontdesk/tape_chart.js all read
- * --tc-row-height / --tc-header-height and assume the geometry written here, so the
- * grid columns, the cell sizes, the 32px drag handle and the 1px bar border stay as they are.
+ * --tc-row-height / --tc-header-height and assume the geometry written here, so the grid
+ * columns, the cell sizes and the 32px drag handle stay exactly as they are. The row and
+ * bar markup is built twice, once by the template and once by tape_chart.js, so nothing
+ * inside a row may be restyled through new markup: only through the classes already there.
  *
- * Booking status is told apart by the lightness of its tint as well as its hue
- * (รอชำระเงิน > เช็คอินแล้ว > ยืนยันแล้ว on the shared ladder, เช็คเอาต์แล้ว on paper),
- * and every bar spells its status out in the label and the title attribute.
+ * Booking status is told apart three ways over, never by the fill alone: a 2px border in
+ * the status colour (the lightness ladder lives there: warning 1.11:1 from success,
+ * success 1.43:1 from info), a solid drag handle in the same colour, and the status
+ * written out in the bar and in its title attribute. The three fills are pale on purpose,
+ * so the ink text on them reads 8.13:1 or better.
+ *
+ * Line icons are drawn as masks tinted with currentColor, the same as daily_ops.css: the
+ * `%23000` in a data URI is not a colour, a mask keeps only the alpha channel. They are
+ * switched on inside @supports, because without mask support a bare `background:
+ * currentColor` would paint a solid square.
  */
 
 body:has(.tc-page) {
@@ -18,81 +27,229 @@ body:has(.tc-page) {
 }
 
 .tc-page { padding: 24px; max-width: 1600px; margin: auto; color: var(--rr-color-text); font-family: var(--rr-font-family); }
-/* The one place on the page that carries the display face */
-.tc-page h1 { margin-bottom: 8px; color: var(--rr-color-primary); font-family: var(--rr-font-family-display); font-size: clamp(1.375rem, 3vw, 1.75rem); font-weight: 400; }
-.tc-scroll { overflow: auto; max-height: 70vh; border: 2px solid var(--rr-color-primary); border-radius: var(--rr-radius-lg); background: var(--rr-color-surface); }
+/* The one place on the page that carries the display face (.rr-page-head in components.css) */
+.tc-head { margin-bottom: 16px; }
+
+/* ---------- Legend ---------- */
+/* Chips that look like what they stand for. Their classes are their own: .tc-housekeeping--*
+   is asserted to be absent by the tests when no room is in that state. */
+.tc-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 0 auto; padding: 0; list-style: none; }
+.tc-legend li { margin: 0; }
+.tc-legend__chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border: 2px solid var(--rr-color-border);
+  border-radius: var(--rr-radius-pill);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.tc-legend__chip--pending_payment { border-color: var(--rr-color-warning); background: var(--rr-color-warning-tint); color: var(--rr-color-text); }
+.tc-legend__chip--confirmed { border-color: var(--rr-poster-blue); background: var(--rr-color-info-tint); color: var(--rr-color-text); }
+.tc-legend__chip--checked_in { border-color: var(--rr-color-success); background: var(--rr-color-success-tint); color: var(--rr-color-text); }
+.tc-legend__chip--checked_out { border-style: dashed; border-color: var(--rr-color-input-border); background: var(--rr-color-surface); color: var(--rr-color-muted); }
+/* The two housekeeping chips mirror .tc-housekeeping in the room column */
+.tc-legend__chip--clean { border-color: var(--rr-color-success); background: var(--rr-color-surface); color: var(--rr-color-success); }
+.tc-legend__chip--dirty { border-color: var(--rr-color-warning); background: var(--rr-color-surface); color: var(--rr-color-warning); }
+
+/* ---------- Control card ---------- */
+.tc-controls {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-xl);
+  background: var(--rr-color-surface);
+  box-shadow: var(--rr-shadow-offset);
+}
+/* Segmented group: one pill split in three. The middle child is always "วันนี้"
+   (the order in _tape_chart_panel.html is previous / today / next in every branch). */
+.tc-navigation {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
+  background: var(--rr-color-surface);
+}
+.tc-navigation > * {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 18px;
+  color: var(--rr-color-primary);
+  font-weight: bold;
+  text-decoration: none;
+}
+.tc-navigation > * + * { border-left: 2px solid var(--rr-color-primary); }
+.tc-navigation a:hover { background: var(--rr-color-bg); color: var(--rr-color-primary-hover); }
+.tc-navigation a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: -3px; }
+.tc-navigation > :nth-child(2) { background: var(--rr-color-primary); color: var(--rr-color-on-primary); }
+.tc-navigation > :nth-child(2):hover { background: var(--rr-color-primary-hover); color: var(--rr-color-on-primary); }
+/* The end of the range: still readable, but plainly not a button */
+.tc-navigation [aria-disabled] { background: var(--rr-color-disabled-bg); color: var(--rr-color-disabled-text); cursor: not-allowed; }
+.tc-navigation > :first-child::before,
+.tc-navigation > :last-child::after {
+  display: none;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  content: "";
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+.tc-navigation > :first-child::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 4 7 12l8 8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 4 7 12l8 8'/%3E%3C/svg%3E");
+}
+.tc-navigation > :last-child::after {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4l8 8-8 8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4l8 8-8 8'/%3E%3C/svg%3E");
+}
+.tc-range { flex: 1 1 240px; margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
+.tc-range__dates { display: block; color: var(--rr-color-primary); font-size: 22px; font-weight: bold; font-variant-numeric: tabular-nums; }
+
+.tc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 16px; margin-left: auto; }
+.tc-filters > div { display: flex; flex-direction: column; }
+.tc-filters label { display: block; margin-bottom: 4px; color: var(--rr-color-muted); font-size: 13px; font-weight: bold; }
+.tc-filters input, .tc-filters select { box-sizing: border-box; min-height: var(--rr-tap-target); max-width: 100%; padding: 8px 12px; border: 2px solid var(--rr-color-input-border); border-radius: 12px; background: var(--rr-color-surface); color: var(--rr-color-text); font: inherit; }
+.tc-filters input:hover, .tc-filters select:hover { border-color: var(--rr-color-primary); }
+.tc-filters input:focus-visible, .tc-filters select:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+.tc-filters .errorlist { margin: 4px 0 0; color: var(--rr-color-danger); font-size: var(--rr-font-size-sm); padding-left: 20px; }
+.tc-filters .rr-btn { align-self: end; }
+/* "Clear filters" is a way back, not a second action: a link, never a button */
+.tc-filters > a { display: inline-flex; align-items: center; align-self: end; min-height: var(--rr-tap-target); color: var(--rr-color-primary-hover); font-weight: 600; }
+.tc-filters > a:hover { color: var(--rr-color-primary); }
+.tc-filters > a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+
+/* ---------- Help and status lines ---------- */
+#tc-loading { min-height: 24px; margin: 4px 0; color: var(--rr-color-muted); }
+#tc-help, .tc-move-help { color: var(--rr-color-muted); font-size: 14px; }
+#tc-help::before, .tc-move-help::before {
+  display: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  background: currentColor;
+  vertical-align: -3px;
+  content: "";
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v6'/%3E%3Cpath d='M12 7.4h.01'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v6'/%3E%3Cpath d='M12 7.4h.01'/%3E%3C/svg%3E");
+}
+.tc-move-help button { min-height: var(--rr-tap-target); margin-left: 8px; padding: 6px 16px; border: 2px solid var(--rr-color-primary); border-radius: var(--rr-radius-pill); background: var(--rr-color-surface); color: var(--rr-color-primary); font: inherit; font-weight: 600; cursor: pointer; }
+.tc-move-help button:hover { background: var(--rr-color-bg); }
+.tc-move-help button:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+.tc-no-rooms { padding: 32px 12px; color: var(--rr-color-muted); text-align: center; }
+
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+  #tc-help::before, .tc-move-help::before { display: inline-block; }
+  .tc-navigation > :first-child::before, .tc-navigation > :last-child::after { display: inline-block; }
+}
+
+/* ---------- The chart ---------- */
+.tc-scroll { overflow: auto; max-height: 70vh; border: 2px solid var(--rr-color-primary); border-radius: var(--rr-radius-xl); background: var(--rr-color-surface); }
 .tc-grid { min-width: calc(200px + var(--tc-days, 14) * 100px); }
 .tc-header, .tc-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
-.tc-header { position: sticky; top: 0; z-index: 3; background: var(--rr-color-surface-sunken); color: var(--rr-color-primary); font-weight: 600; }
+.tc-header { position: sticky; top: 0; z-index: 3; background: var(--rr-color-primary); color: var(--rr-color-on-primary); font-weight: 600; }
 .tc-row { border-top: 1px solid var(--rr-color-border); min-height: 76px; }
-.tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: var(--rr-color-surface-sunken); border-right: 1px solid var(--rr-color-border); overflow-wrap: anywhere; }
+.tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: var(--rr-color-surface-sunken); border-right: 2px solid var(--rr-color-primary); overflow-wrap: anywhere; }
+/* The head of the room column keeps the ink of the header, with the gold rule beside it */
+.tc-header .tc-room { display: flex; align-items: center; background: var(--rr-color-primary); color: var(--rr-color-on-primary); border-right: 2px solid var(--rr-poster-gold); font-size: var(--rr-font-size-sm); }
 .tc-days, .tc-track { display: grid; grid-template-columns: repeat(var(--tc-days, 14), minmax(0, 1fr)); }
-.tc-days > div { text-align: center; padding: 12px 4px; border-right: 1px solid var(--rr-color-border); }
+/* Three lines inside the 64px header: 14 + 26 + 14 plus 3px of padding top and bottom */
+/* No dividers between the day cells: on the solid ink band the weekend and today blocks
+   are the separation, and a rule between them would only add noise. */
+.tc-days > div { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3px 4px; }
+.tc-day__name { font-size: 13px; font-weight: 600; line-height: 14px; }
+.tc-day__number { font-size: 24px; font-weight: bold; line-height: 26px; font-variant-numeric: tabular-nums; }
+.tc-day__month { font-size: 12px; line-height: 14px; }
+/* Saturday and Sunday: one step lighter than the ink around them (cream on it is 5.84:1) */
+.tc-weekend { background: var(--rr-color-primary-hover); }
+/* Today: the only gold in the header, and the number is the biggest thing in it */
+.tc-today { background: var(--rr-poster-gold); color: var(--rr-color-primary); }
 .tc-track { align-items: center; background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--tc-days, 14) - 1px), var(--rr-color-border) calc(100% / var(--tc-days, 14) - 1px), var(--rr-color-border) calc(100% / var(--tc-days, 14))); }
-.tc-bar { grid-row: 1; margin: 6px 2px; padding: 7px; min-width: 0; border-radius: var(--rr-radius-sm); border: 1px solid var(--rr-color-border); background: var(--rr-color-surface); }
+
+/* ---------- Bars ---------- */
+/* Pale fill, 2px border in the status colour, ink text, no shadow.
+   Bar height is 2 + 32 (handle) + 20 + 16 + 16 (text) + 7 (padding) + 2 = 95px,
+   inside the 99px that a 112px row leaves after the 6px margins. */
+.tc-bar { grid-row: 1; margin: 6px 2px; padding: 7px; min-width: 0; border-radius: var(--rr-radius-lg); border: 2px solid var(--rr-color-input-border); background: var(--rr-color-surface); color: var(--rr-color-text); }
 .tc-bar strong, .tc-bar span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-bar strong { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .tc-bar span { font-size: 12px; }
-.tc-pending_payment { background: var(--rr-color-warning-bg); border-color: var(--rr-color-warning); color: var(--rr-color-warning); }
-.tc-confirmed { background: var(--rr-color-info-bg); border-color: var(--rr-color-info); color: var(--rr-color-info); }
-.tc-checked_in { background: var(--rr-color-success-bg); border-color: var(--rr-color-success); color: var(--rr-color-success); }
-.tc-checked_out { background: var(--rr-color-bg); border-color: var(--rr-color-border); color: var(--rr-color-muted); }
+.tc-bar .tc-guest { font-weight: 600; }
+.tc-pending_payment { background: var(--rr-color-warning-tint); border-color: var(--rr-color-warning); color: var(--rr-color-text); }
+.tc-confirmed { background: var(--rr-color-info-tint); border-color: var(--rr-poster-blue); color: var(--rr-color-text); }
+.tc-checked_in { background: var(--rr-color-success-tint); border-color: var(--rr-color-success); color: var(--rr-color-text); }
+/* Gone: a dashed edge on plain paper, the only bar with no fill of its own */
+.tc-checked_out { background: var(--rr-color-surface); border-style: dashed; border-color: var(--rr-color-input-border); color: var(--rr-color-muted); }
 .tc-closed { font-size: 12px; color: var(--rr-color-danger); }
 .tc-empty { grid-column: 1 / -1; padding: 12px; color: var(--rr-color-muted); }
 .tc-bar:focus-visible, .tc-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
-@media (max-width: 600px) { .tc-page { padding: 12px; } }
+@media (max-width: 600px) { .tc-page { padding: 12px; } .tc-controls { padding: 12px; } .tc-filters { margin-left: 0; } }
 
-.tc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
-.tc-filters label { display: block; margin-bottom: 4px; font-weight: bold; }
-.tc-filters input, .tc-filters select { min-height: 40px; max-width: 100%; padding: 6px; border: 1px solid var(--rr-color-input-border); border-radius: var(--rr-radius-md); background: var(--rr-color-surface); color: var(--rr-color-text); font: inherit; }
-.tc-filters input:focus-visible, .tc-filters select:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
-.tc-filters .errorlist { color: var(--rr-color-danger); padding-left: 20px; }
-.tc-navigation { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0; }
-.tc-navigation a { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); color: var(--rr-color-primary); font-weight: 600; }
-.tc-navigation a:hover { color: var(--rr-color-primary-hover); }
-.tc-navigation a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
-.tc-navigation [aria-disabled] { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); color: var(--rr-color-muted); }
-#tc-loading { min-height: 24px; margin: 4px 0; color: var(--rr-color-muted); }
-
-.tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 2px 7px; border: 1px solid; border-radius: 999px; font-size: 12px; line-height: 1.5; vertical-align: middle; }
-.tc-housekeeping--clean { color: var(--rr-color-success); background: var(--rr-color-success-bg); border-color: var(--rr-color-success); }
-.tc-housekeeping--dirty { color: var(--rr-color-warning); background: var(--rr-color-warning-bg); border-color: var(--rr-color-warning); }
+/* ---------- Room column ---------- */
+.tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 1px 7px; border: 2px solid; border-radius: var(--rr-radius-pill); background: var(--rr-color-surface); font-size: 12px; line-height: 1.5; vertical-align: middle; }
+.tc-housekeeping--clean { color: var(--rr-color-success); border-color: var(--rr-color-success); }
+.tc-housekeeping--dirty { color: var(--rr-color-warning); border-color: var(--rr-color-warning); }
 
 .tc-page [x-cloak] { display: none !important; }
-.tc-target { padding: 6px 10px; min-height: 44px; border: 1px solid var(--rr-color-primary); border-radius: var(--rr-radius-sm); background: var(--rr-color-surface); color: var(--rr-color-primary); font-weight: 600; }
+.tc-target { padding: 6px 10px; min-height: 44px; border: 2px solid var(--rr-color-primary); border-radius: var(--rr-radius-pill); background: var(--rr-color-primary); color: var(--rr-color-on-primary); font-weight: 600; cursor: pointer; }
+.tc-target:hover { background: var(--rr-color-primary-hover); border-color: var(--rr-color-primary-hover); }
 .tc-target:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 /* Only the handle starts a drag and blocks touch panning; the rest of the bar scrolls the chart. */
 .tc-movable { font: inherit; text-align: left; }
-/* Full-bleed band: negative margins cancel the bar's top/side padding. Bar height is
-   1 + 32 + 52 (text) + 7 + 1 = 93px, inside the 99px the 112px row allows.
-   The band is an opaque surface, not a tint over the bar: a translucent ink layer would
-   eat the contrast of the status-coloured label it carries. */
-.tc-bar .tc-drag-handle { box-sizing: border-box; height: 32px; margin: -7px -7px 0; border-radius: 5px 5px 0 0;
-    border-bottom: 1px solid var(--rr-color-overlay-line); background: var(--rr-color-surface); color: inherit;
-    font-size: 12px; font-weight: 600; line-height: 31px; text-align: center;
+/* Full-bleed band: negative margins cancel the bar's top/side padding. The band is solid
+   in the status colour, so it reads as the grip of that bar; cream on it is 5.27:1
+   (warning), 8.34:1 (blue), 5.84:1 (success) and 6.42:1 (checked out). */
+.tc-bar .tc-drag-handle { box-sizing: border-box; height: 32px; margin: -7px -7px 0; border-radius: 10px 10px 0 0;
+    background: var(--rr-color-muted); color: var(--rr-color-on-primary);
+    font-size: 12px; font-weight: bold; line-height: 32px; text-align: center;
     touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.tc-pending_payment .tc-drag-handle { background: var(--rr-color-warning); }
+.tc-confirmed .tc-drag-handle { background: var(--rr-poster-blue); }
+.tc-checked_in .tc-drag-handle { background: var(--rr-color-success); }
 .tc-bar .tc-drag-handle:active { cursor: grabbing; }
 .tc-movable:disabled .tc-drag-handle { touch-action: auto; cursor: not-allowed; opacity: .55; }
 .tc-movable:disabled, .tc-target:disabled { cursor: not-allowed; }
-.tc-target:disabled { opacity: .55; }
+.tc-target:disabled { background: var(--rr-color-disabled-bg); border-color: var(--rr-color-disabled-border); color: var(--rr-color-disabled-text); opacity: .55; }
 /* Row height stays fixed even when target controls are absent. */
 .tc-target[hidden] { display: none; }
 .tc-target { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-size: 12px; }
-.tc-drop-valid { outline: 3px solid var(--rr-color-success); outline-offset: -3px; }
-.tc-drop-invalid { outline: 3px solid var(--rr-color-danger); outline-offset: -3px; }
-.tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: var(--rr-radius-sm); background: var(--rr-color-primary); color: var(--rr-color-on-primary); font-weight: 600; }
-.tc-move-message { min-height: 24px; white-space: pre-line; color: var(--rr-color-text); font-weight: 600; }
-.tc-move-help { font-size: 14px; color: var(--rr-color-muted); }
+/* While a bar is being moved: the room rows say yes or no. The outline is drawn inside the
+   row so the sticky room cell cannot clip it, and the tint repeats the answer. */
+.tc-drop-valid { outline: 3px solid var(--rr-color-success); outline-offset: -3px; background: var(--rr-color-success-tint); }
+.tc-drop-invalid { outline: 3px solid var(--rr-color-danger); outline-offset: -3px; background: var(--rr-color-danger-bg); }
+.tc-drop-valid .tc-room, .tc-drop-invalid .tc-room { background: transparent; }
+.tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border: 2px solid var(--rr-poster-gold); border-radius: var(--rr-radius-pill); background: var(--rr-color-primary); color: var(--rr-color-on-primary); font-weight: 600; }
+.tc-move-message { min-height: 24px; white-space: pre-line; color: var(--rr-color-primary); font-weight: bold; }
 .tc-page[aria-busy="true"] .tc-filters, .tc-page[aria-busy="true"] .tc-navigation { opacity: .6; pointer-events: none; }
-#tc-help { color: var(--rr-color-muted); font-size: 14px; }
 
 /* Fixed geometry keeps row recycling, keyboard navigation and drop hit-tests aligned. */
 .tc-row { height: var(--tc-row-height, 112px); min-height: 0; box-sizing: border-box; }
 .tc-header { height: var(--tc-header-height, 64px); box-sizing: border-box; }
 .tc-row .tc-room { height: 100%; box-sizing: border-box; overflow: hidden; padding: 6px 8px; }
 .tc-room-title { display: flex; align-items: center; gap: 4px; min-height: 26px; }
-.tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* The number is what the desk looks for: the largest figure in the row */
+.tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 24px; line-height: 26px; font-variant-numeric: tabular-nums; }
 .tc-room-title .tc-housekeeping { flex: none; margin: 0; }
-.tc-room-meta { display: flex; align-items: center; gap: 6px; height: 20px; line-height: 20px; color: var(--rr-color-muted); }
+.tc-room-meta { display: flex; align-items: center; gap: 6px; height: 20px; line-height: 20px; color: var(--rr-color-muted); font-size: 14px; }
 .tc-room-details { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-room-meta .tc-closed { flex: none; white-space: nowrap; }
 .tc-bar strong { line-height: 20px; }
