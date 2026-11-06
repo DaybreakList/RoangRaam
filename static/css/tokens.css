@@ -9,8 +9,8 @@
  *   - templates/500.html  (stands alone with inline styles: Django renders it with no
  *     request and it must still show when the database or the static files are the
  *     problem, so it may not link this file. A test asserts it holds no <link>.)
- *   - the decorative SVG scenes in templates/bookings/_poster_scene.html and
- *     templates/bookings/_results.html
+ *   - the decorative SVG scenes in templates/bookings/_poster_scene.html,
+ *     templates/bookings/_poster_scene_hilltop.html and templates/bookings/_results.html
  *
  * The palette is the poster style of the guest search page, applied to the whole site:
  * ink = main colour of text, rules and primary buttons; paper = page background;
@@ -123,4 +123,9 @@
   --rr-poster-error-ink: #84212a;
   --rr-poster-error-paper: #fdf3f4;
   --rr-poster-on-ink-muted: #e7f2ed;
+  /* Light orange, the surface under "waiting for payment" on the Today page. It is a rung
+     of the same lightness ladder as the status tints above: 1.11:1 from --rr-color-warning-bg,
+     so "waiting for payment" and "waiting for refund" stay apart in greyscale too, and
+     --rr-poster-accent-text reads 4.67:1 on it. --rr-poster-accent is far too dark to take text. */
+  --rr-poster-accent-bg: #f9d4bd;
 }

@@ -1,0 +1,26 @@
+{% comment %}
+Decorative hilltop sunset behind the guest search header, for the hotel on the hill.
+Same wrapper, class and size as bookings/_poster_scene.html, so search.css places it
+the same way: .rr-search__scene is a 470px band pinned to the bottom of the hero and
+xMidYMax slice crops the sides first, never the horizon.
+The colours below are hardcoded on purpose: an inline SVG cannot read a custom property
+through a fill attribute. They are copies of the tokens in css/tokens.css and that file's
+header lists this one among the exceptions to keep in step.
+{% endcomment %}
+<svg class="rr-search__scene" data-scene="hilltop" viewBox="0 0 1440 470" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+<rect width="1440" height="80" fill="#f6dca6"/>
+<rect y="80" width="1440" height="60" fill="#f2c57f"/>
+<rect y="140" width="1440" height="60" fill="#efb765"/>
+<rect y="200" width="1440" height="60" fill="#e7955a"/>
+<rect y="260" width="1440" height="210" fill="#d9603b"/>
+<circle class="rr-search__sun" cx="980" cy="250" r="150" fill="#fbf1dc"/>
+<path d="M0 300 L120 222 L210 268 L330 182 L450 258 L560 202 L700 280 L800 236 L900 284 L1060 196 L1180 262 L1300 212 L1440 252 L1440 470 L0 470 Z" fill="#a8432a"/>
+<path d="M0 322 Q360 300 720 318 T1440 312 L1440 334 Q1080 344 720 340 T0 346 Z" fill="#fbf1dc"/>
+<path d="M0 372 L150 302 L290 352 L430 292 L560 342 L720 302 L860 262 L980 224 L1100 270 L1240 302 L1340 282 L1440 312 L1440 470 L0 470 Z" fill="#146b5e"/>
+<path d="M938 232 L938 200 L980 170 L1022 200 L1022 232 Z" fill="#09483f"/>
+<rect x="1004" y="174" width="9" height="20" fill="#09483f"/>
+<rect x="951" y="206" width="14" height="12" fill="#efb765"/>
+<rect x="995" y="206" width="14" height="12" fill="#efb765"/>
+<path d="M0 404 Q200 344 420 384 T840 376 Q1100 342 1440 384 L1440 470 L0 470 Z" fill="#09483f"/>
+<path d="M40 404 L58 344 L76 404 Z M86 398 L106 326 L126 398 Z M136 392 L152 340 L168 392 Z M1220 380 L1238 318 L1256 380 Z M1266 386 L1288 306 L1310 386 Z M1320 392 L1336 340 L1352 392 Z M1362 396 L1380 334 L1398 396 Z" fill="#146b5e"/>
+</svg>

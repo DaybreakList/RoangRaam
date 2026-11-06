@@ -1,6 +1,6 @@
 {% load check_in_out_ui %}
 <section class="rr-card do-section" id="{{ section_id }}" aria-labelledby="{{ section_id }}-title">
-  <h2 class="rr-card__title" id="{{ section_id }}-title">{{ title }} <span class="rr-badge rr-badge--muted">{{ rows|length }} การจอง</span></h2>
+  <h2 class="rr-card__title" id="{{ section_id }}-title">{{ title }} <span class="rr-badge do-count">{{ rows|length }} การจอง</span></h2>
   <div class="rr-table-scroll" tabindex="0" role="region" aria-labelledby="{{ section_id }}-title">
     <table class="rr-table">
       <thead>
@@ -22,16 +22,17 @@
         <tr>
           <td class="do-code"><a href="{% url 'folio:detail' property_slug=request.property.slug booking_id=row.booking.pk %}" title="เปิด Folio">{{ row.booking.code }}</a></td>
           <td>{{ row.booking.guest }}</td>
-          <td>{{ row.room_numbers|join:", "|default:"—" }}</td>
+          <td class="do-room">{{ row.room_numbers|join:", "|default:"—" }}</td>
           <td>{{ row.room_type_names|join:", "|default:"—" }}</td>
           <td class="do-number">{{ row.booking.nights }}</td>
           <td>{{ row.booking.adults }} ผู้ใหญ่{% if row.booking.children %} · {{ row.booking.children }} เด็ก{% endif %}</td>
           {% with status=row.booking.status %}
-          <td><span class="rr-badge{% if status == 'PENDING_PAYMENT' %} rr-badge--warning{% elif status == 'CONFIRMED' %} rr-badge--info{% elif status == 'CANCELLED' %} rr-badge--danger{% elif status == 'CHECKED_OUT' %} rr-badge--muted{% endif %}">{{ row.booking.get_status_display }}</span></td>
+          {# Booking status is a solid pill; payment status below is an outlined pill with an icon #}
+          <td><span class="rr-badge do-status do-status--{{ status|lower }}">{{ row.booking.get_status_display }}</span></td>
           {% endwith %}
           <td>{{ row.booking.get_payment_option_display }}</td>
           {% with status=row.payment_status.value %}
-          <td><span class="rr-badge{% if status == 'AWAITING' %} rr-badge--warning{% elif status == 'REFUND_PENDING' %} rr-badge--danger{% elif status == 'PAY_AT_HOTEL' or status == 'REFUNDED' or status == 'NONE' %} rr-badge--muted{% endif %}">{{ row.payment_status.label }}</span></td>
+          <td><span class="rr-badge do-pay do-pay--{{ status|lower }}">{{ row.payment_status.label }}</span></td>
           {% endwith %}
           <td>{% if row.booking.status == 'CONFIRMED' and section_id == 'arrivals' %}{% check_in_form row %}{% elif row.booking.status == 'CHECKED_IN' and section_id != 'arrivals' %}{% check_out_button row.booking lists.today section_id bill_closed=row.bill_closed %}{% else %}—{% endif %}</td>
         </tr>

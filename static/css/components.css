@@ -382,6 +382,14 @@ table.rr-table td {
 }
 
 /* ---------- Navbar ---------- */
+/* The bar is ink on every page, so the top of the screen is the same anchor everywhere:
+   the hotel name in the display face on ink, a gold rule under it, and the current page
+   as a cream pill. Markup in partials/navbar.html is untouched (a test checks it exactly).
+   Contrast against --rr-color-primary: --rr-color-on-primary 9.31:1,
+   --rr-poster-on-ink-muted 9.11:1, --rr-poster-gold 5.79:1. Against
+   --rr-color-primary-hover: cream 5.84:1, on-ink-muted 5.72:1, gold 3.63:1
+   (a rule or a ring needs 3:1). The ring here is gold, not --rr-color-focus: that warm
+   red reaches only 1.63:1 on ink and would be invisible. */
 .rr-navbar {
   box-sizing: border-box;
   display: flex;
@@ -389,9 +397,9 @@ table.rr-table td {
   justify-content: space-between;
   gap: var(--rr-space-4);
   padding: var(--rr-space-3) var(--rr-space-5);
-  border-bottom: 2px solid var(--rr-color-primary);
-  background: var(--rr-color-surface);
-  color: var(--rr-color-text);
+  border-bottom: 4px solid var(--rr-poster-gold);
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
   font-family: var(--rr-font-family);
   line-height: 1.4;
 }
@@ -401,23 +409,23 @@ table.rr-table td {
   gap: var(--rr-space-3);
   min-width: 0;
   min-height: var(--rr-tap-target);
-  color: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
   font-family: var(--rr-font-family-display);
   font-size: var(--rr-font-size-lg);
   text-decoration: none;
 }
 .rr-navbar__brand:hover {
-  color: var(--rr-color-primary-hover);
+  color: var(--rr-poster-gold);
 }
 .rr-navbar__brand:focus-visible {
-  outline: 3px solid var(--rr-color-focus);
+  outline: 3px solid var(--rr-poster-gold);
   outline-offset: 3px;
 }
 .rr-navbar__logo {
   display: block;
   width: 36px;
   height: 36px;
-  border: 2px solid var(--rr-color-primary);
+  border: 2px solid var(--rr-color-on-primary);
   border-radius: var(--rr-radius-pill);
   background: var(--rr-color-surface);
   object-fit: contain;
@@ -442,22 +450,25 @@ table.rr-table td {
   padding: 0 var(--rr-space-3);
   border: 2px solid transparent;
   border-radius: var(--rr-radius-pill);
-  color: var(--rr-color-text);
+  color: var(--rr-poster-on-ink-muted);
   text-decoration: none;
 }
 .rr-navbar__link:hover {
-  border-color: var(--rr-color-border);
-  color: var(--rr-color-primary-hover);
+  border-color: var(--rr-color-primary-hover);
+  background: var(--rr-color-primary-hover);
+  color: var(--rr-color-on-primary);
 }
 .rr-navbar__link:focus-visible {
-  outline: 3px solid var(--rr-color-focus);
+  outline: 3px solid var(--rr-poster-gold);
   outline-offset: 3px;
 }
-/* Current page: filled pill plus bold text, so it is not told apart by colour alone */
-.rr-navbar__link[aria-current="page"] {
-  border-color: var(--rr-color-primary);
-  background: var(--rr-color-primary);
-  color: var(--rr-color-on-primary);
+/* Current page: cream pill plus bold text, so it is not told apart by colour alone.
+   The attribute selector outranks :hover above, so the pill stays put under the pointer. */
+.rr-navbar__link[aria-current="page"],
+.rr-navbar__link[aria-current="page"]:hover {
+  border-color: var(--rr-color-on-primary);
+  background: var(--rr-color-on-primary);
+  color: var(--rr-color-primary);
   font-weight: bold;
 }
 .rr-navbar__actions {
@@ -468,6 +479,22 @@ table.rr-table td {
 .rr-navbar__logout {
   margin: 0;
 }
+/* Log out, and the "log in" link that stands in its place for a guest: a cream pill on
+   the ink bar. Scoped to the navbar; the shared .rr-btn is not touched. */
+.rr-navbar__actions .rr-btn {
+  border-color: var(--rr-color-on-primary);
+  background: var(--rr-color-on-primary);
+  color: var(--rr-color-primary);
+}
+.rr-navbar__actions .rr-btn:hover {
+  border-color: var(--rr-poster-gold);
+  background: var(--rr-poster-gold);
+  color: var(--rr-color-primary);
+}
+.rr-navbar__actions .rr-btn:focus-visible {
+  outline: 3px solid var(--rr-poster-gold);
+  outline-offset: 3px;
+}
 
 /* ---------- Property switcher (markup in accounts/_property_switcher.html) ---------- */
 /* Never set `display` on .property-switcher ul: the partial hides it with x-show + inline display:none */
@@ -475,15 +502,17 @@ table.rr-table td {
   position: relative;
   font-family: var(--rr-font-family);
 }
+/* On the ink bar: a cream outline, see-through, so it reads as a control rather than as
+   a second primary button beside "log out". The panel it opens stays a cream card. */
 .property-switcher > button {
   box-sizing: border-box;
   min-height: var(--rr-tap-target);
   margin: 0;
   padding: var(--rr-space-2) var(--rr-space-5);
-  border: 2px solid var(--rr-color-primary);
+  border: 2px solid var(--rr-color-on-primary);
   border-radius: var(--rr-radius-pill);
-  background: var(--rr-color-surface);
-  color: var(--rr-color-primary);
+  background: transparent;
+  color: var(--rr-color-on-primary);
   font: inherit;
   font-family: var(--rr-font-family);
   font-weight: 600;
@@ -491,11 +520,14 @@ table.rr-table td {
   cursor: pointer;
 }
 .property-switcher > button:hover {
-  background: var(--rr-color-bg);
-  border-color: var(--rr-color-primary-hover);
-  color: var(--rr-color-primary-hover);
+  background: var(--rr-color-primary-hover);
+  border-color: var(--rr-color-on-primary);
+  color: var(--rr-color-on-primary);
 }
-.property-switcher > button:focus-visible,
+.property-switcher > button:focus-visible {
+  outline: 3px solid var(--rr-poster-gold);
+  outline-offset: 2px;
+}
 .property-switcher a:focus-visible {
   outline: 3px solid var(--rr-color-focus);
   outline-offset: 2px;

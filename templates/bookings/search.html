@@ -13,7 +13,15 @@
 {% block content %}
 <main class="rr-search">
     <header class="rr-search__hero">
+        {% comment %}
+        The scene is picked from the slug, for the demo data only: the two seeded hotels
+        get their own picture. A real hotel would carry its scene on the Property.
+        {% endcomment %}
+        {% if request.property.slug == 'demo-hilltop' %}
+        {% include 'bookings/_poster_scene_hilltop.html' %}
+        {% else %}
         {% include 'bookings/_poster_scene.html' %}
+        {% endif %}
         <div class="rr-search__hero-inner">
             <p class="rr-search__hero-link"><a href="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">ดูการจองของฉัน</a></p>
             {% if request.property.logo %}<img class="rr-search__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}

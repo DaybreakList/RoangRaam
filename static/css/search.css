@@ -7,12 +7,8 @@ body:has(.rr-search) {
   margin: 0;
   background: var(--rr-poster-paper);
 }
-body:has(.rr-search) .rr-navbar {
-  border-bottom: 2px solid var(--rr-poster-ink);
-  background: var(--rr-poster-paper);
-  color: var(--rr-poster-ink);
-  font-family: var(--rr-poster-font-body);
-}
+/* The navbar is not restyled here: it is the same ink bar with the gold rule as on every
+   other page (.rr-navbar in css/components.css), so the top of the screen never changes. */
 
 .rr-search {
   box-sizing: border-box;

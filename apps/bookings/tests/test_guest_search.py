@@ -93,6 +93,18 @@ class TestPosterPage:
         assert 'x-data="roomPicker(' in content
         assert '<html' not in content
 
+    def test_the_hotel_on_the_hill_gets_its_own_scene(self, client, hotel_a):
+        """The scene is picked from the slug, for the demo data only (bookings/search.html)."""
+        hilltop = PropertyFactory(name='Hilltop', slug='demo-hilltop')
+
+        hill = client.get(search_url(hilltop)).content.decode()
+        river = client.get(search_url(hotel_a)).content.decode()
+
+        assert 'data-scene="hilltop"' in hill
+        assert 'data-scene="riverside"' not in hill
+        assert 'data-scene="riverside"' in river
+        assert 'data-scene="hilltop"' not in river
+
     def test_every_static_file_of_the_page_exists_and_stays_local(self):
         for path in (
             'css/search.css',
