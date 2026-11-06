@@ -1,3 +1,17 @@
+/*
+ * Room status board (housekeeping). Tokens from static/css/tokens.css only.
+ *
+ * Built for a tablet carried around the floors: a grid of room cards, each one card tall,
+ * with a full-width 48px "ทำความสะอาดแล้ว" button. The display face is on the page h1
+ * only (.rr-page-head__title in components.css); room numbers stay in the body face with
+ * tabular figures so the grid lines up.
+ */
+
+body:has(.rs-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .rs-page {
   box-sizing: border-box;
   display: grid;
@@ -6,21 +20,79 @@
   margin: 0 auto;
   padding: var(--rr-space-6) var(--rr-space-5);
   color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-md);
+  line-height: 1.5;
 }
-.rs-page h1 { margin: 0 0 var(--rr-space-2); }
-.rs-summary { margin: 0; color: var(--rr-color-muted); }
+/* The two counts are the point of the page, so this line keeps the body size */
+.rs-summary { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-md); }
+.rs-summary strong { color: var(--rr-color-text); font-variant-numeric: tabular-nums; }
 
-.rs-messages { display: grid; gap: var(--rr-space-2); }
+/* ---------- Messages ---------- */
+/* Same shape as .rr-alert in components.css (the markup here is the page's own, so the
+   icon is drawn from CSS). The icon shape differs per status, so success and error are
+   never told apart by colour alone, and the message text says what happened. */
+.rs-messages { display: grid; gap: var(--rr-space-3); }
 .rs-message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rr-space-3);
   margin: 0;
   padding: var(--rr-space-3) var(--rr-space-4);
-  border: 1px solid var(--rr-color-border);
-  border-left: 4px solid var(--rr-color-primary);
-  border-radius: var(--rr-radius-md);
-  background: var(--rr-color-surface);
+  border: 2px solid var(--rr-color-success);
+  border-left-width: 6px;
+  border-radius: var(--rr-radius-lg);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
 }
-.rs-message--error { border-left-color: var(--rr-color-danger); }
+/* The `/ ""` gives the icon empty alternative text so a screen reader reads only the
+   message; the plain `content` on the line before is the fallback for browsers without it. */
+.rs-message::before {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border: 2px solid currentColor;
+  border-radius: var(--rr-radius-pill);
+  content: "\2713";
+  content: "\2713" / "";
+  font-size: var(--rr-font-size-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+.rs-message--error {
+  border-color: var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
+}
+.rs-message--error::before {
+  content: "\2715";
+  content: "\2715" / "";
+}
+.rs-message--warning {
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
+}
+.rs-message--warning::before {
+  content: "!";
+  content: "!" / "";
+}
+.rs-message--info,
+.rs-message--debug {
+  border-color: var(--rr-color-info);
+  background: var(--rr-color-info-bg);
+  color: var(--rr-color-info);
+}
+.rs-message--info::before,
+.rs-message--debug::before {
+  content: "i";
+  content: "i" / "";
+}
 
+/* ---------- Filters ---------- */
 .rs-filters {
   display: flex;
   flex-wrap: wrap;
@@ -30,6 +102,7 @@
 .rs-filters__field { margin: 0; min-width: 160px; }
 .rs-filters__submit { align-self: flex-end; }
 
+/* ---------- Room grid ---------- */
 .rs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -38,11 +111,23 @@
   padding: 0;
   list-style: none;
 }
-.rs-room { display: grid; gap: var(--rr-space-3); align-content: start; }
-.rs-room--dirty { border-left: 4px solid var(--rr-color-danger); }
+.rs-room {
+  display: grid;
+  gap: var(--rr-space-3);
+  align-content: start;
+  padding: var(--rr-space-4);
+}
+/* A room waiting to be cleaned also carries the word on its pill: the bar is a repeat */
+.rs-room--dirty { border-left-width: 8px; border-left-color: var(--rr-color-warning); }
 .rs-room__head { display: flex; align-items: center; justify-content: space-between; gap: var(--rr-space-3); }
-.rs-room__number { margin: 0; font-size: var(--rr-font-size-lg); font-variant-numeric: tabular-nums; }
-.rs-room__meta { margin: 0; color: var(--rr-color-muted); }
+.rs-room__number {
+  margin: 0;
+  color: var(--rr-color-primary);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-lg);
+  font-variant-numeric: tabular-nums;
+}
+.rs-room__meta { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
 /* Big enough to tap on a tablet */
 .rs-room__action { width: 100%; min-height: 48px; }
 .rs-empty { margin: 0; color: var(--rr-color-muted); }

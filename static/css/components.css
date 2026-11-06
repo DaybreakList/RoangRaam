@@ -591,3 +591,44 @@ table.rr-table td {
     white-space: nowrap;
   }
 }
+
+/* ---------- Page header ---------- */
+/* Title row of a staff page: the display face is used on the h1 only, while the hotel
+   name, the date and the numbers beside it stay in the body face, the same as the
+   tables underneath. The 2px ink rule replaces the big illustration of the guest pages. */
+.rr-page-head {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--rr-space-2) var(--rr-space-4);
+  padding-bottom: var(--rr-space-3);
+  border-bottom: 2px solid var(--rr-color-primary);
+  color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+}
+.rr-page-head__title {
+  margin: 0;
+  color: var(--rr-color-primary);
+  font-family: var(--rr-font-family-display);
+  font-size: clamp(1.375rem, 3vw, 1.75rem);
+  font-weight: 400;
+  line-height: 1.3;
+}
+.rr-page-head__meta {
+  margin: 0;
+  color: var(--rr-color-muted);
+  font-size: var(--rr-font-size-sm);
+}
+/* Pushed to the far end of the row; wraps under the title when there is no space.
+   Centred rather than on the baseline, so the button is not pushed below the rule. */
+.rr-page-head__actions {
+  align-self: center;
+  margin: 0 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .rr-page-head__actions {
+    margin-left: 0;
+  }
+}

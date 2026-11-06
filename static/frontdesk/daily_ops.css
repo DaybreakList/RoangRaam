@@ -1,3 +1,17 @@
+/*
+ * Today page (arrivals / departures / in-house). Tokens from static/css/tokens.css only.
+ *
+ * Staff side of the poster style: same paper, ink and type as the guest pages, but flat
+ * and dense. The display face is on the h1 only (.rr-page-head__title in components.css);
+ * section titles, tables and numbers stay in the body face. No illustration, no shadow:
+ * three long tables are the page.
+ */
+
+body:has(.do-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .do-page {
   box-sizing: border-box;
   display: grid;
@@ -7,11 +21,31 @@
   margin: 0 auto;
   padding: var(--rr-space-6) var(--rr-space-5);
   color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  /* 16px body text: dense tables still read at arm's length on a tablet at the desk */
+  font-size: var(--rr-font-size-md);
+  line-height: 1.5;
 }
-.do-page h1 { margin: 0 0 var(--rr-space-2); }
 .do-summary { margin: 0; color: var(--rr-color-muted); }
-.do-section .rr-card__title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rr-space-3); }
+/* Body face on the section title: only the page h1 carries the display face */
+.do-section .rr-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rr-space-3);
+  font-family: var(--rr-font-family);
+}
+/* Rows are packed tighter than the default card table, but never below 44px tall */
+.do-section .rr-table th,
+.do-section .rr-table td {
+  padding: var(--rr-space-2) var(--rr-space-3);
+  vertical-align: middle;
+}
+.do-section .rr-table td { font-size: var(--rr-font-size-md); }
 .do-code { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; white-space: nowrap; }
+.do-code a { color: var(--rr-color-primary); font-weight: 600; }
+.do-code a:hover { color: var(--rr-color-primary-hover); }
+.do-code a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 .do-number { font-variant-numeric: tabular-nums; }
 .rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 @media (max-width: 600px) {
@@ -24,7 +58,7 @@
   .do-code a {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: var(--rr-tap-target);
   }
   /* Solid background plus inset lines: with border-collapse the real borders do not follow a sticky cell */
   .do-section .rr-table th:last-child,
@@ -33,12 +67,12 @@
     right: 0;
     z-index: 1;
     background: var(--rr-color-surface);
-    box-shadow: inset 1px 0 0 var(--rr-color-border), inset 0 -1px 0 var(--rr-color-border), -6px 0 8px -6px rgba(23, 43, 53, 0.18);
+    box-shadow: inset 1px 0 0 var(--rr-color-border), inset 0 -1px 0 var(--rr-color-border), -6px 0 8px -6px var(--rr-color-overlay-soft);
   }
   .do-section .rr-table th:last-child {
-    background: #f5f8f8;
+    background: var(--rr-color-surface-sunken);
   }
   .do-section .rr-table tbody tr:hover td:last-child:not(.rr-table__empty) {
-    background: #f9fbfb;
+    background: var(--rr-color-surface-hover);
   }
 }

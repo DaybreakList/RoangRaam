@@ -26,7 +26,9 @@
           <td>{{ row.room_type_names|join:", "|default:"—" }}</td>
           <td class="do-number">{{ row.booking.nights }}</td>
           <td>{{ row.booking.adults }} ผู้ใหญ่{% if row.booking.children %} · {{ row.booking.children }} เด็ก{% endif %}</td>
-          <td><span class="rr-badge{% if row.booking.status == 'CHECKED_OUT' %} rr-badge--muted{% endif %}">{{ row.booking.get_status_display }}</span></td>
+          {% with status=row.booking.status %}
+          <td><span class="rr-badge{% if status == 'PENDING_PAYMENT' %} rr-badge--warning{% elif status == 'CONFIRMED' %} rr-badge--info{% elif status == 'CANCELLED' %} rr-badge--danger{% elif status == 'CHECKED_OUT' %} rr-badge--muted{% endif %}">{{ row.booking.get_status_display }}</span></td>
+          {% endwith %}
           <td>{{ row.booking.get_payment_option_display }}</td>
           {% with status=row.payment_status.value %}
           <td><span class="rr-badge{% if status == 'AWAITING' %} rr-badge--warning{% elif status == 'REFUND_PENDING' %} rr-badge--danger{% elif status == 'PAY_AT_HOTEL' or status == 'REFUNDED' or status == 'NONE' %} rr-badge--muted{% endif %}">{{ row.payment_status.label }}</span></td>

@@ -1,46 +1,73 @@
-.tc-page { padding: 24px; max-width: 1600px; margin: auto; color: #172b42; }
-.tc-page h1 { margin-bottom: 8px; }
-.tc-scroll { overflow: auto; max-height: 70vh; border: 1px solid #cbd5e1; border-radius: 10px; }
+/*
+ * Tape Chart. Tokens from static/css/tokens.css only: no hex here.
+ *
+ * Only colours, the type face, line colours and corner radii were restyled. Every size,
+ * position and grid declaration below is load-bearing: the virtual row window, keyboard
+ * navigation and the drop hit-tests in static/frontdesk/tape_chart.js all read
+ * --tc-row-height / --tc-header-height and assume the geometry written here, so the
+ * grid columns, the cell sizes, the 32px drag handle and the 1px bar border stay as they are.
+ *
+ * Booking status is told apart by the lightness of its tint as well as its hue
+ * (รอชำระเงิน > เช็คอินแล้ว > ยืนยันแล้ว on the shared ladder, เช็คเอาต์แล้ว on paper),
+ * and every bar spells its status out in the label and the title attribute.
+ */
+
+body:has(.tc-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
+.tc-page { padding: 24px; max-width: 1600px; margin: auto; color: var(--rr-color-text); font-family: var(--rr-font-family); }
+/* The one place on the page that carries the display face */
+.tc-page h1 { margin-bottom: 8px; color: var(--rr-color-primary); font-family: var(--rr-font-family-display); font-size: clamp(1.375rem, 3vw, 1.75rem); font-weight: 400; }
+.tc-scroll { overflow: auto; max-height: 70vh; border: 2px solid var(--rr-color-primary); border-radius: var(--rr-radius-lg); background: var(--rr-color-surface); }
 .tc-grid { min-width: calc(200px + var(--tc-days, 14) * 100px); }
 .tc-header, .tc-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); }
-.tc-header { position: sticky; top: 0; z-index: 3; background: #eaf0f6; font-weight: 600; }
-.tc-row { border-top: 1px solid #cbd5e1; min-height: 76px; }
-.tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: #f8fafc; border-right: 1px solid #cbd5e1; overflow-wrap: anywhere; }
+.tc-header { position: sticky; top: 0; z-index: 3; background: var(--rr-color-surface-sunken); color: var(--rr-color-primary); font-weight: 600; }
+.tc-row { border-top: 1px solid var(--rr-color-border); min-height: 76px; }
+.tc-room { position: sticky; left: 0; z-index: 2; padding: 12px; background: var(--rr-color-surface-sunken); border-right: 1px solid var(--rr-color-border); overflow-wrap: anywhere; }
 .tc-days, .tc-track { display: grid; grid-template-columns: repeat(var(--tc-days, 14), minmax(0, 1fr)); }
-.tc-days > div { text-align: center; padding: 12px 4px; border-right: 1px solid #cbd5e1; }
-.tc-track { align-items: center; background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--tc-days, 14) - 1px), #e2e8f0 calc(100% / var(--tc-days, 14) - 1px), #e2e8f0 calc(100% / var(--tc-days, 14))); }
-.tc-bar { grid-row: 1; margin: 6px 2px; padding: 7px; min-width: 0; border-radius: 6px; border: 1px solid #8ca5be; background: #e5eef8; }
+.tc-days > div { text-align: center; padding: 12px 4px; border-right: 1px solid var(--rr-color-border); }
+.tc-track { align-items: center; background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--tc-days, 14) - 1px), var(--rr-color-border) calc(100% / var(--tc-days, 14) - 1px), var(--rr-color-border) calc(100% / var(--tc-days, 14))); }
+.tc-bar { grid-row: 1; margin: 6px 2px; padding: 7px; min-width: 0; border-radius: var(--rr-radius-sm); border: 1px solid var(--rr-color-border); background: var(--rr-color-surface); }
 .tc-bar strong, .tc-bar span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-bar span { font-size: 12px; }
-.tc-pending_payment { background: #fff2cf; border-color: #b08224; color: #674508; }
-.tc-confirmed { background: #dfecff; border-color: #5e83b7; color: #153d76; }
-.tc-checked_in { background: #d7f3e6; border-color: #448b6c; color: #125336; }
-.tc-checked_out { background: #edf0f4; border-color: #8490a1; color: #39475a; }
-.tc-closed { font-size: 12px; color: #9e2929; }
-.tc-empty { grid-column: 1 / -1; padding: 12px; color: #64748b; }
-.tc-bar:focus-visible, .tc-scroll:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+.tc-pending_payment { background: var(--rr-color-warning-bg); border-color: var(--rr-color-warning); color: var(--rr-color-warning); }
+.tc-confirmed { background: var(--rr-color-info-bg); border-color: var(--rr-color-info); color: var(--rr-color-info); }
+.tc-checked_in { background: var(--rr-color-success-bg); border-color: var(--rr-color-success); color: var(--rr-color-success); }
+.tc-checked_out { background: var(--rr-color-bg); border-color: var(--rr-color-border); color: var(--rr-color-muted); }
+.tc-closed { font-size: 12px; color: var(--rr-color-danger); }
+.tc-empty { grid-column: 1 / -1; padding: 12px; color: var(--rr-color-muted); }
+.tc-bar:focus-visible, .tc-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 @media (max-width: 600px) { .tc-page { padding: 12px; } }
 
 .tc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
-.tc-filters label { display: block; margin-bottom: 4px; }
-.tc-filters input, .tc-filters select { min-height: 40px; max-width: 100%; padding: 6px; border: 1px solid #94a3b8; border-radius: 5px; }
-.tc-filters .errorlist { color: #9e2929; padding-left: 20px; }
+.tc-filters label { display: block; margin-bottom: 4px; font-weight: bold; }
+.tc-filters input, .tc-filters select { min-height: 40px; max-width: 100%; padding: 6px; border: 1px solid var(--rr-color-input-border); border-radius: var(--rr-radius-md); background: var(--rr-color-surface); color: var(--rr-color-text); font: inherit; }
+.tc-filters input:focus-visible, .tc-filters select:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+.tc-filters .errorlist { color: var(--rr-color-danger); padding-left: 20px; }
 .tc-navigation { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0; }
-.tc-navigation [aria-disabled] { color: #64748b; }
-#tc-loading { min-height: 24px; margin: 4px 0; }
+.tc-navigation a { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); color: var(--rr-color-primary); font-weight: 600; }
+.tc-navigation a:hover { color: var(--rr-color-primary-hover); }
+.tc-navigation a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+.tc-navigation [aria-disabled] { display: inline-flex; align-items: center; min-height: var(--rr-tap-target); color: var(--rr-color-muted); }
+#tc-loading { min-height: 24px; margin: 4px 0; color: var(--rr-color-muted); }
 
 .tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 2px 7px; border: 1px solid; border-radius: 999px; font-size: 12px; line-height: 1.5; vertical-align: middle; }
-.tc-housekeeping--clean { color: #125336; background: #d7f3e6; border-color: #448b6c; }
-.tc-housekeeping--dirty { color: #674508; background: #fff2cf; border-color: #b08224; }
+.tc-housekeeping--clean { color: var(--rr-color-success); background: var(--rr-color-success-bg); border-color: var(--rr-color-success); }
+.tc-housekeeping--dirty { color: var(--rr-color-warning); background: var(--rr-color-warning-bg); border-color: var(--rr-color-warning); }
 
 .tc-page [x-cloak] { display: none !important; }
-.tc-target { padding: 6px 10px; min-height: 44px; border: 1px solid #526b82; border-radius: 5px; background: #fff; color: #172b42; }
+.tc-target { padding: 6px 10px; min-height: 44px; border: 1px solid var(--rr-color-primary); border-radius: var(--rr-radius-sm); background: var(--rr-color-surface); color: var(--rr-color-primary); font-weight: 600; }
+.tc-target:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 /* Only the handle starts a drag and blocks touch panning; the rest of the bar scrolls the chart. */
 .tc-movable { font: inherit; text-align: left; }
 /* Full-bleed band: negative margins cancel the bar's top/side padding. Bar height is
-   1 + 32 + 52 (text) + 7 + 1 = 93px, inside the 99px the 112px row allows. */
+   1 + 32 + 52 (text) + 7 + 1 = 93px, inside the 99px the 112px row allows.
+   The band is an opaque surface, not a tint over the bar: a translucent ink layer would
+   eat the contrast of the status-coloured label it carries. */
 .tc-bar .tc-drag-handle { box-sizing: border-box; height: 32px; margin: -7px -7px 0; border-radius: 5px 5px 0 0;
-    border-bottom: 1px solid rgba(23, 43, 66, .35); background: rgba(23, 43, 66, .14); color: inherit;
+    border-bottom: 1px solid var(--rr-color-overlay-line); background: var(--rr-color-surface); color: inherit;
     font-size: 12px; font-weight: 600; line-height: 31px; text-align: center;
     touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .tc-bar .tc-drag-handle:active { cursor: grabbing; }
@@ -50,26 +77,27 @@
 /* Row height stays fixed even when target controls are absent. */
 .tc-target[hidden] { display: none; }
 .tc-target { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-size: 12px; }
-.tc-drop-valid { outline: 3px solid #167348; outline-offset: -3px; }
-.tc-drop-invalid { outline: 3px solid #b42318; outline-offset: -3px; }
-.tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: 6px; background: #172b42; color: #fff; }
-.tc-move-message { min-height: 24px; white-space: pre-line; }
-.tc-move-help { font-size: 14px; }
+.tc-drop-valid { outline: 3px solid var(--rr-color-success); outline-offset: -3px; }
+.tc-drop-invalid { outline: 3px solid var(--rr-color-danger); outline-offset: -3px; }
+.tc-drag-ghost { position: fixed; z-index: 20; pointer-events: none; margin: 0; padding: 8px 12px; border-radius: var(--rr-radius-sm); background: var(--rr-color-primary); color: var(--rr-color-on-primary); font-weight: 600; }
+.tc-move-message { min-height: 24px; white-space: pre-line; color: var(--rr-color-text); font-weight: 600; }
+.tc-move-help { font-size: 14px; color: var(--rr-color-muted); }
 .tc-page[aria-busy="true"] .tc-filters, .tc-page[aria-busy="true"] .tc-navigation { opacity: .6; pointer-events: none; }
+#tc-help { color: var(--rr-color-muted); font-size: 14px; }
 
 /* Fixed geometry keeps row recycling, keyboard navigation and drop hit-tests aligned. */
 .tc-row { height: var(--tc-row-height, 112px); min-height: 0; box-sizing: border-box; }
 .tc-header { height: var(--tc-header-height, 64px); box-sizing: border-box; }
 .tc-row .tc-room { height: 100%; box-sizing: border-box; overflow: hidden; padding: 6px 8px; }
 .tc-room-title { display: flex; align-items: center; gap: 4px; min-height: 26px; }
-.tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-room-title strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tc-room-title .tc-housekeeping { flex: none; margin: 0; }
-.tc-room-meta { display: flex; align-items: center; gap: 6px; height: 20px; line-height: 20px; }
+.tc-room-meta { display: flex; align-items: center; gap: 6px; height: 20px; line-height: 20px; color: var(--rr-color-muted); }
 .tc-room-details { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-room-meta .tc-closed { flex: none; white-space: nowrap; }
 .tc-bar strong { line-height: 20px; }
 .tc-bar span { line-height: 16px; }
 .tc-spacer { pointer-events: none; }
-.tc-row:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
+.tc-row:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: -3px; }
 
 .tc-scroll { overflow-anchor: none; }

@@ -11,10 +11,20 @@
     return element ? JSON.parse(element.textContent) : null;
   }
 
+  // Colours and the type face come from static/css/tokens.css, never from here, so the
+  // charts move with the rest of the site. undefined falls back to the Chart.js default.
   var styles = getComputedStyle(document.documentElement);
-  var primary = styles.getPropertyValue('--rr-color-primary').trim() || '#1f6f5c';
+  function token(name) {
+    return styles.getPropertyValue(name).trim() || undefined;
+  }
+  var ink = token('--rr-color-primary');
+  var accent = token('--rr-poster-accent');
+  // 3.5:1 against the card: the axis and the grid stay visible on cream paper
+  var line = token('--rr-color-input-border');
+  var label = token('--rr-color-muted');
+  var bodyFont = token('--rr-font-family');
 
-  function drawBars(canvasId, labels, values, title) {
+  function drawBars(canvasId, labels, values, title, fill) {
     var canvas = document.getElementById(canvasId);
     if (!canvas || !window.Chart) {
       return;
@@ -23,13 +33,34 @@
       type: 'bar',
       data: {
         labels: labels,
-        datasets: [{ label: title, data: values, backgroundColor: primary }],
+        // 2px ink edge on every bar, the same edge the cards and buttons carry
+        datasets: [{
+          label: title,
+          data: values,
+          backgroundColor: fill || ink,
+          borderColor: ink,
+          borderWidth: 2,
+          borderRadius: 4,
+        }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        font: { family: bodyFont },
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            border: { color: line },
+            grid: { color: line, lineWidth: 1 },
+            ticks: { color: label, font: { family: bodyFont } },
+          },
+          x: {
+            border: { color: line },
+            grid: { display: false },
+            ticks: { color: label, font: { family: bodyFont } },
+          },
+        },
       },
     });
   }
@@ -47,7 +78,9 @@
   var hotels = readJson('compare-data');
   if (hotels) {
     var names = hotels.map(function (hotel) { return hotel.name; });
+    // Two charts side by side: ink for Occupancy, accent for RevPAR, so a glance tells
+    // them apart even before the title above each card is read.
     drawBars('occupancy-chart', names, hotels.map(function (hotel) { return toNumber(hotel.occupancy); }), 'Occupancy (%)');
-    drawBars('revpar-chart', names, hotels.map(function (hotel) { return toNumber(hotel.revpar); }), 'RevPAR (บาท)');
+    drawBars('revpar-chart', names, hotels.map(function (hotel) { return toNumber(hotel.revpar); }), 'RevPAR (บาท)', accent);
   }
 })();

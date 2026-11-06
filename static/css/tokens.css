@@ -52,6 +52,14 @@
   --rr-color-surface-sunken: #f6ecd6;
   --rr-color-surface-hover: #fdf6e6;
 
+  /* Translucent ink, for the few layers that must let the surface below show through:
+     the modal backdrop, the shadow of a sticky table cell and a rule drawn on top of
+     a status tint. Never used behind text: a tint over a status colour would eat the
+     contrast of the status text, so text always sits on an opaque surface. */
+  --rr-color-scrim: rgba(9, 72, 63, 0.5);
+  --rr-color-overlay-soft: rgba(9, 72, 63, 0.18);
+  --rr-color-overlay-line: rgba(9, 72, 63, 0.32);
+
   /* ---------- Font ---------- */
   /* Sarabun and Chonburi come from static/fonts/ through css/poster_fonts.css
      (loaded in base.html); nothing is fetched from outside. */
