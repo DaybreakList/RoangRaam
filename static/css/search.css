@@ -162,18 +162,22 @@ body:has(.rr-search) .rr-navbar {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--rr-color-text);
+  color: var(--rr-poster-field-ink);
   font-family: inherit;
   font-size: 1.1875rem;
   font-weight: 600;
 }
 .rr-search__ticket .rr-field--error {
-  background: #fdf3f4;
+  background: var(--rr-poster-error-paper);
 }
 .rr-search__ticket .rr-field--error .rr-field__label,
 .rr-search__ticket .rr-field--error .rr-field__errors,
 .rr-search__ticket .rr-field--error input:not([type="checkbox"]):not([type="radio"]) {
-  color: #84212a;
+  color: var(--rr-poster-error-ink);
+}
+/* The inset bar comes from components.css; hold it in the poster error ink, like the text beside it */
+.rr-search__ticket .rr-field--error input:not([type="checkbox"]):not([type="radio"]) {
+  box-shadow: inset 3px 0 0 var(--rr-poster-error-ink);
 }
 .rr-search__ticket .rr-field__errors {
   margin-top: var(--rr-space-1);
@@ -192,7 +196,7 @@ body:has(.rr-search) .rr-navbar {
   transition: background-color 0.15s ease;
 }
 .rr-search__find:hover {
-  background: var(--rr-color-primary);
+  background: var(--rr-poster-ink-hover);
 }
 .rr-search__find:focus-visible {
   outline-offset: -6px !important;
@@ -309,7 +313,7 @@ body:has(.rr-search) .rr-navbar {
 }
 .rr-room-card__description {
   margin: 0;
-  color: var(--rr-color-text);
+  color: var(--rr-poster-field-ink);
 }
 .rr-room-card__meta {
   margin: 0;
@@ -425,7 +429,7 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
 }
 .rr-search__hint {
   margin: 0;
-  color: #e7f2ed;
+  color: var(--rr-poster-on-ink-muted);
   font-size: var(--rr-font-size-sm);
 }
 .rr-search__book {
@@ -434,7 +438,7 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
   border: 0;
   border-radius: var(--rr-radius-lg);
   background: var(--rr-poster-gold);
-  color: var(--rr-color-text);
+  color: var(--rr-poster-field-ink);
   font: inherit;
   font-size: 1.125rem;
   font-weight: 700;
@@ -480,8 +484,8 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
 .rr-search__notice--error {
   align-items: flex-start;
   gap: var(--rr-space-4);
-  border-color: #84212a;
-  box-shadow: 6px 6px 0 #84212a;
+  border-color: var(--rr-poster-error-ink);
+  box-shadow: 6px 6px 0 var(--rr-poster-error-ink);
 }
 .rr-search__notice-title {
   margin: 0;
@@ -491,7 +495,7 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
 }
 .rr-search__notice--error .rr-search__notice-title,
 .rr-search__notice--error .rr-field__errors {
-  color: #84212a;
+  color: var(--rr-poster-error-ink);
 }
 .rr-search__notice-icon {
   flex: none;
@@ -500,14 +504,14 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
   width: 48px;
   height: 48px;
   border-radius: var(--rr-radius-pill);
-  background: #84212a;
+  background: var(--rr-poster-error-ink);
   color: var(--rr-poster-card);
   font-size: 1.5rem;
   font-weight: 700;
 }
 .rr-search__notice-text {
   margin: var(--rr-space-2) 0 var(--rr-space-4);
-  color: var(--rr-color-text);
+  color: var(--rr-poster-field-ink);
   font-size: 1.125rem;
 }
 .rr-search__keys {
@@ -529,7 +533,7 @@ input.rr-room-card__qty-input::-webkit-inner-spin-button {
   text-decoration: none;
 }
 .rr-search__edit:hover {
-  background: var(--rr-color-primary);
+  background: var(--rr-poster-ink-hover);
 }
 
 /* ---------- Motion ---------- */

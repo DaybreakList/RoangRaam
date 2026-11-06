@@ -1,10 +1,16 @@
 /*
- * Design system components (week 1). Requires css/tokens.css.
+ * Design system components. Requires css/tokens.css and css/poster_fonts.css
+ * (both loaded in base.html).
  * Every selector starts with .rr- so it cannot collide with
  * static/rooms/inventory.css. No global element selectors here.
  * Exception: .property-switcher, the class name used by accounts/_property_switcher.html.
  * Each component sets its own box-sizing, font, color, background and border
  * so it looks the same whether or not inventory.css is loaded on the page.
+ *
+ * Poster style: 2px ink borders, 14-20px corners, pill buttons and badges, flat offset
+ * shadow on important cards only. Colours and fonts come from tokens: no hex here.
+ * Every control is at least --rr-tap-target tall and every status carries a word,
+ * not just a colour.
  */
 
 /* ---------- Button ---------- */
@@ -14,14 +20,16 @@
   align-items: center;
   justify-content: center;
   gap: var(--rr-space-2);
+  min-height: var(--rr-tap-target);
   margin: 0;
-  padding: 10px var(--rr-space-4);
-  border: 1px solid var(--rr-color-primary);
-  border-radius: var(--rr-radius-md);
+  padding: var(--rr-space-2) var(--rr-space-5);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
   background: var(--rr-color-primary);
-  color: #ffffff;
+  color: var(--rr-color-on-primary);
   font: inherit;
   font-family: var(--rr-font-family);
+  font-weight: 600;
   line-height: 1.4;
   text-decoration: none;
   cursor: pointer;
@@ -29,7 +37,7 @@
 .rr-btn:hover {
   background: var(--rr-color-primary-hover);
   border-color: var(--rr-color-primary-hover);
-  color: #ffffff;
+  color: var(--rr-color-on-primary);
 }
 .rr-btn:focus-visible {
   outline: 3px solid var(--rr-color-focus);
@@ -37,32 +45,33 @@
 }
 .rr-btn--secondary {
   background: var(--rr-color-surface);
-  border-color: var(--rr-color-border);
-  color: var(--rr-color-text);
+  border-color: var(--rr-color-primary);
+  color: var(--rr-color-primary);
 }
 .rr-btn--secondary:hover {
   background: var(--rr-color-bg);
-  border-color: var(--rr-color-muted);
-  color: var(--rr-color-text);
+  border-color: var(--rr-color-primary-hover);
+  color: var(--rr-color-primary-hover);
 }
 .rr-btn--danger {
   background: var(--rr-color-danger);
   border-color: var(--rr-color-danger);
+  color: var(--rr-color-on-primary);
 }
 .rr-btn--danger:hover {
-  background: #7f2128;
-  border-color: #7f2128;
+  background: var(--rr-color-danger-hover);
+  border-color: var(--rr-color-danger-hover);
 }
-/* Disabled: flat grey, dashed border, no hover change. Works on <button> and <a aria-disabled>. */
+/* Disabled: flat warm grey, dashed border, no hover change. Works on <button> and <a aria-disabled>. */
 .rr-btn:disabled,
 .rr-btn[disabled],
 .rr-btn[aria-disabled="true"],
 .rr-btn:disabled:hover,
 .rr-btn[disabled]:hover,
 .rr-btn[aria-disabled="true"]:hover {
-  background: #e9eef0;
-  border: 1px dashed #aabbc3;
-  color: #6b7d86;
+  background: var(--rr-color-disabled-bg);
+  border: 2px dashed var(--rr-color-disabled-border);
+  color: var(--rr-color-disabled-text);
   cursor: not-allowed;
   opacity: 0.75;
 }
@@ -111,20 +120,33 @@ select.rr-select {
   box-sizing: border-box;
   display: block;
   width: 100%;
+  min-height: var(--rr-tap-target);
   margin: 0;
-  padding: 10px var(--rr-space-3);
-  border: 1px solid #aabbc3;
-  border-radius: var(--rr-radius-sm);
+  padding: 10px var(--rr-space-4);
+  border: 2px solid var(--rr-color-input-border);
+  border-radius: var(--rr-radius-lg);
   background: var(--rr-color-surface);
   color: var(--rr-color-text);
   font: inherit;
   font-family: var(--rr-font-family);
   line-height: 1.4;
 }
+.rr-field textarea,
+textarea.rr-input {
+  min-height: calc(var(--rr-tap-target) * 2);
+}
+.rr-field input:not([type="checkbox"]):not([type="radio"]):hover,
+.rr-field select:hover,
+.rr-field textarea:hover,
+input.rr-input:hover,
+textarea.rr-input:hover,
+select.rr-select:hover {
+  border-color: var(--rr-color-primary);
+}
 .rr-field input[type="checkbox"],
 .rr-field input[type="radio"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--rr-color-primary);
 }
 .rr-field input:not([type="checkbox"]):not([type="radio"]):focus-visible,
@@ -144,11 +166,14 @@ select.rr-select:focus-visible,
 input.rr-input:disabled,
 textarea.rr-input:disabled,
 select.rr-select:disabled {
-  background: #e9eef0;
-  color: #6b7d86;
+  border-color: var(--rr-color-disabled-border);
+  border-style: dashed;
+  background: var(--rr-color-disabled-bg);
+  color: var(--rr-color-disabled-text);
   cursor: not-allowed;
 }
-/* Error state */
+/* Error state: coloured border plus an inset bar, and the message text below it
+   (markup in partials/form_field.html), so the error never relies on colour alone. */
 .rr-field--error input:not([type="checkbox"]):not([type="radio"]),
 .rr-field--error select,
 .rr-field--error textarea,
@@ -156,21 +181,30 @@ input.rr-input--error,
 textarea.rr-input--error,
 select.rr-select--error {
   border-color: var(--rr-color-danger);
-  box-shadow: inset 3px 0 0 var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  box-shadow: inset 4px 0 0 var(--rr-color-danger);
+}
+.rr-field--error .rr-field__label {
+  color: var(--rr-color-danger);
 }
 
 /* ---------- Card ---------- */
 .rr-card {
   box-sizing: border-box;
   padding: var(--rr-space-5);
-  border: 1px solid var(--rr-color-border);
-  border-radius: var(--rr-radius-lg);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-xl);
   background: var(--rr-color-surface);
   color: var(--rr-color-text);
   font-family: var(--rr-font-family);
 }
+/* The flat offset shadow is for important cards only */
+.rr-card--raised {
+  box-shadow: var(--rr-shadow-offset);
+}
 .rr-card__title {
   margin: 0 0 var(--rr-space-3);
+  color: var(--rr-color-primary);
   font-size: var(--rr-font-size-lg);
   font-weight: bold;
 }
@@ -180,16 +214,18 @@ select.rr-select--error {
 }
 
 /* ---------- Badge ---------- */
+/* A badge always spells the status out in words; the colour only repeats it. */
 .rr-badge {
   box-sizing: border-box;
   display: inline-block;
   padding: 2px var(--rr-space-3);
-  border: 1px solid #c9ded8;
+  border: 2px solid var(--rr-color-success);
   border-radius: var(--rr-radius-pill);
-  background: #e7f2ed;
-  color: var(--rr-color-primary-hover);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
   font-family: var(--rr-font-family);
   font-size: var(--rr-font-size-sm);
+  font-weight: 600;
   line-height: 1.5;
   white-space: nowrap;
 }
@@ -199,14 +235,19 @@ select.rr-select--error {
   color: var(--rr-color-muted);
 }
 .rr-badge--danger {
-  border-color: #edb8bd;
-  background: #fff0f0;
-  color: #84212a;
+  border-color: var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
 }
 .rr-badge--warning {
-  border-color: #ecd3a5;
-  background: #fff6e3;
-  color: #7a4d0a;
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
+}
+.rr-badge--info {
+  border-color: var(--rr-color-info);
+  background: var(--rr-color-info-bg);
+  color: var(--rr-color-info);
 }
 
 /* ---------- Alert (Django messages, markup in partials/messages.html) ---------- */
@@ -218,31 +259,38 @@ select.rr-select--error {
   box-sizing: border-box;
   margin: 0;
   padding: var(--rr-space-3) var(--rr-space-4);
-  border: 1px solid var(--rr-color-border);
-  border-left-width: 4px;
-  border-radius: var(--rr-radius-md);
-  background: var(--rr-color-bg);
+  border: 2px solid var(--rr-color-border);
+  border-left-width: 6px;
+  border-radius: var(--rr-radius-lg);
+  background: var(--rr-color-surface);
   color: var(--rr-color-text);
   font-family: var(--rr-font-family);
   line-height: 1.5;
 }
 .rr-alert--success {
-  border-color: #c9ded8;
-  border-left-color: var(--rr-color-primary);
-  background: #e7f2ed;
-  color: var(--rr-color-primary-hover);
+  border-color: var(--rr-color-success);
+  border-left-color: var(--rr-color-success);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
 }
 .rr-alert--error {
-  border-color: #edb8bd;
+  border-color: var(--rr-color-danger);
   border-left-color: var(--rr-color-danger);
-  background: #fff0f0;
-  color: #84212a;
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
 }
 .rr-alert--warning {
-  border-color: #ecd3a5;
-  border-left-color: var(--rr-color-focus);
-  background: #fff6e3;
-  color: #7a4d0a;
+  border-color: var(--rr-color-warning);
+  border-left-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
+}
+.rr-alert--info,
+.rr-alert--debug {
+  border-color: var(--rr-color-info);
+  border-left-color: var(--rr-color-info);
+  background: var(--rr-color-info-bg);
+  color: var(--rr-color-info);
 }
 
 /* ---------- Table ---------- */
@@ -271,13 +319,14 @@ table.rr-table td {
   white-space: normal;
 }
 .rr-table th {
-  background: #f5f8f8;
-  color: var(--rr-color-muted);
+  border-bottom: 2px solid var(--rr-color-primary);
+  background: var(--rr-color-surface-sunken);
+  color: var(--rr-color-primary);
   font-size: var(--rr-font-size-sm);
   font-weight: bold;
 }
 .rr-table tbody tr:hover td {
-  background: #f9fbfb;
+  background: var(--rr-color-surface-hover);
 }
 .rr-table__empty {
   padding: var(--rr-space-7) var(--rr-space-3);
@@ -293,7 +342,7 @@ table.rr-table td {
   justify-content: space-between;
   gap: var(--rr-space-4);
   padding: var(--rr-space-3) var(--rr-space-5);
-  border-bottom: 1px solid var(--rr-color-border);
+  border-bottom: 2px solid var(--rr-color-primary);
   background: var(--rr-color-surface);
   color: var(--rr-color-text);
   font-family: var(--rr-font-family);
@@ -304,13 +353,14 @@ table.rr-table td {
   align-items: center;
   gap: var(--rr-space-3);
   min-width: 0;
-  color: var(--rr-color-primary-hover);
+  min-height: var(--rr-tap-target);
+  color: var(--rr-color-primary);
+  font-family: var(--rr-font-family-display);
   font-size: var(--rr-font-size-lg);
-  font-weight: bold;
   text-decoration: none;
 }
 .rr-navbar__brand:hover {
-  color: var(--rr-color-primary);
+  color: var(--rr-color-primary-hover);
 }
 .rr-navbar__brand:focus-visible {
   outline: 3px solid var(--rr-color-focus);
@@ -320,7 +370,9 @@ table.rr-table td {
   display: block;
   width: 36px;
   height: 36px;
-  border-radius: var(--rr-radius-sm);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
+  background: var(--rr-color-surface);
   object-fit: contain;
 }
 .rr-navbar__name {
@@ -331,25 +383,34 @@ table.rr-table td {
 .rr-navbar__nav {
   display: flex;
   align-items: center;
-  gap: var(--rr-space-4);
+  gap: var(--rr-space-2);
   margin-right: auto;
 }
+/* Every link is a tap target on every screen size, not only on tablets */
 .rr-navbar__link {
-  padding: var(--rr-space-1) 0;
-  border-bottom: 2px solid transparent;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--rr-tap-target);
+  padding: 0 var(--rr-space-3);
+  border: 2px solid transparent;
+  border-radius: var(--rr-radius-pill);
   color: var(--rr-color-text);
   text-decoration: none;
 }
 .rr-navbar__link:hover {
+  border-color: var(--rr-color-border);
   color: var(--rr-color-primary-hover);
 }
 .rr-navbar__link:focus-visible {
   outline: 3px solid var(--rr-color-focus);
   outline-offset: 3px;
 }
+/* Current page: filled pill plus bold text, so it is not told apart by colour alone */
 .rr-navbar__link[aria-current="page"] {
-  border-bottom-color: var(--rr-color-primary);
-  color: var(--rr-color-primary-hover);
+  border-color: var(--rr-color-primary);
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
   font-weight: bold;
 }
 .rr-navbar__actions {
@@ -369,20 +430,23 @@ table.rr-table td {
 }
 .property-switcher > button {
   box-sizing: border-box;
+  min-height: var(--rr-tap-target);
   margin: 0;
-  padding: 10px var(--rr-space-4);
-  border: 1px solid var(--rr-color-border);
-  border-radius: var(--rr-radius-md);
+  padding: var(--rr-space-2) var(--rr-space-5);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-pill);
   background: var(--rr-color-surface);
-  color: var(--rr-color-text);
+  color: var(--rr-color-primary);
   font: inherit;
   font-family: var(--rr-font-family);
+  font-weight: 600;
   line-height: 1.4;
   cursor: pointer;
 }
 .property-switcher > button:hover {
   background: var(--rr-color-bg);
-  border-color: var(--rr-color-muted);
+  border-color: var(--rr-color-primary-hover);
+  color: var(--rr-color-primary-hover);
 }
 .property-switcher > button:focus-visible,
 .property-switcher a:focus-visible {
@@ -391,24 +455,26 @@ table.rr-table td {
 }
 .property-switcher ul {
   position: absolute;
-  top: calc(100% + var(--rr-space-1));
+  top: calc(100% + var(--rr-space-2));
   right: 0;
   z-index: 100;
   box-sizing: border-box;
   min-width: 240px;
   margin: 0;
   padding: var(--rr-space-1) 0;
-  border: 1px solid var(--rr-color-border);
-  border-radius: var(--rr-radius-md);
+  border: 2px solid var(--rr-color-primary);
+  border-radius: var(--rr-radius-lg);
   background: var(--rr-color-surface);
-  box-shadow: 0 8px 24px rgba(23, 43, 53, 0.12);
+  box-shadow: var(--rr-shadow-panel);
   list-style: none;
 }
 .property-switcher li {
   margin: 0;
 }
 .property-switcher li a {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: var(--rr-tap-target);
   padding: var(--rr-space-2) var(--rr-space-4);
   color: var(--rr-color-text);
   text-decoration: none;
@@ -417,9 +483,13 @@ table.rr-table td {
   background: var(--rr-color-bg);
   color: var(--rr-color-primary-hover);
 }
+/* The hotel in use: bold and marked with a bullet, not colour alone */
 .property-switcher li a[aria-current="page"] {
-  color: var(--rr-color-primary-hover);
+  color: var(--rr-color-primary);
   font-weight: bold;
+}
+.property-switcher li a[aria-current="page"]::before {
+  content: "\2022\00a0";
 }
 
 @media (max-width: 640px) {
@@ -430,6 +500,7 @@ table.rr-table td {
   .rr-navbar__nav {
     order: 3;
     flex: 1 0 100%;
+    flex-wrap: wrap;
     margin-right: 0;
   }
 }
@@ -444,7 +515,6 @@ table.rr-table td {
   }
   .rr-navbar__brand {
     flex: 1 1 0;
-    min-height: 44px;
   }
   .rr-navbar__name {
     min-width: 0;
@@ -458,31 +528,19 @@ table.rr-table td {
     margin-right: 0;
   }
   .rr-navbar__link {
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 var(--rr-space-3);
+    min-width: var(--rr-tap-target);
     white-space: nowrap;
   }
   .rr-navbar__actions {
     flex: 0 0 auto;
   }
   .rr-navbar__logout .rr-btn {
-    min-height: 44px;
     white-space: nowrap;
   }
   .property-switcher > button {
-    min-height: 44px;
     max-width: 260px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .property-switcher li a {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
   }
 }

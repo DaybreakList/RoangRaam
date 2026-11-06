@@ -4,7 +4,7 @@
 {% block title %}ค้นหาห้องว่าง · {{ request.property.name }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/poster_fonts.css' %}">
+{# css/poster_fonts.css comes from base.html, for every page #}
 <link rel="stylesheet" href="{% static 'css/search.css' %}">
 {# Not deferred: it must register its alpine:init listener before Alpine (deferred in base.html) starts #}
 <script src="{% static 'bookings/room_picker.js' %}"></script>

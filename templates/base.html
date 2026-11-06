@@ -7,6 +7,8 @@
     <title>{% block title %}RoangRaam{% endblock %}</title>
     {# Design system CSS stays outside any block: child templates override extra_head #}
     <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+    {# Sarabun and Chonburi for every page, served from static/fonts/ #}
+    <link rel="stylesheet" href="{% static 'css/poster_fonts.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
