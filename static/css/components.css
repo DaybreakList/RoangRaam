@@ -62,6 +62,18 @@
   background: var(--rr-color-danger-hover);
   border-color: var(--rr-color-danger-hover);
 }
+/* Danger, quieter: still unmistakably the destructive button, but it does not outweigh
+   the safe button next to it. Used where going back is the action we want to encourage. */
+.rr-btn--danger-soft {
+  background: var(--rr-color-danger-bg);
+  border-color: var(--rr-color-danger);
+  color: var(--rr-color-danger);
+}
+.rr-btn--danger-soft:hover {
+  background: var(--rr-color-danger);
+  border-color: var(--rr-color-danger);
+  color: var(--rr-color-on-primary);
+}
 /* Disabled: flat warm grey, dashed border, no hover change. Works on <button> and <a aria-disabled>. */
 .rr-btn:disabled,
 .rr-btn[disabled],
@@ -257,6 +269,9 @@ select.rr-select--error {
 }
 .rr-alert {
   box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rr-space-3);
   margin: 0;
   padding: var(--rr-space-3) var(--rr-space-4);
   border: 2px solid var(--rr-color-border);
@@ -266,6 +281,38 @@ select.rr-select--error {
   color: var(--rr-color-text);
   font-family: var(--rr-font-family);
   line-height: 1.5;
+}
+/* Decorative icon, a different shape per status so the four are not told apart by
+   colour alone. The markup in partials/messages.html is untouched.
+   The `/ ""` gives the generated content empty alternative text, so a screen reader
+   skips it and reads only the message. The plain `content` on the line before is the
+   fallback for browsers that do not support that syntax: they draw the icon anyway. */
+.rr-alert::before {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border: 2px solid currentColor;
+  border-radius: var(--rr-radius-pill);
+  content: "i";
+  content: "i" / "";
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.rr-alert--success::before {
+  content: "\2713";
+  content: "\2713" / "";
+}
+.rr-alert--warning::before {
+  content: "!";
+  content: "!" / "";
+}
+.rr-alert--error::before {
+  content: "\2715";
+  content: "\2715" / "";
 }
 .rr-alert--success {
   border-color: var(--rr-color-success);

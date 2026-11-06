@@ -12,7 +12,7 @@ Two states:
   - form: the room summary and the guest form.
 Prices are the service's per-night sums (lines); the estimate only multiplies them by quantity.
 {% endcomment %}
-<main class="rr-book">
+<main class="rr-book{% if not error_messages %} rr-book--wide{% endif %}">
     <header class="rr-book__hotel">
         {% if request.property.logo %}<img class="rr-book__logo" src="{{ request.property.logo.url }}" alt="">{% endif %}
         <span>{{ request.property.name }}</span>
@@ -27,9 +27,16 @@ Prices are the service's per-night sums (lines); the estimate only multiplies th
         <a class="rr-btn" href="{{ back_url }}">ค้นหาห้องว่างอีกครั้ง</a>
     </section>
     {% else %}
+    {# Same step counter as the search page, which is step 2 of 4 #}
+    <p class="rr-book__step">ขั้นที่ 3 จาก 4 · กรอกข้อมูล</p>
     <h1 class="rr-book__title">กรอกข้อมูลการจอง</h1>
 
-    <section class="rr-card rr-book__card" aria-labelledby="summary-title">
+    {% comment %}
+    The summary comes first so a phone shows it above the form; from 900px it moves
+    into the right column and sticks while the guest fills the form in.
+    {% endcomment %}
+    <div class="rr-book__layout">
+    <section class="rr-card rr-book__card rr-book__aside" aria-labelledby="summary-title">
         <h2 class="rr-card__title" id="summary-title">สรุปการจอง</h2>
         <dl class="rr-book__details">
             <div><dt>เช็คอิน</dt><dd>{{ check_in|date:"j M Y" }} · {{ request.property.check_in_time|time:"H:i" }} น.</dd></div>
@@ -97,6 +104,7 @@ Prices are the service's per-night sums (lines); the estimate only multiplies th
             <a class="rr-btn rr-btn--secondary" href="{{ back_url }}">กลับไปเลือกห้อง</a>
         </div>
     </form>
+    </div>
     {% endif %}
 </main>
 {% endblock %}

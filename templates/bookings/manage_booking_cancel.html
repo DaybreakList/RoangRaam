@@ -36,19 +36,23 @@ Step 1 of the cancel: nothing has changed yet. "ยืนยันการย�
             {% else %}ยังไม่มีการชำระเงิน{% endif %}
         </p>
 
+        {% comment %}
+        Going back is the filled primary button and comes first, so the destructive
+        one never outweighs it. The cancel button keeps a danger look of its own.
+        {% endcomment %}
         <div class="rr-book__actions">
+            <form method="post" action="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="code" value="{{ booking.code }}">
+                <input type="hidden" name="email" value="{{ booking.guest.email }}">
+                <button type="submit" class="rr-btn">กลับ</button>
+            </form>
             <form method="post" action="{% url 'bookings:manage-booking-cancel' property_slug=request.property.slug %}">
                 {% csrf_token %}
                 <input type="hidden" name="code" value="{{ booking.code }}">
                 <input type="hidden" name="email" value="{{ booking.guest.email }}">
                 <input type="hidden" name="confirm" value="1">
-                <button type="submit" class="rr-btn rr-btn--danger">ยืนยันการยกเลิก</button>
-            </form>
-            <form method="post" action="{% url 'bookings:manage-booking' property_slug=request.property.slug %}">
-                {% csrf_token %}
-                <input type="hidden" name="code" value="{{ booking.code }}">
-                <input type="hidden" name="email" value="{{ booking.guest.email }}">
-                <button type="submit" class="rr-btn rr-btn--secondary">กลับ</button>
+                <button type="submit" class="rr-btn rr-btn--danger-soft">ยืนยันการยกเลิก</button>
             </form>
         </div>
     </section>
