@@ -1,8 +1,10 @@
 import re
 from datetime import timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
+from django.contrib.staticfiles import finders
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -46,6 +48,79 @@ def make_room_type(prop, prices=(Decimal('1000.00'),) * 3, start=10, **kwargs):
     for offset, price in enumerate(prices):
         DailyRateFactory(property=prop, room_type=room_type, date=day(start + offset), price=price)
     return room_type
+
+
+class TestPosterPage:
+    def test_shows_nights_and_average_with_the_real_total(self, client, hotel_a):
+        make_room_type(hotel_a, prices=(Decimal('1000.00'), Decimal('1000.00'), Decimal('1000.01')))
+
+        response = client.get(search_url(hotel_a), params())
+        content = response.content.decode()
+
+        room_type = response.context['room_types'][0]
+        assert room_type.total_price == Decimal('3000.01')
+        assert room_type.average_night_price == Decimal('1000.00')
+        assert isinstance(room_type.average_night_price, Decimal)
+        assert response.context['nights'] == 3
+        assert '฿3,000.01' in content
+        assert 'รวม 3 คืน' in content
+        assert 'เฉลี่ย ฿1,000.00/คืน' in content
+
+    def test_stepper_data_is_not_localized_and_room_name_is_escaped(self, client, hotel_a):
+        room_type = make_room_type(hotel_a, name='"><script>alert(1)</script>')
+
+        content = client.get(search_url(hotel_a), params()).content.decode()
+
+        assert f'data-room-qty="{room_type.pk}"' in content
+        assert 'data-room-total="3000.00"' in content
+        assert '<script>alert(1)</script>' not in content
+
+    def test_room_without_photo_gets_artwork_and_form_works_without_js(self, client, hotel_a):
+        room_type = make_room_type(hotel_a, max_occupancy=3)
+
+        content = client.get(search_url(hotel_a), params()).content.decode()
+
+        assert 'rr-room-card__art--deluxe' in content
+        assert f'name="room_{room_type.pk}"' in content
+        assert 'form="book-form"' in content
+        assert 'hidden x-init="$el.hidden = false"' in content
+
+    def test_htmx_partial_has_the_room_picker(self, client, hotel_a):
+        make_room_type(hotel_a)
+
+        content = client.get(search_url(hotel_a), params(), **HTMX).content.decode()
+
+        assert 'x-data="roomPicker(' in content
+        assert '<html' not in content
+
+    def test_the_hotel_on_the_hill_gets_its_own_scene(self, client, hotel_a):
+        """The scene is picked from the slug, for the demo data only (bookings/search.html)."""
+        hilltop = PropertyFactory(name='Hilltop', slug='demo-hilltop')
+
+        hill = client.get(search_url(hilltop)).content.decode()
+        river = client.get(search_url(hotel_a)).content.decode()
+
+        assert 'data-scene="hilltop"' in hill
+        assert 'data-scene="riverside"' not in hill
+        assert 'data-scene="riverside"' in river
+        assert 'data-scene="hilltop"' not in river
+
+    def test_every_static_file_of_the_page_exists_and_stays_local(self):
+        for path in (
+            'css/search.css',
+            'css/poster_fonts.css',
+            'bookings/room_picker.js',
+            'bookings/room-standard.svg',
+            'bookings/room-deluxe.svg',
+            'bookings/room-suite.svg',
+        ):
+            assert finders.find(path), path
+        fonts_css = Path(finders.find('css/poster_fonts.css')).read_text(encoding='utf-8')
+        assert 'http' not in fonts_css
+        fonts = re.findall(r'url\("\.\./(fonts/[^"]+)"\)', fonts_css)
+        assert fonts
+        for font in fonts:
+            assert finders.find(font), font
 
 
 class TestSearchPage:

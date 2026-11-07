@@ -4,9 +4,9 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/room_status.css' %}">{% endblock %}
 {% block content %}
 <main class="rs-page">
-  <header>
-    <h1>สถานะห้องพัก</h1>
-    <p class="rs-summary">
+  <header class="rr-page-head">
+    <h1 class="rr-page-head__title">สถานะห้องพัก</h1>
+    <p class="rs-summary rr-page-head__meta">
       {{ request.property.name }} ·
       <strong>{{ board.dirty_count }}</strong> ห้องรอทำความสะอาด ·
       <strong>{{ board.clean_count }}</strong> ห้องสะอาด

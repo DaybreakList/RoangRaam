@@ -1,3 +1,26 @@
+/*
+ * Today page (arrivals / departures / in-house). Tokens from static/css/tokens.css only.
+ *
+ * Staff side of the poster style: same paper, ink and type as the guest pages, but flat
+ * and dense. The display face is on the h1 only (.rr-page-head__title in components.css);
+ * section titles, tables and numbers stay in the body face. No illustration, no shadow:
+ * three long tables are the page.
+ *
+ * The desk reads this page across the counter all day, so the two things it looks for are
+ * the loudest: the table head is solid ink, and the row tells its state twice over in two
+ * different shapes. Booking status is a SOLID pill, payment status an OUTLINED pill with a
+ * line icon, so a glance tells the two columns apart before reading either.
+ *
+ * Every rule here is scoped under .do-page: .ci-* and .rr-* are shared with the Folio page,
+ * which must keep its own quieter look. check_in_out.css loads after this file, so the
+ * .ci-* overrides below carry the extra .do-page class to win on specificity, not on order.
+ */
+
+body:has(.do-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .do-page {
   box-sizing: border-box;
   display: grid;
@@ -7,15 +30,258 @@
   margin: 0 auto;
   padding: var(--rr-space-6) var(--rr-space-5);
   color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  /* 16px body text: dense tables still read at arm's length on a tablet at the desk */
+  font-size: var(--rr-font-size-md);
+  line-height: 1.5;
 }
-.do-page h1 { margin: 0 0 var(--rr-space-2); }
 .do-summary { margin: 0; color: var(--rr-color-muted); }
-.do-section .rr-card__title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rr-space-3); }
+
+/* ---------- Section heading ---------- */
+/* Body face on the section title: only the page h1 carries the display face */
+.do-section .rr-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rr-space-3);
+  font-family: var(--rr-font-family);
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+/* How many bookings are in this list: an ink pill, read as part of the heading */
+.do-page .do-count {
+  border-color: var(--rr-color-primary);
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
+}
+
+/* ---------- Table ---------- */
+/* Rows are packed tighter than the default card table, but never below 44px tall */
+.do-section .rr-table th,
+.do-section .rr-table td {
+  padding: var(--rr-space-2) var(--rr-space-3);
+  vertical-align: middle;
+}
+/* Solid ink head: cream on ink is 9.31:1, and the rule under it is the gold of the navbar */
+.do-section .rr-table th {
+  border-bottom: 4px solid var(--rr-poster-gold);
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
+  font-size: var(--rr-font-size-sm);
+  font-weight: bold;
+}
+/* The actions column is one step lighter, so the eye finds it without a second rule.
+   Cream on that ink is 5.84:1. */
+.do-section .rr-table th:last-child {
+  background: var(--rr-color-primary-hover);
+}
+.do-section .rr-table td { font-size: var(--rr-font-size-md); }
+/* Banded rows: paper against card, one step apart, so the eye keeps the line across ten
+   columns. Ink text is 9.31:1 on either band and muted text 6.42:1. */
+.do-section .rr-table tbody tr:nth-of-type(even) td {
+  background: var(--rr-color-bg);
+}
+.do-section .rr-table tbody tr:hover td {
+  background: var(--rr-color-surface-hover);
+}
 .do-code { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; white-space: nowrap; }
+.do-code a { color: var(--rr-color-primary); font-weight: bold; }
+.do-code a:hover { color: var(--rr-color-primary-hover); }
+.do-code a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+/* Room numbers: the desk calls them out loud, so they get their own tinted box inside the
+   row, bigger than the body text and in tabular figures so a column of them lines up. */
+.do-section .rr-table tbody tr td.do-room {
+  background: var(--rr-color-surface-sunken);
+  box-shadow: inset 1px 0 0 var(--rr-color-border), inset -1px 0 0 var(--rr-color-border);
+  font-size: 1.125rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .do-number { font-variant-numeric: tabular-nums; }
 .rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
+
+/* ---------- Booking status: a solid pill ---------- */
+/* Told apart by lightness as well as hue, and the word itself is always there.
+   Ink 9.31:1 / blue 8.34:1 with cream text; gold 5.79:1 with ink text. The two outlined
+   ones are the states the desk can do nothing about, so they stay quiet. */
+.do-page .do-status {
+  border-color: var(--rr-color-border);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-muted);
+}
+.do-page .do-status--confirmed {
+  border-color: var(--rr-poster-blue);
+  background: var(--rr-poster-blue);
+  color: var(--rr-color-on-primary);
+}
+.do-page .do-status--checked_in {
+  border-color: var(--rr-color-primary);
+  background: var(--rr-color-primary);
+  color: var(--rr-color-on-primary);
+}
+.do-page .do-status--pending_payment {
+  border-color: var(--rr-poster-gold);
+  background: var(--rr-poster-gold);
+  color: var(--rr-color-primary);
+}
+.do-page .do-status--checked_out {
+  border-color: var(--rr-color-border);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-muted);
+}
+.do-page .do-status--cancelled {
+  border-color: var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
+}
+
+/* ---------- Payment status: an outlined pill with a line icon ---------- */
+/* The icon is drawn as a mask, so it takes the colour of the pill's text through
+   `background: currentColor` and cannot drift out of step with it. No emoji: those render
+   differently on every machine and arrive in colour.
+   The `%23000` inside each data URI is NOT a design colour: a mask uses the alpha channel
+   of the image only, so the paint is thrown away. Nothing here needs a token.
+   `content: ""` leaves the icon out of the accessibility tree, so a screen reader reads
+   only the words of the label. */
+.do-page .do-pay {
+  border-color: var(--rr-color-border);
+  background: var(--rr-color-bg);
+  color: var(--rr-color-muted);
+}
+/* Hidden until a status below hands it a mask: a ::before with `background: currentColor`
+   and no mask would paint a solid square. Refunded and "never paid" are settled states
+   and keep it hidden on purpose. */
+.do-page .do-pay::before {
+  display: none;
+  width: 15px;
+  height: 15px;
+  margin-right: var(--rr-space-1);
+  background: currentColor;
+  vertical-align: -2px;
+  content: "";
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+/* Paid: a tick */
+.do-page .do-pay--paid {
+  border-color: var(--rr-color-success);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
+}
+.do-page .do-pay--paid::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E");
+}
+/* Pays at the hotel: a building. Dashed edge, because nothing is owed yet. */
+.do-page .do-pay--pay_at_hotel {
+  border-style: dashed;
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-warning);
+}
+.do-page .do-pay--pay_at_hotel::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 21V4h14v17'/%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M9 7.5h2M13 7.5h2M9 12h2M13 12h2'/%3E%3Cpath d='M10 21v-4.5h4V21'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 21V4h14v17'/%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M9 7.5h2M13 7.5h2M9 12h2M13 12h2'/%3E%3Cpath d='M10 21v-4.5h4V21'/%3E%3C/svg%3E");
+}
+/* Waiting to be paid: a clock. The one the desk must act on, so it is the only orange. */
+.do-page .do-pay--awaiting {
+  border-color: var(--rr-poster-accent-text);
+  background: var(--rr-poster-accent-bg);
+  color: var(--rr-poster-accent-text);
+}
+.do-page .do-pay--awaiting::before,
+.do-page .do-pay--refund_pending::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5.2l3.6 2.1'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5.2l3.6 2.1'/%3E%3C/svg%3E");
+}
+/* Switched on only where masks work: without them the bare `background: currentColor`
+   would paint a solid square. Every browser of the last few years is in here, Safari
+   through the -webkit- form. */
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+  .do-page .do-pay--paid::before,
+  .do-page .do-pay--pay_at_hotel::before,
+  .do-page .do-pay--awaiting::before,
+  .do-page .do-pay--refund_pending::before {
+    display: inline-block;
+  }
+  .do-page .ci-note--blocked::before {
+    display: block;
+  }
+}
+
+/* Waiting to be refunded: the same clock, in the warning colours */
+.do-page .do-pay--refund_pending {
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
+}
+
+/* ---------- Check-in / check-out ---------- */
+/* Check-in is the action of the arrivals list, so it is the only solid button with an
+   offset shadow in the accent colour. The selector is the trigger's own aria-haspopup
+   (check_in_out/_check_in.html), not the id of the section, so it keeps working wherever
+   the list is rendered. Check-out is the submit directly inside .ci-actions: a cream pill,
+   present but one step quieter. Both are 48px tall through .ci-btn. */
+.do-page .ci-btn[aria-haspopup="dialog"] {
+  box-shadow: 3px 3px 0 var(--rr-poster-accent);
+}
+.do-page .ci-actions > form > .ci-btn {
+  border-color: var(--rr-color-primary);
+  background: var(--rr-color-surface);
+  color: var(--rr-color-primary);
+}
+.do-page .ci-actions > form > .ci-btn:hover {
+  background: var(--rr-color-bg);
+  color: var(--rr-color-primary-hover);
+}
+/* Cannot check in yet: the reasons and the way out of them, in one warning box.
+   The wrapping div is already in the markup, so nothing is added to it here.
+   The icon is a mask, the same way as the payment pills above, and is not read out. */
+.do-page .ci-note--blocked {
+  position: relative;
+  box-sizing: border-box;
+  padding: var(--rr-space-3) var(--rr-space-4) var(--rr-space-3) 44px;
+  border: 2px solid var(--rr-color-warning);
+  border-radius: 12px;
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-text);
+}
+.do-page .ci-note--blocked::before {
+  display: none;
+  position: absolute;
+  top: var(--rr-space-3);
+  left: var(--rr-space-4);
+  width: 20px;
+  height: 20px;
+  background: var(--rr-color-warning);
+  content: "";
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20.5h19Z'/%3E%3Cpath d='M12 9.5v4.5'/%3E%3Cpath d='M12 17.4h.01'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.5 20.5h19Z'/%3E%3Cpath d='M12 9.5v4.5'/%3E%3Cpath d='M12 17.4h.01'/%3E%3C/svg%3E");
+}
+/* "Cannot check in, because:" is the warning colour (4.73:1 on its tint); the reasons
+   themselves are plain ink (8.35:1), because they are the part that gets read. */
+.do-page .ci-note--blocked p { color: var(--rr-color-warning); }
+.do-page .ci-note--blocked ul { color: var(--rr-color-text); }
+.do-page .ci-note--blocked .ci-link { color: var(--rr-color-primary-hover); font-weight: 600; }
+.do-page .ci-note--blocked .ci-link:hover { color: var(--rr-color-primary); }
+/* Disabled button: flat warm grey with a dashed edge, from .rr-btn[disabled] */
+.do-page .ci-btn:disabled {
+  box-shadow: none;
+  background: var(--rr-color-disabled-bg);
+}
+
 @media (max-width: 600px) {
   .do-page { padding: var(--rr-space-4) var(--rr-space-3); }
+  .do-section .rr-card__title { font-size: 1.3125rem; }
 }
 
 /* Tablet (641-1024px): the table scrolls inside .rr-table-scroll and the action column
@@ -24,7 +290,7 @@
   .do-code a {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
+    min-height: var(--rr-tap-target);
   }
   /* Solid background plus inset lines: with border-collapse the real borders do not follow a sticky cell */
   .do-section .rr-table th:last-child,
@@ -33,12 +299,16 @@
     right: 0;
     z-index: 1;
     background: var(--rr-color-surface);
-    box-shadow: inset 1px 0 0 var(--rr-color-border), inset 0 -1px 0 var(--rr-color-border), -6px 0 8px -6px rgba(23, 43, 53, 0.18);
+    box-shadow: inset 1px 0 0 var(--rr-color-border), inset 0 -1px 0 var(--rr-color-border), -6px 0 8px -6px var(--rr-color-overlay-soft);
+  }
+  /* A sticky cell paints over the row below it, so it has to carry the band itself */
+  .do-section .rr-table tbody tr:nth-of-type(even) td:last-child:not(.rr-table__empty) {
+    background: var(--rr-color-bg);
   }
   .do-section .rr-table th:last-child {
-    background: #f5f8f8;
+    background: var(--rr-color-primary-hover);
   }
   .do-section .rr-table tbody tr:hover td:last-child:not(.rr-table__empty) {
-    background: #f9fbfb;
+    background: var(--rr-color-surface-hover);
   }
 }

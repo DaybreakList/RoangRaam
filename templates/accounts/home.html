@@ -10,7 +10,7 @@
     <span class="ac-avatar" aria-hidden="true">{{ user.email|slice:":1"|upper }}</span>
     <div class="ac-banner__text">
       <p class="ac-banner__eyebrow">ยินดีต้อนรับกลับมา</p>
-      <h1>สวัสดี {{ user.email }}</h1>
+      <h1 class="rr-page-head__title">สวัสดี {{ user.email }}</h1>
       {% if memberships %}
       <p>คุณทำงานอยู่ใน {{ memberships|length }} โรงแรม เลือกโรงแรมที่ต้องการเริ่มงานได้เลย</p>
       {% else %}

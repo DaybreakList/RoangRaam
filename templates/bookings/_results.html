@@ -9,57 +9,101 @@ Prices come from the service (per-night sum); never compute them here.
 The inputs and the button belong to <form id="book-form"> in search.html through their
 form="book-form" attribute, so this partial has no <form> of its own and can be swapped by HTMX.
 The hidden fields come from the validated search (form.cleaned_data), not from the raw query string.
+Without JavaScript the +/- buttons stay hidden and the guest types into the quantity box.
+The running total in the summary bar (bookings/room_picker.js) is display only: the server prices the booking.
 {% endcomment %}
 {% if form.errors %}
     {% if is_htmx %}
-    <div class="rr-card rr-search__errors" role="alert">
-        <p class="rr-card__title">กรุณาตรวจสอบข้อมูลการค้นหา</p>
-        <ul class="rr-field__errors">
-            {% for error in form.non_field_errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}
-            {% for field in form %}{% for error in field.errors %}<li class="rr-field__error">{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
-        </ul>
+    <div class="rr-search__notice rr-search__notice--error" role="alert">
+        <span class="rr-search__notice-icon" aria-hidden="true">!</span>
+        <div>
+            <p class="rr-search__notice-title">กรุณาตรวจสอบข้อมูลการค้นหา</p>
+            <ul class="rr-field__errors">
+                {% for error in form.non_field_errors %}<li class="rr-field__error">{{ error }}</li>{% endfor %}
+                {% for field in form %}{% for error in field.errors %}<li class="rr-field__error">{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+            </ul>
+        </div>
     </div>
     {% endif %}
 {% elif room_types is not None %}
     {% if room_types %}
-    <ul class="rr-search__list">
-        {% for rt in room_types %}
-        <li class="rr-card rr-room-card">
-            {% with image=rt.images.all.0 %}
-            {% if image %}<img class="rr-room-card__image" src="{{ image.image.url }}" alt="{{ rt.name }}" loading="lazy">{% endif %}
-            {% endwith %}
-            <div class="rr-room-card__body">
-                <h3 class="rr-card__title">{{ rt.name }}</h3>
-                <p class="rr-room-card__meta">เตียง: {{ rt.bed_type }} · ขนาด {{ rt.size_sqm }} ตร.ม. · พักได้สูงสุด {{ rt.max_occupancy }} คน</p>
-                {% if rt.amenities.all %}
-                <p class="rr-room-card__amenities">
-                    {% for amenity in rt.amenities.all %}<span class="rr-badge">{{ amenity.name }}</span> {% endfor %}
-                </p>
-                {% endif %}
-                <p class="rr-room-card__availability"><span class="rr-badge rr-badge--warning">เหลือ {{ rt.available_count }} ห้อง</span></p>
+    <div x-data="roomPicker({{ max_rooms_per_booking }})">
+        <div class="rr-search__results-head">
+            <div>
+                <p class="rr-search__step">ขั้นที่ 2 จาก 4 · เลือกห้อง</p>
+                <h2 class="rr-search__results-title">ห้องว่างสำหรับคุณ</h2>
             </div>
-            <div class="rr-room-card__action">
-                <p class="rr-room-card__price">ราคารวม <strong>{{ rt.total_price|floatformat:"2g" }}</strong> บาท</p>
-                <div class="rr-room-card__qty">
-                    <label class="rr-field__label" for="room-qty-{{ rt.pk }}">จำนวนห้อง</label>
-                    <input class="rr-input" type="number" id="room-qty-{{ rt.pk }}" name="room_{{ rt.pk }}"
-                           form="book-form" min="0" max="{{ rt.max_bookable }}" value="0" inputmode="numeric">
+            <p class="rr-search__stay">{{ form.cleaned_data.check_in|date:"j M Y" }} – {{ form.cleaned_data.check_out|date:"j M Y" }} · {{ nights }} คืน · {{ form.cleaned_data.guests }} คน · ราคารวมทุกคืนแล้ว</p>
+        </div>
+
+        <ul class="rr-search__list">
+            {% for rt in room_types %}
+            <li class="rr-room-card" :class="quantities[{{ rt.pk }}] > 0 && 'is-selected'">
+                <div class="rr-room-card__photo">
+                    {% with image=rt.images.all.0 %}
+                    {% if image %}
+                    <img class="rr-room-card__image" src="{{ image.image.url }}" alt="{{ rt.name }}" loading="lazy">
+                    {% else %}
+                    <span class="rr-room-card__art rr-room-card__art--{% if rt.max_occupancy <= 2 %}standard{% elif rt.max_occupancy == 3 %}deluxe{% else %}suite{% endif %}" aria-hidden="true"></span>
+                    {% endif %}
+                    {% endwith %}
                 </div>
+                <div class="rr-room-card__body">
+                    <div class="rr-room-card__head">
+                        <h3 class="rr-room-card__title">{{ rt.name }}</h3>
+                        <span class="rr-room-card__left">เหลือ {{ rt.available_count }} ห้อง</span>
+                    </div>
+                    {% if rt.description %}<p class="rr-room-card__description">{{ rt.description }}</p>{% endif %}
+                    <p class="rr-room-card__meta">เตียง {{ rt.bed_type }} · {{ rt.size_sqm }} ตร.ม. · พักได้สูงสุด {{ rt.max_occupancy }} คน</p>
+                    {% if rt.amenities.all %}
+                    <p class="rr-room-card__amenities">{% for amenity in rt.amenities.all %}{{ amenity.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                    {% endif %}
+                    <div class="rr-room-card__action">
+                        <div>
+                            <strong class="rr-room-card__price">฿{{ rt.total_price|floatformat:"2g" }}</strong>
+                            <span class="rr-room-card__nightly">รวม {{ nights }} คืน</span>
+                            <span class="rr-room-card__nightly">เฉลี่ย ฿{{ rt.average_night_price|floatformat:"2g" }}/คืน</span>
+                        </div>
+                        <div class="rr-room-card__qty">
+                            <label class="rr-search__sr-only" for="room-qty-{{ rt.pk }}">จำนวนห้อง {{ rt.name }}</label>
+                            <button type="button" class="rr-stepper rr-stepper--down" aria-label="ลดจำนวนห้อง {{ rt.name }}" hidden x-init="$el.hidden = false" @click="step({{ rt.pk }}, -1)" :class="quantities[{{ rt.pk }}] <= 0 && 'is-limit'">−</button>
+                            <input class="rr-input rr-room-card__qty-input" type="number" id="room-qty-{{ rt.pk }}" name="room_{{ rt.pk }}"
+                                   form="book-form" min="0" max="{{ rt.max_bookable }}" value="0" inputmode="numeric"
+                                   data-room-qty="{{ rt.pk }}" data-room-name="{{ rt.name }}" data-room-total="{{ rt.total_price|floatformat:"2u" }}"
+                                   x-model.number="quantities[{{ rt.pk }}]" @change="set({{ rt.pk }}, $event.target.value)">
+                            <button type="button" class="rr-stepper" aria-label="เพิ่มจำนวนห้อง {{ rt.name }}" hidden x-init="$el.hidden = false" @click="step({{ rt.pk }}, 1)" :class="atMax({{ rt.pk }}) && 'is-limit'">+</button>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="rr-search__summary">
+            <input type="hidden" form="book-form" name="check_in" value="{{ form.cleaned_data.check_in|date:'Y-m-d' }}">
+            <input type="hidden" form="book-form" name="check_out" value="{{ form.cleaned_data.check_out|date:'Y-m-d' }}">
+            <input type="hidden" form="book-form" name="guests" value="{{ form.cleaned_data.guests }}">
+            <div>
+                <strong class="rr-search__summary-text" aria-live="polite" x-text="summary">เลือกจำนวนห้องที่ต้องการ</strong>
+                <p class="rr-search__hint">เลือกจำนวนห้องของแต่ละประเภท รวมได้สูงสุด {{ max_rooms_per_booking }} ห้องต่อครั้ง</p>
             </div>
-        </li>
-        {% endfor %}
-    </ul>
-    <div class="rr-card rr-search__submit">
-        <input type="hidden" form="book-form" name="check_in" value="{{ form.cleaned_data.check_in|date:'Y-m-d' }}">
-        <input type="hidden" form="book-form" name="check_out" value="{{ form.cleaned_data.check_out|date:'Y-m-d' }}">
-        <input type="hidden" form="book-form" name="guests" value="{{ form.cleaned_data.guests }}">
-        <p class="rr-search__hint">เลือกจำนวนห้องของแต่ละประเภท รวมได้สูงสุด {{ max_rooms_per_booking }} ห้องต่อครั้ง</p>
-        <button type="submit" form="book-form" class="rr-btn">จองห้องที่เลือก</button>
+            <button type="submit" form="book-form" class="rr-search__book" :class="count === 0 && 'is-empty'">จองห้องที่เลือก</button>
+        </div>
     </div>
     {% else %}
-    <div class="rr-card rr-search__empty">
-        <p class="rr-card__title">ไม่มีห้องว่างตรงกับเงื่อนไขที่ค้นหา</p>
-        <p>ลองเปลี่ยนวันเข้าพักหรือลดจำนวนผู้เข้าพัก</p>
+    <div class="rr-search__notice rr-search__notice--empty">
+        <svg class="rr-search__keys" aria-hidden="true" focusable="false" viewBox="0 0 280 220">
+            <rect x="20" y="24" width="240" height="176" rx="14" fill="#09483f"></rect>
+            <rect x="34" y="38" width="212" height="148" rx="8" fill="#12695d"></rect>
+            <g fill="#efb765"><circle cx="72" cy="72" r="7"></circle><circle cx="140" cy="72" r="7"></circle><circle cx="208" cy="72" r="7"></circle><circle cx="72" cy="136" r="7"></circle><circle cx="140" cy="136" r="7"></circle><circle cx="208" cy="136" r="7"></circle></g>
+            <path d="M72 79V92M140 79V92M208 79V92M72 143V156M140 143V156M208 143V156" fill="none" stroke="#efb765" stroke-width="3" stroke-linecap="round"></path>
+            <rect x="124" y="4" width="32" height="26" rx="6" fill="#d9603b"></rect>
+        </svg>
+        <div>
+            <p class="rr-search__notice-title">ไม่มีห้องว่างตรงกับเงื่อนไขที่ค้นหา</p>
+            <p class="rr-search__notice-text">ลองเปลี่ยนวันเข้าพักหรือลดจำนวนผู้เข้าพัก</p>
+            <a class="rr-search__edit" href="#search-form">แก้ไขการค้นหา</a>
+        </div>
     </div>
     {% endif %}
 {% endif %}

@@ -9,7 +9,26 @@
       @pointercancel.window="cancel()" @keydown.escape.window="cancel()" @blur.window="cancel()">
   <p class="tc-move-message" role="status" aria-live="polite" x-text="message"></p>
   <p class="tc-drag-ghost" x-cloak x-show="dragging" :style="{left: pointerX + 12 + 'px', top: pointerY + 12 + 'px'}">ย้ายห้อง · วันพักเดิม</p>
-  <h1>ตารางการจอง</h1>
+  <header class="rr-page-head tc-head">
+    <h1 class="rr-page-head__title">ตารางการจอง</h1>
+    {% comment %}
+    Key to the colours of the chart. The words are written out here because neither the
+    booking statuses nor the housekeeping statuses reach this template as a list; they must
+    stay the same as Booking.Status and Room.HousekeepingStatus in the models, so a label
+    changed there has to be changed here in the same commit.
+    The chips carry their own classes on purpose: reusing .tc-housekeeping--* would put a
+    "รอทำความสะอาด" pill on every page and break the tests that assert it is absent when no
+    room is dirty.
+    {% endcomment %}
+    <ul class="tc-legend" aria-label="คำอธิบายสี">
+      <li><span class="tc-legend__chip tc-legend__chip--pending_payment">รอชำระเงิน</span></li>
+      <li><span class="tc-legend__chip tc-legend__chip--confirmed">ยืนยันแล้ว</span></li>
+      <li><span class="tc-legend__chip tc-legend__chip--checked_in">เช็คอินแล้ว</span></li>
+      <li><span class="tc-legend__chip tc-legend__chip--checked_out">เช็คเอาต์แล้ว</span></li>
+      <li><span class="tc-legend__chip tc-legend__chip--clean">สะอาด</span></li>
+      <li><span class="tc-legend__chip tc-legend__chip--dirty">รอทำความสะอาด</span></li>
+    </ul>
+  </header>
   {% include "frontdesk/_tape_chart_panel.html" %}
 </main>
 {% endblock %}

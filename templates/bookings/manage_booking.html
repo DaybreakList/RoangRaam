@@ -61,6 +61,10 @@ The code and the email only travel in POST bodies and hidden fields, never in a 
         <p class="rr-book__note">หมดเวลาชำระเงิน หากชำระเงินแล้ว ระบบกำลังยืนยันการจอง กรุณาตรวจสอบอีกครั้งในอีกสักครู่ หากยังไม่ได้ชำระ กรุณาทำการจองใหม่</p>
         {% endif %}
 
+        {% comment %}
+        Paying is the filled primary button. Cancelling comes last and is no heavier
+        than the link back: both are outlined, the danger one only differs in colour.
+        {% endcomment %}
         <div class="rr-book__actions">
             {% if can_pay %}
             <form method="post" action="{% url 'bookings:pay' property_slug=request.property.slug booking_id=booking.pk %}">
@@ -68,15 +72,15 @@ The code and the email only travel in POST bodies and hidden fields, never in a 
                 <button type="submit" class="rr-btn">ชำระเงิน</button>
             </form>
             {% endif %}
+            <a class="rr-btn{% if can_pay %} rr-btn--secondary{% endif %}" href="{% url 'bookings:search' property_slug=request.property.slug %}">{% if status == Status.CANCELLED %}ค้นหาห้องว่าง{% else %}กลับไปหน้าค้นหา{% endif %}</a>
             {% if can_cancel %}
             <form method="post" action="{% url 'bookings:manage-booking-cancel' property_slug=request.property.slug %}">
                 {% csrf_token %}
                 <input type="hidden" name="code" value="{{ booking.code }}">
                 <input type="hidden" name="email" value="{{ booking.guest.email }}">
-                <button type="submit" class="rr-btn rr-btn--danger">ยกเลิกการจอง</button>
+                <button type="submit" class="rr-btn rr-btn--danger-soft">ยกเลิกการจอง</button>
             </form>
             {% endif %}
-            <a class="rr-btn rr-btn--secondary" href="{% url 'bookings:search' property_slug=request.property.slug %}">{% if status == Status.CANCELLED %}ค้นหาห้องว่าง{% else %}กลับไปหน้าค้นหา{% endif %}</a>
         </div>
     </section>
     {% endif %}

@@ -1,4 +1,16 @@
-/* Folio page (TASK-48). Uses the tokens in static/css/tokens.css only. */
+/* Folio page (TASK-48). Uses the tokens in static/css/tokens.css only: no hex here.
+ *
+ * Staff side of the poster style: flat, dense, no illustration. The display face is on
+ * the page h1 only; the section titles, the tables and every amount stay in the body
+ * face with tabular figures. The one ink offset shadow on the page belongs to the
+ * summary card on the right, the card the desk acts on.
+ */
+
+body:has(.fo-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .fo-page {
   width: 100%;
   box-sizing: border-box;
@@ -9,17 +21,24 @@
   padding: var(--rr-space-6) var(--rr-space-5) var(--rr-space-8);
   color: var(--rr-color-text);
   font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-md);
   line-height: var(--rr-line-height);
 }
-.fo-page h1, .fo-page h2 { font-family: inherit; }
+/* Body face on every heading below the title */
+.fo-page h2 { font-family: var(--rr-font-family); }
 
 .fo-back {
   justify-self: start;
-  color: var(--rr-color-muted);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--rr-tap-target);
+  color: var(--rr-color-primary);
   font-size: var(--rr-font-size-sm);
+  font-weight: 600;
   text-decoration: none;
 }
-.fo-back:hover { color: var(--rr-color-primary); text-decoration: underline; }
+.fo-back:hover { color: var(--rr-color-primary-hover); text-decoration: underline; }
+.fo-back:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 
 /* ---------- Header ---------- */
 .fo-header {
@@ -28,31 +47,43 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--rr-space-3);
+  padding-bottom: var(--rr-space-3);
+  border-bottom: 2px solid var(--rr-color-primary);
 }
 .fo-eyebrow {
   margin: 0;
-  color: var(--rr-color-primary);
+  color: var(--rr-color-focus);
   font-size: var(--rr-font-size-sm);
   font-weight: bold;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.fo-header h1 { margin: 0; font-size: 1.75rem; line-height: 1.3; }
+/* The one place on the page that carries the display face */
+.fo-header h1 {
+  margin: 0;
+  color: var(--rr-color-primary);
+  font-family: var(--rr-font-family-display);
+  font-size: clamp(1.375rem, 3vw, 1.75rem);
+  font-weight: 400;
+  line-height: 1.3;
+}
 
+/* Status pill: the word is always there, the colour only repeats it. The four tints sit
+   on the shared lightness ladder, so they stay apart in greyscale too. */
 .fo-status {
   padding: var(--rr-space-1) var(--rr-space-4);
-  border: 1px solid #c9ded8;
+  border: 2px solid var(--rr-color-success);
   border-radius: var(--rr-radius-pill);
-  background: #e7f2ed;
-  color: var(--rr-color-primary);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
   font-size: var(--rr-font-size-sm);
   font-weight: bold;
   white-space: nowrap;
 }
 .fo-status--confirmed, .fo-status--pending_payment {
-  border-color: #ecd3a5;
-  background: #fbf3e4;
-  color: #8a5a12;
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
 }
 .fo-status--checked_out, .fo-status--cancelled {
   border-color: var(--rr-color-border);
@@ -71,12 +102,13 @@
 .fo-meta li {
   display: grid;
   gap: 2px;
-  padding: var(--rr-space-3) var(--rr-space-4);
-  border: 1px solid var(--rr-color-border);
-  border-radius: var(--rr-radius-md);
+  padding: var(--rr-space-2) var(--rr-space-3);
+  border: 2px solid var(--rr-color-border);
+  border-radius: var(--rr-radius-lg);
   background: var(--rr-color-surface);
 }
 .fo-meta span { color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
+.fo-meta strong { font-variant-numeric: tabular-nums; }
 .fo-code { font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
 
 /* ---------- Layout ---------- */
@@ -89,7 +121,7 @@
 }
 .fo-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--rr-space-5); min-width: 0; }
 
-.fo-card { box-shadow: 0 1px 2px rgba(23, 43, 53, 0.04); }
+/* Flat: only the summary card on the right carries a shadow */
 .fo-card__title {
   display: flex;
   align-items: baseline;
@@ -100,17 +132,26 @@
 }
 .fo-count { color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); font-weight: normal; }
 
+/* Nightly charges: tighter rows than the default card table, still 44px tall */
+.fo-table th, .fo-table td { padding: var(--rr-space-2) var(--rr-space-3); vertical-align: middle; }
 .fo-money, .rr-table .fo-money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fo-room {
   display: inline-block;
   min-width: 2.5em;
   padding: 0 var(--rr-space-2);
   border-radius: var(--rr-radius-sm);
-  background: var(--rr-color-bg);
+  background: var(--rr-color-surface-sunken);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-.fo-empty { margin: 0; padding: var(--rr-space-4); border-radius: var(--rr-radius-md); background: var(--rr-color-bg); color: var(--rr-color-muted); text-align: center; }
+.fo-empty {
+  margin: 0;
+  padding: var(--rr-space-4);
+  border-radius: var(--rr-radius-md);
+  background: var(--rr-color-surface-sunken);
+  color: var(--rr-color-muted);
+  text-align: center;
+}
 
 /* ---------- Payments ---------- */
 .fo-payments { display: grid; gap: var(--rr-space-2); margin: 0; padding: 0; list-style: none; }
@@ -119,33 +160,41 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--rr-space-3);
-  padding: var(--rr-space-3) var(--rr-space-4);
+  padding: var(--rr-space-2) var(--rr-space-3);
   border: 1px solid var(--rr-color-border);
   border-radius: var(--rr-radius-md);
 }
+/* The icon only repeats what the row already says in words ("รับชำระ" / "คืนเงิน"),
+   and the refund amount carries a minus sign of its own. */
 .fo-payment__icon {
   display: grid;
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: #e7f2ed;
-  color: var(--rr-color-primary);
+  border: 2px solid var(--rr-color-success);
+  border-radius: var(--rr-radius-pill);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
   font-weight: bold;
 }
 .fo-payment__body { display: grid; min-width: 0; }
 .fo-payment__body span { color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
 .fo-payment__amount { font-weight: bold; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fo-payment--refund .fo-payment__icon { background: #fbecee; color: var(--rr-color-danger); }
+.fo-payment--refund .fo-payment__icon {
+  border-color: var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
+}
 .fo-payment--refund .fo-payment__amount { color: var(--rr-color-danger); }
 
 /* ---------- Summary (right column) ---------- */
+/* The important card of the page: the only ink offset shadow on the staff side */
 .fo-summary {
   position: sticky;
   top: var(--rr-space-5);
   display: grid;
   gap: var(--rr-space-4);
-  box-shadow: 0 4px 16px rgba(23, 43, 53, 0.06);
+  box-shadow: var(--rr-shadow-offset);
 }
 .fo-summary .fo-card__title { margin-bottom: 0; }
 .fo-totals { display: grid; gap: var(--rr-space-2); margin: 0; }
@@ -154,29 +203,31 @@
 .fo-totals dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fo-totals__total {
   padding-top: var(--rr-space-2);
-  border-top: 1px dashed var(--rr-color-border);
+  border-top: 2px dashed var(--rr-color-border);
 }
 .fo-totals__total dt, .fo-totals__total dd { color: var(--rr-color-text); font-size: var(--rr-font-size-md); font-weight: bold; }
 
+/* Balance block: the label spells the state out ("ยอดคงเหลือ" / "ปิดบิลแล้ว") */
 .fo-balance {
   display: grid;
   gap: 2px;
   padding: var(--rr-space-4);
-  border-radius: var(--rr-radius-md);
+  border-radius: var(--rr-radius-lg);
   text-align: center;
 }
 .fo-balance__label { font-size: var(--rr-font-size-sm); font-weight: bold; }
 .fo-balance__amount { font-size: 1.75rem; font-weight: bold; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .fo-balance__amount small { font-size: var(--rr-font-size-sm); font-weight: normal; }
 .fo-balance__note { font-size: var(--rr-font-size-sm); }
-.fo-balance--due { border: 1px solid #ecd3a5; background: #fbf3e4; color: #8a5a12; }
-.fo-balance--clear { border: 1px solid #c9ded8; background: #e7f2ed; color: var(--rr-color-primary); }
-.fo-balance--closed { border: 1px solid var(--rr-color-primary); background: var(--rr-color-primary); color: #ffffff; }
+.fo-balance--due { border: 2px solid var(--rr-color-warning); background: var(--rr-color-warning-bg); color: var(--rr-color-warning); }
+.fo-balance--clear { border: 2px solid var(--rr-color-success); background: var(--rr-color-success-bg); color: var(--rr-color-success); }
+.fo-balance--closed { border: 2px solid var(--rr-color-primary); background: var(--rr-color-primary); color: var(--rr-color-on-primary); }
 .fo-balance--closed .fo-balance__amount { font-size: var(--rr-font-size-lg); }
 
 .fo-actions { display: grid; gap: var(--rr-space-2); }
 .fo-actions form { margin: 0; }
-.fo-btn { width: 100%; min-height: 44px; font-weight: bold; }
+/* Taking payment and closing the bill are the two actions of the page */
+.fo-btn { width: 100%; min-height: 48px; font-weight: bold; }
 .fo-receipt { display: flex; align-items: center; justify-content: center; gap: var(--rr-space-2); text-decoration: none; }
 .fo-note { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); text-align: center; }
 /* The shared check-out button (check_in_out.css) fills the summary like .fo-btn */
@@ -185,16 +236,68 @@
 .fo-summary .ci-note { text-align: center; }
 
 /* ---------- Messages ---------- */
-.fo-messages { display: grid; gap: var(--rr-space-2); }
+/* Same shape as .rr-alert in components.css (the markup here is the page's own, so the
+   icon is drawn from CSS). The icon shape differs per status, so the message never
+   relies on colour alone; the text itself says what happened. */
+.fo-messages { display: grid; gap: var(--rr-space-3); }
 .fo-message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rr-space-3);
   margin: 0;
   padding: var(--rr-space-3) var(--rr-space-4);
-  border: 1px solid #c9ded8;
-  border-left: 4px solid var(--rr-color-primary);
-  border-radius: var(--rr-radius-md);
-  background: #f3f9f6;
+  border: 2px solid var(--rr-color-success);
+  border-left-width: 6px;
+  border-radius: var(--rr-radius-lg);
+  background: var(--rr-color-success-bg);
+  color: var(--rr-color-success);
 }
-.fo-message--error { border-color: #edb8bd; border-left-color: var(--rr-color-danger); background: #fdf3f4; }
+/* The `/ ""` gives the icon empty alternative text so a screen reader reads only the
+   message; the plain `content` on the line before is the fallback for browsers without it. */
+.fo-message::before {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border: 2px solid currentColor;
+  border-radius: var(--rr-radius-pill);
+  content: "\2713";
+  content: "\2713" / "";
+  font-size: var(--rr-font-size-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+.fo-message--error {
+  border-color: var(--rr-color-danger);
+  background: var(--rr-color-danger-bg);
+  color: var(--rr-color-danger);
+}
+.fo-message--error::before {
+  content: "\2715";
+  content: "\2715" / "";
+}
+.fo-message--warning {
+  border-color: var(--rr-color-warning);
+  background: var(--rr-color-warning-bg);
+  color: var(--rr-color-warning);
+}
+.fo-message--warning::before {
+  content: "!";
+  content: "!" / "";
+}
+.fo-message--info,
+.fo-message--debug {
+  border-color: var(--rr-color-info);
+  background: var(--rr-color-info-bg);
+  color: var(--rr-color-info);
+}
+.fo-message--info::before,
+.fo-message--debug::before {
+  content: "i";
+  content: "i" / "";
+}
 .rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 
 @media (max-width: 860px) {
@@ -203,5 +306,4 @@
 }
 @media (max-width: 600px) {
   .fo-page { padding: var(--rr-space-4) var(--rr-space-3) var(--rr-space-7); }
-  .fo-header h1 { font-size: 1.4rem; }
 }

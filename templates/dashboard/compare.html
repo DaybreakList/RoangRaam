@@ -4,9 +4,9 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">{% endblock %}
 {% block content %}
 <main class="db-page">
-  <header>
-    <h1>เปรียบเทียบโรงแรม</h1>
-    <p class="db-summary">เฉพาะโรงแรมที่คุณเป็นเจ้าของ</p>
+  <header class="rr-page-head">
+    <h1 class="rr-page-head__title">เปรียบเทียบโรงแรม</h1>
+    <p class="db-summary rr-page-head__meta">เฉพาะโรงแรมที่คุณเป็นเจ้าของ</p>
   </header>
 
   {% include "dashboard/_range_form.html" %}

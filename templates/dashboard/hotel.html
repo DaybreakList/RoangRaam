@@ -4,11 +4,11 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">{% endblock %}
 {% block content %}
 <main class="db-page">
-  <header>
-    <h1>แดชบอร์ด</h1>
-    <p class="db-summary">{{ request.property.name }}</p>
+  <header class="rr-page-head">
+    <h1 class="rr-page-head__title">แดชบอร์ด</h1>
+    <p class="db-summary rr-page-head__meta">{{ request.property.name }}</p>
     {% if request.membership.role == 'OWNER' %}
-    <p class="db-actions"><a class="rr-btn rr-btn--secondary" href="{% url 'dashboard:compare' %}">เปรียบเทียบโรงแรม</a></p>
+    <p class="db-actions rr-page-head__actions"><a class="rr-btn rr-btn--secondary" href="{% url 'dashboard:compare' %}">เปรียบเทียบโรงแรม</a></p>
     {% endif %}
   </header>
 
@@ -26,7 +26,7 @@
     {% include "dashboard/_kpi_card.html" with label="อัตราการเข้าพัก (Occupancy)" value=summary.occupancy suffix="%" hint="ห้องคืนที่ขายได้ ÷ ห้องคืนทั้งหมด" %}
     {% include "dashboard/_kpi_card.html" with label="ราคาห้องเฉลี่ย (ADR)" value=summary.adr prefix="฿" hint="รายได้ห้องพัก ÷ ห้องคืนที่ขายได้" %}
     {% include "dashboard/_kpi_card.html" with label="รายได้ต่อห้องว่าง (RevPAR)" value=summary.revpar prefix="฿" hint="รายได้ห้องพัก ÷ ห้องคืนทั้งหมด" %}
-    <article class="rr-card db-kpi">
+    <article class="rr-card rr-card--raised db-kpi">
       <h2 class="db-kpi__label">รายได้ห้องพัก</h2>
       <p class="db-kpi__value">฿{{ summary.room_revenue|floatformat:"2g" }}</p>
       <p class="db-kpi__hint">ขายได้ {{ summary.rooms_sold }} จาก {{ summary.rooms_available }} ห้องคืน</p>

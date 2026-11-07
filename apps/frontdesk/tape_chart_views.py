@@ -54,6 +54,8 @@ class TapeChartView(RoleRequiredMixin, TemplateView):
                 previous_url=link(start - step) if start >= date.min + step else None,
                 next_url=link(start + step) if start <= last_start - step else None,
                 today_url=link(today),
+                # The hotel's own today, for the highlighted column in the chart header
+                today=today,
             )
         partial = request.headers.get('HX-Request') == 'true' and request.headers.get('HX-History-Restore-Request') != 'true'
         template = 'frontdesk/_tape_chart_panel.html' if partial else self.template_name

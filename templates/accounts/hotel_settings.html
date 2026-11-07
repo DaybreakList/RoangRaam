@@ -26,7 +26,7 @@
     </div>
     <div class="hs-hero__text">
       <p class="hs-eyebrow">ตั้งค่าโรงแรม</p>
-      <h1>{{ hotel.name }}</h1>
+      <h1 class="rr-page-head__title">{{ hotel.name }}</h1>
       <p class="hs-lead">ค่าที่ตั้งในหน้านี้แสดงให้ลูกค้าเห็นบนหน้าจอง อีเมลยืนยัน และใบเสร็จ</p>
     </div>
     <a class="rr-btn rr-btn--secondary hs-hero__link" href="{% url 'bookings:search' property_slug=hotel.slug %}" target="_blank" rel="noopener">ดูหน้าจองของลูกค้า ↗</a>

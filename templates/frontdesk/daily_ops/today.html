@@ -4,9 +4,9 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'frontdesk/daily_ops.css' %}"><link rel="stylesheet" href="{% static 'frontdesk/check_in_out.css' %}">{% endblock %}
 {% block content %}
 <main class="do-page">
-  <header>
-    <h1>รายการวันนี้</h1>
-    <p class="do-summary">{{ request.property.name }} · {{ lists.today|date:"l j F Y" }} (ตามเขตเวลาของโรงแรม)</p>
+  <header class="rr-page-head">
+    <h1 class="rr-page-head__title">รายการวันนี้</h1>
+    <p class="do-summary rr-page-head__meta">{{ request.property.name }} · {{ lists.today|date:"l j F Y" }} (ตามเขตเวลาของโรงแรม)</p>
   </header>
 
   {% include "partials/messages.html" %}

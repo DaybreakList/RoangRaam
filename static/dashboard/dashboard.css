@@ -1,3 +1,18 @@
+/*
+ * Dashboard (hotel KPIs and the owner's comparison). Tokens from static/css/tokens.css only.
+ *
+ * Staff side of the poster style: flat and dense, no illustration. The display face is on
+ * the page h1 only (.rr-page-head__title in components.css); card titles, table cells and
+ * every figure stay in the body face with tabular figures. The KPI cards are the point of
+ * the page, so they are the ones that carry the ink offset shadow (.rr-card--raised).
+ * Chart colours are read from the same tokens in static/dashboard/dashboard.js.
+ */
+
+body:has(.db-page) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .db-page {
   box-sizing: border-box;
   display: grid;
@@ -6,11 +21,15 @@
   margin: 0 auto;
   padding: var(--rr-space-6) var(--rr-space-5);
   color: var(--rr-color-text);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-md);
+  line-height: 1.5;
 }
-.db-page h1 { margin: 0 0 var(--rr-space-2); }
 .db-summary { margin: 0; color: var(--rr-color-muted); }
-.db-actions { margin: var(--rr-space-3) 0 0; }
+.db-actions { margin: 0; }
 .db-note { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
+/* Body face on every card title: only the page h1 carries the display face */
+.db-page .rr-card__title { font-family: var(--rr-font-family); }
 
 .db-range {
   display: flex;
@@ -21,19 +40,36 @@
 .db-range__field { margin: 0; min-width: 180px; }
 .db-range__submit { align-self: flex-end; }
 
+/* ---------- KPI cards ---------- */
 .db-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--rr-space-4);
+  /* Room for the 4px offset shadow of every card to sit inside the grid */
+  gap: var(--rr-space-5);
 }
-.db-kpi__label { margin: 0 0 var(--rr-space-2); font-size: var(--rr-font-size-md); }
+.db-kpi {
+  display: grid;
+  align-content: start;
+  gap: var(--rr-space-2);
+}
+.db-kpi__label {
+  margin: 0;
+  color: var(--rr-color-primary);
+  font-family: var(--rr-font-family);
+  font-size: var(--rr-font-size-sm);
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+/* The figure is the card: large, ink, and tabular so the four cards line up */
 .db-kpi__value {
   margin: 0;
-  font-size: 2rem;
+  color: var(--rr-color-text);
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: bold;
   font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
-.db-kpi__hint { margin: var(--rr-space-2) 0 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
+.db-kpi__hint { margin: 0; color: var(--rr-color-muted); font-size: var(--rr-font-size-sm); }
 
 .db-charts {
   display: grid;
@@ -43,9 +79,20 @@
 /* Chart.js sizes the canvas to this box */
 .db-chart { position: relative; height: 320px; }
 .db-details { margin-top: var(--rr-space-4); }
-.db-details summary { cursor: pointer; }
+.db-details summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--rr-tap-target);
+  color: var(--rr-color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
 .db-details summary:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 .db-number { font-variant-numeric: tabular-nums; text-align: right; }
+.db-page .rr-table th, .db-page .rr-table td { padding: var(--rr-space-2) var(--rr-space-3); }
+.db-page .rr-table a { color: var(--rr-color-primary); font-weight: 600; }
+.db-page .rr-table a:hover { color: var(--rr-color-primary-hover); }
+.db-page .rr-table a:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 .rr-table-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
 
 @media (max-width: 600px) {
