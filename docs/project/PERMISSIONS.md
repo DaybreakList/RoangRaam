@@ -55,6 +55,7 @@ O = OWNER, M = MANAGER, F = FRONT_DESK, H = HOUSEKEEPING
 
 | Route | URL | ใครเข้าได้ | เทสต์ |
 | --- | --- | --- | --- |
+| `hotel_list` | `/` | ทุกคน ไม่ต้องล็อกอิน เห็นเฉพาะโรงแรมที่เปิดใช้งาน (ชื่อ ที่อยู่ โลโก้ เวลาเช็คอิน/เอาต์) | `apps/accounts/tests/test_hotel_list.py` |
 | `accounts:home` | `/accounts/` | ผู้ใช้ที่ล็อกอิน เห็นเฉพาะโรงแรมที่ตัวเองเป็นสมาชิก | `apps/accounts/tests/` |
 | login / logout | `/accounts/login/`, `/accounts/logout/` | ทุกคน | Django |
 | `dashboard:compare` | `/dashboard/compare/` | ผู้ที่เป็น OWNER อย่างน้อย 1 โรงแรม เห็นเฉพาะโรงแรมที่ตัวเองเป็น OWNER (อื่น ๆ ได้ 403) | `apps/dashboard/tests/test_dashboard_views.py` |
@@ -78,7 +79,7 @@ id ของโรงแรมอื่นได้ 404 หรือข้อค
 | ไฟล์ | เหตุผล |
 | --- | --- |
 | `apps/properties/middleware.py` | หาโรงแรมจาก slug และ Membership ของผู้ใช้ (ด่านแรกของการแยกข้อมูล) |
-| `apps/accounts/services.py` | รายการโรงแรมของผู้ใช้เอง กรองด้วย `user` |
+| `apps/accounts/services.py` | `active_memberships()` รายการโรงแรมของผู้ใช้เอง กรองด้วย `user`; `public_hotels()` รายชื่อโรงแรมที่เปิดใช้งานสำหรับหน้า `/` กรองด้วย `is_active` และแสดงเฉพาะข้อมูลที่หน้าค้นหาของแต่ละโรงแรมแสดงอยู่แล้ว |
 | `apps/bookings/payments.py` | หาโรงแรมจาก metadata ของ Stripe หลังตรวจลายเซ็น webhook แล้ว |
 | `apps/bookings/folio.py` | `close_bill()` ล็อกแถว `Property` ของโรงแรมที่ผ่าน middleware แล้ว (กรองด้วย pk) เพื่อออกเลขใบเสร็จทีละใบ และอ่าน `tax_rate` ล่าสุด |
 
