@@ -1,10 +1,8 @@
-import calendar
 from datetime import date
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import IntegrityError
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,16 +10,17 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import CalendarFilterForm, DailyPriceForm, PriceRangeForm
-from .models import DailyRate, RoomType
+from .models import RoomType
 
 from apps.properties.permissions import Role
 from .services import (
-    INVENTORY, delete_inventory, inventory_queryset, monthly_prices,
-    save_inventory, set_daily_prices,
+    INVENTORY, adjacent_months, daily_price, delete_inventory, inventory_queryset,
+    month_grid, monthly_prices, save_inventory, save_prices,
 )
 
 READ_ROLES = (Role.OWNER, Role.MANAGER, Role.FRONT_DESK)
 WRITE_ROLES = (Role.OWNER, Role.MANAGER)
+WEEKDAY_LABELS = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.']
 
 
 def inventory_url(request, kind, action='list', pk=None):
@@ -152,16 +151,35 @@ def pricing_context(request, **extra):
     return {**context(request, 'room-types'), 'label': 'ปฏิทินราคา', 'kind': 'pricing', **extra}
 
 
-def price_calendar(request):
+def selected_room_type(request):
+    """The room type in ?room_type=, else the hotel's first one; a bad or foreign id is a 404."""
     queryset = RoomType.scoped.for_property(request.property)
     raw_type = request.GET.get('room_type')
-    if raw_type:
-        try:
-            room_type = get_object_or_404(queryset, pk=int(raw_type))
-        except (ValueError, OverflowError):
+    if not raw_type:
+        return queryset.first()
+    try:
+        return get_object_or_404(queryset, pk=int(raw_type))
+    except (ValueError, OverflowError):
+        raise Http404
+
+
+def parse_day(day):
+    try:
+        return date.fromisoformat(day)
+    except ValueError:
+        raise Http404
+
+
+def reject_foreign_ids(request, pk):
+    """A posted hotel or room type id that differs from the URL is a 404, not a write."""
+    for field, expected in (('property', request.property.pk), ('property_id', request.property.pk),
+                            ('room_type', pk), ('room_type_id', pk)):
+        if any(str(value) != str(expected) for value in request.POST.getlist(field)):
             raise Http404
-    else:
-        room_type = queryset.first()
+
+
+def price_calendar(request):
+    room_type = selected_room_type(request)
     check_role(request)
     if request.method not in ('GET', 'HEAD'):
         return HttpResponseNotAllowed(['GET', 'HEAD'])
@@ -174,27 +192,11 @@ def price_calendar(request):
     if not form.is_valid():
         return render(request, 'rooms/calendar.html', pricing_context(request, filter_form=form), status=400)
     month = form.cleaned_data['month']
-    prices = monthly_prices(request.property, room_type, month)
-    weeks = []
-    for week in calendar.Calendar(firstweekday=0).monthdayscalendar(month.year, month.month):
-        cells = []
-        for number in week:
-            if not number:
-                cells.append(None)
-                continue
-            day = date(month.year, month.month, number)
-            cells.append({'day': day, 'has_rate': day in prices, 'price': prices.get(day),
-                          'edit_url': reverse('rooms:price-day', kwargs={
-                              'property_slug': request.property.slug, 'pk': room_type.pk,
-                              'day': day.isoformat(),
-                          })})
-        weeks.append(cells)
-    index = month.year * 12 + month.month - 1
-    previous = date((index - 1) // 12, (index - 1) % 12 + 1, 1) if index > 12 else None
-    following = date((index + 1) // 12, (index + 1) % 12 + 1, 1) if index < 119999 else None
+    previous, following = adjacent_months(month)
     return render(request, 'rooms/calendar.html', pricing_context(
-        request, filter_form=form, month=month, room_type=room_type, weeks=weeks,
-        weekdays=['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'],
+        request, filter_form=form, month=month, room_type=room_type,
+        weeks=month_grid(month, monthly_prices(request.property, room_type, month)),
+        weekdays=WEEKDAY_LABELS,
         previous_url=pricing_url(request, room_type, previous) if previous else None,
         next_url=pricing_url(request, room_type, following) if following else None,
         bulk_url=reverse('rooms:price-bulk', kwargs={
@@ -205,46 +207,25 @@ def price_calendar(request):
 
 def price_edit(request, pk, day=None):
     room_type = get_object_or_404(RoomType.scoped.for_property(request.property), pk=pk)
-    selected_day = None
-    if day is not None:
-        try:
-            selected_day = date.fromisoformat(day)
-        except ValueError:
-            raise Http404
+    selected_day = None if day is None else parse_day(day)
     check_role(request, write=True)
     if request.method not in ('GET', 'HEAD', 'POST'):
         return HttpResponseNotAllowed(['GET', 'HEAD', 'POST'])
     form_class = DailyPriceForm if selected_day else PriceRangeForm
     status = 200
     if request.method == 'POST':
-        for field, expected in (('property', request.property.pk), ('property_id', request.property.pk),
-                                ('room_type', pk), ('room_type_id', pk)):
-            if any(str(value) != str(expected) for value in request.POST.getlist(field)):
-                raise Http404
+        reject_foreign_ids(request, pk)
         form = form_class(request.POST)
-        if form.is_valid():
-            start = selected_day or form.cleaned_data['start_date']
-            end = selected_day or form.cleaned_data['end_date']
-            try:
-                count = set_daily_prices(request.property, pk, start, end, form.cleaned_data['price'])
-            except ValidationError as error:
-                for field, errors in getattr(error, 'message_dict', {'__all__': error.messages}).items():
-                    form.add_error(field if field in form.fields else None, errors)
-            except IntegrityError:
-                form.add_error(None, 'ข้อมูลราคาเปลี่ยนไประหว่างบันทึก กรุณาลองอีกครั้ง')
-            else:
-                messages.success(request, f'บันทึกราคาเรียบร้อยแล้ว {count} วัน')
-                return redirect(pricing_url(request, room_type, start))
+        saved = save_prices(request.property, pk, form, selected_day)
+        if saved is not None:
+            start, count = saved
+            messages.success(request, f'บันทึกราคาเรียบร้อยแล้ว {count} วัน')
+            return redirect(pricing_url(request, room_type, start))
         status = 400
     else:
-        initial = {}
-        if selected_day:
-            rate = DailyRate.scoped.for_property(request.property).filter(
-                room_type=room_type, date=selected_day,
-            ).first()
-            if rate is not None:
-                initial['price'] = rate.price
-        form = form_class(initial=initial)
+        # A price of 0 is a real price, so compare with None
+        price = daily_price(request.property, room_type, selected_day) if selected_day else None
+        form = form_class(initial={} if price is None else {'price': price})
     return render(request, 'rooms/price_form.html', pricing_context(
         request, form=form, room_type=room_type, day=selected_day,
         back_url=pricing_url(request, room_type, selected_day),
