@@ -1,4 +1,4 @@
-from calendar import monthrange
+from calendar import Calendar, monthrange
 from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
@@ -81,6 +81,61 @@ def monthly_prices(property, room_type, month):
     return dict(DailyRate.scoped.for_property(property).filter(
         room_type=room_type, date__range=(start, end),
     ).values_list('date', 'price'))
+
+
+def month_grid(month, prices):
+    """Weeks of `month` starting on Monday; days outside the month are None.
+
+    `prices` maps a date to its price, as returned by `monthly_prices`. A day with
+    no entry has no rate, which is different from a price of 0.
+    """
+    weeks = []
+    for week in Calendar(firstweekday=0).monthdayscalendar(month.year, month.month):
+        days = [date(month.year, month.month, number) if number else None for number in week]
+        weeks.append([
+            {'day': day, 'has_rate': day in prices, 'price': prices.get(day)} if day else None
+            for day in days
+        ])
+    return weeks
+
+
+def adjacent_months(month):
+    """First days of the months before and after `month`, or None past year 1 or 9999."""
+    first = month.replace(day=1)
+    previous = (first - timedelta(days=1)).replace(day=1) if first > date.min else None
+    # Every month has 28 to 31 days, so 31 days later is always in the next month
+    following = (first + timedelta(days=31)).replace(day=1) if first < date.max.replace(day=1) else None
+    return previous, following
+
+
+def daily_price(property, room_type, day):
+    """Price of one day, or None when the day has no rate (0 is a real price)."""
+    return DailyRate.scoped.for_property(property).filter(
+        room_type=room_type, date=day,
+    ).values_list('price', flat=True).first()
+
+
+def save_prices(property, room_type_id, form, day=None):
+    """Validate a price form and write it; return (first day, number of days) or None.
+
+    `day` is given for the one-day form, which has no date fields. Errors from
+    `set_daily_prices` or from a concurrent write are added to the form, the same
+    way `save_inventory` does.
+    """
+    if not form.is_valid():
+        return None
+    start = day or form.cleaned_data['start_date']
+    end = day or form.cleaned_data['end_date']
+    try:
+        count = set_daily_prices(property, room_type_id, start, end, form.cleaned_data['price'])
+    except ValidationError as error:
+        for field, errors in getattr(error, 'message_dict', {'__all__': error.messages}).items():
+            form.add_error(field if field in form.fields else None, errors)
+    except IntegrityError:
+        form.add_error(None, 'ข้อมูลราคาเปลี่ยนไประหว่างบันทึก กรุณาลองอีกครั้ง')
+    else:
+        return start, count
+    return None
 
 
 def set_daily_prices(property, room_type_id, start_date, end_date, price):
