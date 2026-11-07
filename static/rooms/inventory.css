@@ -63,7 +63,7 @@ body:has(.workspace) {
 .section-heading p { margin: 0; }
 
 /* ---------- Buttons ---------- */
-.button, .workspace button {
+.button, .workspace .button, .workspace button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -78,7 +78,7 @@ body:has(.workspace) {
   font-weight: 600;
   cursor: pointer;
 }
-.button:hover, .workspace button:hover { background: var(--rr-color-primary-hover); border-color: var(--rr-color-primary-hover); color: var(--rr-color-on-primary); }
+.button:hover, .workspace .button:hover, .workspace button:hover {
 .secondary { color: var(--rr-color-primary); border-color: var(--rr-color-primary); background: var(--rr-color-surface); }
 .secondary:hover { background: var(--rr-color-bg); color: var(--rr-color-primary-hover); }
 
