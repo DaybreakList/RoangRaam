@@ -4,9 +4,10 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.static import serve
 
-from apps.accounts.views import property_home
+from apps.accounts.views import hotel_list, property_home
 
 urlpatterns = [
+    path('', hotel_list, name='hotel_list'),
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
     path('p/<slug:property_slug>/', property_home, name='property_home'),

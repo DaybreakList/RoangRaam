@@ -8,10 +8,11 @@
 
 ## ระบบจริง
 
+- **หน้าแรก (เลือกโรงแรม):** https://roangraam.onrender.com/
 - **หน้าจองของแขก:** https://roangraam.onrender.com/p/demo-riverside/search/
 - **เข้าสู่ระบบพนักงาน:** https://roangraam.onrender.com/accounts/login/
 
-Render แพ็กเกจฟรี เปิดครั้งแรกหลังไม่มีคนใช้อาจรอประมาณ 1 นาที (หน้า `/` เปล่าได้ 404 เพราะทุกหน้าอยู่ใต้ `/p/<slug>/` หรือ `/accounts/`)
+Render แพ็กเกจฟรี เปิดครั้งแรกหลังไม่มีคนใช้อาจรอประมาณ 1 นาที
 
 ### บัญชีเดโม
 
