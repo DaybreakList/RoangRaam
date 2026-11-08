@@ -4,6 +4,12 @@
  * Same poster mood as the guest search and booking pages.
  */
 
+/* Drop the browser's default body margin, which showed as a white frame */
+body:has(.rr-pay) {
+  margin: 0;
+  background: var(--rr-color-bg);
+}
+
 .rr-pay {
   box-sizing: border-box;
   min-height: calc(100vh - 66px);
