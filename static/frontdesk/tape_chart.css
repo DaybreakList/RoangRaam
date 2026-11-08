@@ -202,7 +202,15 @@ body:has(.tc-page) {
 .tc-closed { font-size: 12px; color: var(--rr-color-danger); }
 .tc-empty { grid-column: 1 / -1; padding: 12px; color: var(--rr-color-muted); }
 .tc-bar:focus-visible, .tc-scroll:focus-visible { outline: 3px solid var(--rr-color-focus); outline-offset: 2px; }
-@media (max-width: 600px) { .tc-page { padding: 12px; } .tc-controls { padding: 12px; } .tc-filters { margin-left: 0; } }
+/* On a phone the three-part pill has to share the row instead of pushing the page
+   wider than the viewport: at 390px it overflowed by 6px (E2E case 3-17). */
+@media (max-width: 600px) {
+  .tc-page { padding: 12px; }
+  .tc-controls { padding: 12px; }
+  .tc-filters { margin-left: 0; }
+  .tc-navigation { display: flex; flex: 1 1 100%; max-width: 100%; }
+  .tc-navigation > * { flex: 1 1 0; min-width: 0; padding: 0 8px; justify-content: center; text-align: center; }
+}
 
 /* ---------- Room column ---------- */
 .tc-housekeeping { display: inline-block; margin: 2px 0 4px 4px; padding: 1px 7px; border: 2px solid; border-radius: var(--rr-radius-pill); background: var(--rr-color-surface); font-size: 12px; line-height: 1.5; vertical-align: middle; }

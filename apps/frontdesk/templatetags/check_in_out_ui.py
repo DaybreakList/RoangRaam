@@ -57,7 +57,9 @@ def check_in_form(context, row):
     form.fields['id_number'].widget.attrs.update({
         'autocomplete': 'off',
         'x-bind:inputmode': "idType === idCard ? 'numeric' : 'text'",
-        'x-bind:maxlength': 'idType === idCard ? 13 : 50',
+        # 17, not 13: the desk types the card as 1-2345-67890-12-3 and CheckInForm
+        # strips the dashes before counting the digits (E2E case 3-03)
+        'x-bind:maxlength': 'idType === idCard ? 17 : 50',
     })
     return {
         'dom_id': dom_id,

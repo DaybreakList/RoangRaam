@@ -21,6 +21,7 @@ from django.urls import reverse
 from apps.bookings.folio import close_bill, record_desk_payment
 from apps.bookings.models import Booking
 from apps.bookings.tests.factories import BookingFactory, BookingRoomFactory, GuestFactory
+from apps.frontdesk.check_in_out_forms import CheckInForm
 from apps.frontdesk.services.daily_ops import property_today
 from apps.properties.models import Membership
 from apps.properties.tests.factories import PropertyFactory
@@ -121,6 +122,23 @@ def test_check_in_form_posts_to_its_own_booking_with_the_form_fields(client, hot
         # Both ID types come from Guest.IdType through CheckInForm
         assert 'value="ID_CARD"' in form and 'value="PASSPORT"' in form
         assert 'ยืนยันเช็คอิน' in form
+
+
+def test_the_id_field_fits_a_dashed_card_number(client, hotel_a, login_member):
+    """The desk types the card as 1-2345-67890-12-3, so the box has to hold 17 characters."""
+    booking = book(hotel_a, 0, 2)
+    login_member(hotel_a)
+
+    form = form_for(get_page(client, hotel_a), action_url('check_in', booking))
+
+    assert 'x-bind:maxlength="idType === idCard ? 17 : 50"' in form
+    # The server rule does not change: 13 digits once the dashes are gone
+    dashed = CheckInForm({'id_type': 'ID_CARD', 'id_number': '1-2345-67890-12-3'})
+    assert dashed.is_valid(), dashed.errors
+    assert dashed.cleaned_data['id_number'] == '1234567890123'
+    too_short = CheckInForm({'id_type': 'ID_CARD', 'id_number': '123456789012'})
+    assert not too_short.is_valid()
+    assert 'id_number' in too_short.errors
 
 
 def test_ids_stay_unique_with_many_rows(client, hotel_a, login_member):
