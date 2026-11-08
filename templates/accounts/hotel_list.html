@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}เลือกโรงแรม · RoangRaam{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'accounts/accounts.css' %}">{% endblock %}
+
+{% block content %}
+{% comment %}
+Public home page at /. Same hotel cards as the staff picker (accounts/home.html), but each
+card opens the hotel's public search page and there is no role badge.
+{% endcomment %}
+<main class="ac-page">
+  <header class="ac-banner">
+    <div class="ac-banner__text">
+      <p class="ac-banner__eyebrow">ยินดีต้อนรับสู่ RoangRaam</p>
+      <h1 class="rr-page-head__title">เลือกโรงแรมที่ต้องการเข้าพัก</h1>
+      <p>ค้นหาห้องว่างและจองออนไลน์ได้ทันที ไม่ต้องสมัครสมาชิก</p>
+    </div>
+  </header>
+
+  {% if hotels %}
+  <section aria-labelledby="ac-hotels-title">
+    <div class="ac-section-head">
+      <h2 id="ac-hotels-title">โรงแรมของเรา</h2>
+      <p>กดที่การ์ดเพื่อดูห้องว่างและราคาของโรงแรมนั้น</p>
+    </div>
+    <ul class="ac-hotels">
+      {% for hotel in hotels %}
+      <li>
+        <a class="ac-hotel" href="{% url 'bookings:search' property_slug=hotel.slug %}">
+          <span class="ac-hotel__cover" aria-hidden="true"></span>
+          <span class="ac-hotel__logo" aria-hidden="true">
+            {% if hotel.logo %}<img src="{{ hotel.logo.url }}" alt="">{% else %}
+            <svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M8 8h2M14 8h2M8 12h2M14 12h2"/></svg>
+            {% endif %}
+          </span>
+          <span class="ac-hotel__body">
+            <strong class="ac-hotel__name">{{ hotel.name }}</strong>
+            <span class="ac-hotel__address">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              {{ hotel.address|default:"ยังไม่ได้ใส่ที่อยู่"|truncatechars:80 }}
+            </span>
+            <span class="ac-hotel__times">
+              <span>เช็คอิน <b>{{ hotel.check_in_time|time:"H:i" }}</b></span>
+              <span>เช็คเอาต์ <b>{{ hotel.check_out_time|time:"H:i" }}</b></span>
+            </span>
+          </span>
+          <span class="ac-hotel__footer">ค้นหาห้องว่าง <span aria-hidden="true">→</span></span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <section class="ac-empty">
+    <span class="ac-empty__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5"/></svg>
+    </span>
+    <h2>ยังไม่มีโรงแรมเปิดให้จอง</h2>
+    <p>กรุณากลับมาใหม่ภายหลัง</p>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
