@@ -55,6 +55,7 @@ Render แพ็กเกจฟรี เปิดครั้งแรกหล
 
 | เอกสาร | เนื้อหา |
 | --- | --- |
+| [docs/user-guide/USER_GUIDE.md](docs/user-guide/USER_GUIDE.md) | คู่มือการใช้งานสำหรับแขกและพนักงานแต่ละบทบาท |
 | [docs/architecture/README.md](docs/architecture/README.md) | แผนภาพ C4 (Context, Container) และโครงสร้าง app |
 | [docs/architecture/ERD.md](docs/architecture/ERD.md) | ERD และ constraint สำคัญ |
 | [docs/adr/](docs/adr/README.md) | Architecture Decision Records |
