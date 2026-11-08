@@ -136,7 +136,7 @@ docker compose exec web coverage html                  # รายงานแ�
 
 ## เทสต์และคุณภาพโค้ด
 
-ณ 6 พ.ย. 2026: **1,474 tests ผ่าน, coverage 97%** (วัดแบบ branch ด้วย ตั้งค่าใน `.coveragerc`)
+ณ 8 พ.ย. 2026: **1,530 tests ผ่าน, coverage 98%** (วัดแบบ branch ด้วย ตั้งค่าใน `.coveragerc`)
 ตัวเลขล่าสุดอยู่ในหน้า Summary ของ run ล่าสุดใน [Actions](https://github.com/DaybreakList/RoangRaam/actions/workflows/ci.yml)
 
 CI (`.github/workflows/ci.yml`) รันทุก PR และทุก commit บน `main`:
